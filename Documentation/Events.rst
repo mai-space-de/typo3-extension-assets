@@ -30,6 +30,13 @@ Overview
         can rename, reconfigure, or veto individual symbols.
     * - :ref:`event-after-sprite-built`
       - After the full SVG sprite XML is assembled, before it is cached and served.
+    * - :ref:`event-before-image-processing`
+      - Before an image is processed by TYPO3's ImageService. Listeners can modify
+        processing instructions, force a target format (e.g. WebP/AVIF), or skip
+        processing entirely.
+    * - :ref:`event-after-image-processed`
+      - After an image has been processed by ImageService. Listeners can inspect the
+        result, replace the ProcessedFile, or trigger CDN cache warming.
 
 All events carry **mutable data** — call ``set*()`` methods to modify the output.
 The modified content is cached, so subsequent requests serve the listener-modified version.
@@ -448,10 +455,181 @@ Example Listener
                 identifier: 'my-site-static-brand-symbol'
                 event: Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
 
+.. _event-before-image-processing:
+
+BeforeImageProcessingEvent
+==========================
+
+**Class:** ``Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent``
+
+Fired by ``ImageRenderingService::processImage()`` before an image is submitted to
+TYPO3's ``ImageService`` for resizing or format conversion. Listeners can inspect the
+source file, modify processing instructions, force a target output format, or skip
+processing entirely so the original file is returned unchanged.
+
+The event is dispatched once per unique file+dimensions combination per request.
+A request-scoped cache in ``ImageRenderingService`` prevents duplicate dispatches
+when the same image appears in multiple ViewHelper invocations.
+
+API
+---
+
+.. list-table::
+    :header-rows: 1
+    :widths: 40 60
+
+    * - Method
+      - Description
+    * - ``getFile(): File|FileReference``
+      - The source image file or file reference being processed.
+    * - ``getInstructions(): array``
+      - Current processing instructions passed to ImageService (keys: ``width``,
+        ``height``, ``fileExtension``, ``crop``, etc.).
+    * - ``setInstructions(array $instructions): void``
+      - Replace the full set of processing instructions.
+    * - ``getTargetFileExtension(): ?string``
+      - Convenience: get the requested target format (e.g. ``"webp"``). Returns
+        ``null`` when not explicitly set.
+    * - ``setTargetFileExtension(string $extension): void``
+      - Convenience: set the target output format (e.g. ``"webp"``, ``"avif"``,
+        ``"jpg"``). Extension without leading dot.
+    * - ``skip(): void``
+      - Bypass processing entirely. The original file is returned as-is without
+        resizing or format conversion.
+    * - ``isSkipped(): bool``
+      - Returns ``true`` if ``skip()`` was called.
+
+Example Listener
+----------------
+
+.. code-block:: php
+
+    <?php
+    // my_site_package/Classes/EventListener/WebPConversionListener.php
+
+    declare(strict_types=1);
+
+    namespace MyVendor\MySitePackage\EventListener;
+
+    use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
+
+    /**
+     * Globally force WebP output for all raster images.
+     * Equivalent to adding fileExtension="webp" on every <mai:image> — but done once, here.
+     */
+    final class WebPConversionListener
+    {
+        private const CONVERTIBLE = ['image/jpeg', 'image/png', 'image/bmp', 'image/tiff'];
+
+        public function __invoke(BeforeImageProcessingEvent $event): void
+        {
+            // Respect an explicitly configured format (e.g., fileExtension="avif")
+            if ($event->getTargetFileExtension() !== null) {
+                return;
+            }
+
+            if (in_array($event->getFile()->getMimeType(), self::CONVERTIBLE, true)) {
+                $event->setTargetFileExtension('webp');
+            }
+        }
+    }
+
+.. code-block:: yaml
+
+    # Services.yaml
+    MyVendor\MySitePackage\EventListener\WebPConversionListener:
+        tags:
+            -   name: event.listener
+                identifier: 'my-site-webp-conversion'
+                event: Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
+
+.. _event-after-image-processed:
+
+AfterImageProcessedEvent
+========================
+
+**Class:** ``Maispace\MaispaceAssets\Event\AfterImageProcessedEvent``
+
+Fired by ``ImageRenderingService::processImage()`` after TYPO3's ``ImageService`` has
+finished processing an image. Listeners can inspect the result (URL, dimensions, format),
+replace the ``ProcessedFile`` with one from an external CDN or image API, log processing
+metrics, or trigger cache warming.
+
+.. note::
+
+    This event fires after the request-scoped cache has been populated. Replacing the
+    ``ProcessedFile`` via ``setProcessedFile()`` does NOT invalidate that cache entry —
+    the replacement is returned directly to the caller for this request only.
+    To modify instructions before processing, listen to :ref:`event-before-image-processing`.
+
+API
+---
+
+.. list-table::
+    :header-rows: 1
+    :widths: 40 60
+
+    * - Method
+      - Description
+    * - ``getSourceFile(): File|FileReference``
+      - The original source image file or file reference.
+    * - ``getProcessedFile(): ProcessedFile``
+      - The processed image file returned by ImageService.
+    * - ``setProcessedFile(ProcessedFile $processedFile): void``
+      - Replace the processed file used for HTML rendering. Useful for substituting
+        a CDN-hosted variant.
+    * - ``getInstructions(): array``
+      - The processing instructions that were applied (read-only). To change
+        instructions, listen to ``BeforeImageProcessingEvent`` instead.
+
+Example Listener
+----------------
+
+.. code-block:: php
+
+    <?php
+    // my_site_package/Classes/EventListener/ImageMetricsListener.php
+
+    declare(strict_types=1);
+
+    namespace MyVendor\MySitePackage\EventListener;
+
+    use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
+    use Psr\Log\LoggerInterface;
+
+    final class ImageMetricsListener
+    {
+        public function __construct(
+            private readonly LoggerInterface $logger,
+        ) {}
+
+        public function __invoke(AfterImageProcessedEvent $event): void
+        {
+            $processed = $event->getProcessedFile();
+
+            $this->logger->debug('Image processed', [
+                'source'    => $event->getSourceFile()->getIdentifier(),
+                'output'    => $processed->getIdentifier(),
+                'width'     => $processed->getProperty('width'),
+                'height'    => $processed->getProperty('height'),
+                'mime'      => $processed->getMimeType(),
+            ]);
+        }
+    }
+
+.. code-block:: yaml
+
+    # Services.yaml
+    MyVendor\MySitePackage\EventListener\ImageMetricsListener:
+        tags:
+            -   name: event.listener
+                identifier: 'my-site-image-metrics'
+                event: Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
+
 Example Listeners in the Extension
 ====================================
 
-The extension ships five example listener classes in
+The extension ships seven example listener classes in
 ``Classes/EventListener/`` that are **commented out** in ``Configuration/Services.yaml``.
 They provide a comprehensive reference for all available event API methods:
 
@@ -460,3 +638,5 @@ They provide a comprehensive reference for all available event API methods:
 *  ``AfterScssCompiledEventListener`` — SCSS output post-processing examples
 *  ``BeforeSpriteSymbolRegisteredEventListener`` — per-symbol filtering and renaming examples
 *  ``AfterSpriteBuiltEventListener`` — full sprite post-processing examples
+*  ``BeforeImageProcessingEventListener`` — force WebP/AVIF, skip SVG processing, clamp max width
+*  ``AfterImageProcessedEventListener`` — log metrics, CDN cache warming, external image API

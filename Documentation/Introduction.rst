@@ -101,7 +101,7 @@ Extensibility
 Global ViewHelper Namespace
 ===========================
 
-The namespace ``ma`` is registered globally, so no ``{namespace}`` declaration is needed
+The namespace ``mai`` is registered globally, so no ``{namespace}`` declaration is needed
 at the top of your Fluid templates:
 
 .. code-block:: html

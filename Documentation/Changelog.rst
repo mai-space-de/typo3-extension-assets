@@ -93,14 +93,20 @@ PSR-14 Events
    *  ``AfterScssCompiledEvent``
    *  ``AfterSpriteBuiltEvent``
    *  ``BeforeSpriteSymbolRegisteredEvent``
+   *  ``BeforeImageProcessingEvent``
+   *  ``AfterImageProcessedEvent``
 
    All events expose mutable setters so listeners can modify the final output.
    ``BeforeSpriteSymbolRegisteredEvent`` allows filtering, renaming, or vetoing individual
-   symbols before they are stored in the registry.
+   symbols before they are stored in the registry. ``BeforeImageProcessingEvent`` allows
+   modifying processing instructions or skipping processing entirely;
+   ``AfterImageProcessedEvent`` allows replacing the ``ProcessedFile``, logging metrics,
+   or triggering CDN cache warming.
 
-*  **Example Event Listeners** — Four documented example listeners (commented out by
+*  **Example Event Listeners** — Seven documented example listeners (commented out by
    default) demonstrating CSS variable injection, JS configuration injection, SCSS
-   size auditing, and SVG sprite symbol appending.
+   size auditing, SVG sprite symbol appending, WebP/AVIF conversion, and image
+   metrics logging.
 
 Other
 ~~~~~

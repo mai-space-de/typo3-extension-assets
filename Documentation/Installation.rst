@@ -59,7 +59,7 @@ In the **sys_template** record for your site, set the include to:
 ViewHelper Namespace
 ====================
 
-The ViewHelper namespace ``ma`` is registered globally in ``ext_localconf.php``. You
+The ViewHelper namespace ``mai`` is registered globally in ``ext_localconf.php``. You
 do **not** need to add a ``{namespace}`` declaration to your Fluid templates.
 
 You can use the ViewHelpers immediately:

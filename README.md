@@ -248,8 +248,10 @@ Hook into asset processing by registering listeners in your site package's `Conf
 | `AfterScssCompiledEvent` | After SCSS is compiled, before caching |
 | `BeforeSpriteSymbolRegisteredEvent` | Per symbol during auto-discovery — can rename, modify, or veto |
 | `AfterSpriteBuiltEvent` | After full sprite XML is assembled, before caching |
+| `BeforeImageProcessingEvent` | Before each image is processed — modify instructions, force WebP/AVIF, or skip |
+| `AfterImageProcessedEvent` | After each image is processed — inspect result, replace ProcessedFile, log metrics |
 
-Example listeners with full documentation are in `Classes/EventListener/` (inactive by default). Copy the relevant `Services.yaml` block to your site package to activate one.
+Seven example listeners with full documentation are in `Classes/EventListener/` (inactive by default). Copy the relevant `Services.yaml` block to your site package to activate one.
 
 ---
 

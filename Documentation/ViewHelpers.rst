@@ -6,13 +6,13 @@
 ViewHelpers
 ===========
 
-All ViewHelpers are available under the globally registered namespace ``ma``.
+All ViewHelpers are available under the globally registered namespace ``mai``.
 No ``{namespace}`` declaration is needed in your Fluid templates.
 
 .. _viewhelper-css:
 
-ma:css
-======
+mai:css
+=======
 
 Include a CSS asset from a file or inline Fluid content.
 
@@ -94,8 +94,8 @@ Arguments
 
 .. _viewhelper-js:
 
-ma:js
-=====
+mai:js
+======
 
 Include a JavaScript asset from a file or inline Fluid content.
 
@@ -172,8 +172,8 @@ Arguments
 
 .. _viewhelper-scss:
 
-ma:scss
-=======
+mai:scss
+========
 
 Compile SCSS to CSS server-side and include the result as a CSS asset.
 No Node.js or build pipeline is required.
@@ -258,8 +258,8 @@ Arguments
 
 .. _viewhelper-svgsprite:
 
-ma:svgSprite
-============
+mai:svgSprite
+=============
 
 Output an ``<svg><use>`` reference to a symbol from the centrally served SVG sprite.
 
@@ -425,8 +425,8 @@ Complete Layout Example
 
 .. _viewhelper-image:
 
-ma:image
-========
+mai:image
+=========
 
 Render a single responsive ``<img>`` tag. Images are processed via TYPO3's native
 ``ImageService``, which handles resizing, cropping, and format conversion (including WebP
@@ -529,8 +529,8 @@ Arguments
 
 .. _viewhelper-picture:
 
-ma:picture
-==========
+mai:picture
+===========
 
 Render a responsive ``<picture>`` element. Child ``<mai:picture.source>`` ViewHelpers define
 the ``<source>`` tags. A fallback ``<img>`` is appended automatically from the parent image
@@ -616,8 +616,8 @@ Arguments
 
 .. _viewhelper-picture-source:
 
-ma:picture.source
-=================
+mai:picture.source
+==================
 
 Render a single ``<source>`` tag inside a ``<mai:picture>`` element. Must be a direct child
 of ``<mai:picture>``. Inherits the parent image unless overridden via the ``image`` argument.
@@ -672,8 +672,8 @@ Arguments
 
 .. _viewhelper-figure:
 
-ma:figure
-=========
+mai:figure
+==========
 
 Wrap content in a semantic ``<figure>`` element with an optional ``<figcaption>``. Intended
 as a standalone wrapper for images or any content that benefits from the figure/caption
