@@ -626,6 +626,28 @@ Example Listener
                 identifier: 'my-site-image-metrics'
                 event: Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
 
+Built-in Listener — FontPreloadEventListener
+=============================================
+
+``FontPreloadEventListener`` is the only listener that ships **active** (not commented out).
+It listens to TYPO3's own ``TYPO3\CMS\Core\Page\Event\BeforeStylesheetsRenderingEvent`` and
+calls ``FontRegistry::emitPreloadHeaders()`` to inject ``<link rel="preload" as="font">``
+tags just before stylesheets render — ensuring font hints always appear early in ``<head>``.
+
+If you write your own listener for ``BeforeStylesheetsRenderingEvent`` and need it to run
+**before** or **after** font preloading, set an explicit ``before``/``after`` relationship
+in your ``Services.yaml`` tag:
+
+.. code-block:: yaml
+
+    MyVendor\MySitePackage\EventListener\MyStylesheetListener:
+        tags:
+            -   name: event.listener
+                identifier: 'my-site-stylesheet-listener'
+                event: TYPO3\CMS\Core\Page\Event\BeforeStylesheetsRenderingEvent
+                # Run after font preloading so fonts are already in <head>:
+                after: 'maispace-assets-font-preload'
+
 Example Listeners in the Extension
 ====================================
 

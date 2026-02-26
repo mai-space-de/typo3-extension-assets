@@ -79,6 +79,22 @@ plugin.tx_maispace_assets {
         # Override per image via the ViewHelper's lazyloadWithClass="..." argument.
         # Example: lazyloadWithClass = lazyload
         lazyloadWithClass =
+
+        # Force all images to a specific output format globally.
+        # Leave empty (default) to keep the source file format (no conversion).
+        # Requires the TYPO3 image processor (GraphicsMagick/ImageMagick) to support the format.
+        # Override per image via the ViewHelper's fileExtension="webp" argument.
+        # Applies to: mai:image, mai:picture fallback <img>, mai:picture.source (when formats is not set).
+        # Example: forceFormat = webp
+        forceFormat =
+
+        # Automatically render format-alternative <source> tags in <mai:picture> elements.
+        # Comma-separated list of formats in preference order (most capable first).
+        # Each format produces one <source type="image/..."> tag before the fallback <img>.
+        # Override per element via the ViewHelper's formats="..." argument.
+        # Leave empty (default) to disable automatic format source sets globally.
+        # Example: alternativeFormats = avif, webp
+        alternativeFormats =
     }
 
     # =========================================================================

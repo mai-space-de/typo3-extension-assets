@@ -69,7 +69,39 @@ final class JsViewHelper extends AbstractAssetViewHelper
         $this->registerArgument(
             'type',
             'string',
-            'The type attribute for the <script> tag. Use "module" for ES modules (implies defer). Omit for classic scripts.',
+            'The type attribute for the <script> tag. Use "module" for ES modules (implies defer). '
+            . 'Use "importmap" together with inline content to emit an import map block. Omit for classic scripts.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'nonce',
+            'string',
+            'CSP nonce value to add as a nonce attribute on the inline <script> tag. '
+            . 'Only applied for inline JS (when no src is set). Generate a per-request cryptographic '
+            . 'nonce in your site package and pass it here to satisfy a Content-Security-Policy '
+            . 'that restricts inline scripts.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'integrity',
+            'bool',
+            'Automatically compute and add an SRI integrity attribute (sha384) to the generated <script> tag. '
+            . 'Only applied for external file assets (not inline). '
+            . 'Browsers will refuse to execute the script if its hash does not match.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'crossorigin',
+            'string',
+            'Value for the crossorigin attribute added alongside integrity. '
+            . 'Defaults to "anonymous" when integrity is enabled. '
+            . 'Use "use-credentials" for authenticated cross-origin requests.',
             false,
             null,
         );

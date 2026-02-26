@@ -68,6 +68,37 @@ final class CssViewHelper extends AbstractAssetViewHelper
             false,
             'all',
         );
+
+        $this->registerArgument(
+            'nonce',
+            'string',
+            'CSP nonce value to add as a nonce attribute on the inline <style> tag. '
+            . 'Only applied when inline="true". Generate a per-request cryptographic nonce in your '
+            . 'site package (e.g. via a PSR-15 middleware) and pass it here to satisfy a '
+            . 'Content-Security-Policy that restricts inline styles.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'integrity',
+            'bool',
+            'Automatically compute and add an SRI integrity attribute (sha384) to the generated <link> tag. '
+            . 'Only applied for external file assets (not inline). '
+            . 'Browsers will refuse to load the file if its hash does not match.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'crossorigin',
+            'string',
+            'Value for the crossorigin attribute added alongside integrity. '
+            . 'Defaults to "anonymous" when integrity is enabled. '
+            . 'Use "use-credentials" for authenticated cross-origin requests.',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(

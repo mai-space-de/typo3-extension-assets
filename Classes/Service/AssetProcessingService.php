@@ -98,11 +98,16 @@ final class AssetProcessingService
         }
 
         // 8. Register with AssetCollector.
+        $nonce = is_string($arguments['nonce'] ?? null) && ($arguments['nonce'] ?? '') !== ''
+            ? $arguments['nonce']
+            : null;
+
         if ($isInline) {
+            $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
             $collector->addInlineStyleSheet(
                 $identifier,
                 $processed,
-                [],
+                $inlineAttrs,
                 ['priority' => $isPriority],
             );
             return;
@@ -115,6 +120,9 @@ final class AssetProcessingService
             return;
         }
 
+        // Build SRI integrity attributes when requested.
+        $integrityAttrs = self::buildIntegrityAttrs($arguments, $processed);
+
         if ($isDeferred) {
             // Deferred non-blocking load via media="print" onload swap trick.
             // The browser loads the stylesheet without blocking render, then the onload
@@ -123,10 +131,10 @@ final class AssetProcessingService
             $collector->addStyleSheet(
                 $identifier,
                 $publicPath,
-                [
+                array_filter([
                     'media'  => 'print',
                     'onload' => "this.media='" . addslashes($media) . "'",
-                ],
+                ] + $integrityAttrs),
                 ['priority' => false], // deferred CSS is never in <head>
             );
             // Noscript fallback — registered as a separate inline block.
@@ -140,7 +148,7 @@ final class AssetProcessingService
             $collector->addStyleSheet(
                 $identifier,
                 $publicPath,
-                ['media' => $media],
+                array_filter(['media' => $media] + $integrityAttrs),
                 ['priority' => $isPriority],
             );
         }
@@ -196,12 +204,17 @@ final class AssetProcessingService
             $cache->set($cacheKey, $processed, ['maispace_assets_js']);
         }
 
+        $nonce = is_string($arguments['nonce'] ?? null) && ($arguments['nonce'] ?? '') !== ''
+            ? $arguments['nonce']
+            : null;
+
         // Inline JS.
         if (empty($arguments['src'])) {
+            $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
             $collector->addInlineJavaScript(
                 $identifier,
                 $processed,
-                [],
+                $inlineAttrs,
                 ['priority' => $isPriority],
             );
             return;
@@ -213,6 +226,9 @@ final class AssetProcessingService
             $logger->error('maispace_assets: Could not write JS file for identifier ' . $identifier);
             return;
         }
+
+        // Build SRI integrity attributes when requested.
+        $integrityAttrs = self::buildIntegrityAttrs($arguments, $processed);
 
         $attributes = [];
         if ($useDefer) {
@@ -228,7 +244,7 @@ final class AssetProcessingService
         $collector->addJavaScript(
             $identifier,
             $publicPath,
-            $attributes,
+            array_filter($attributes + $integrityAttrs),
             ['priority' => $isPriority],
         );
     }
@@ -351,8 +367,13 @@ final class AssetProcessingService
         $collector  = self::collector();
         $logger     = self::logger();
 
+        $nonce = is_string($arguments['nonce'] ?? null) && ($arguments['nonce'] ?? '') !== ''
+            ? $arguments['nonce']
+            : null;
+
         if ($isInline) {
-            $collector->addInlineStyleSheet($identifier, $css, [], ['priority' => $isPriority]);
+            $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
+            $collector->addInlineStyleSheet($identifier, $css, $inlineAttrs, ['priority' => $isPriority]);
             return;
         }
 
@@ -362,11 +383,16 @@ final class AssetProcessingService
             return;
         }
 
+        $integrityAttrs = self::buildIntegrityAttrs($arguments, $css);
+
         if ($isDeferred) {
             $collector->addStyleSheet(
                 $identifier,
                 $publicPath,
-                ['media' => 'print', 'onload' => "this.media='" . addslashes($media) . "'"],
+                array_filter([
+                    'media'  => 'print',
+                    'onload' => "this.media='" . addslashes($media) . "'",
+                ] + $integrityAttrs),
                 ['priority' => false],
             );
             $collector->addInlineStyleSheet(
@@ -379,7 +405,7 @@ final class AssetProcessingService
             $collector->addStyleSheet(
                 $identifier,
                 $publicPath,
-                ['media' => $media],
+                array_filter(['media' => $media] + $integrityAttrs),
                 ['priority' => $isPriority],
             );
         }
@@ -449,6 +475,33 @@ final class AssetProcessingService
             return $argumentValue;
         }
         return (bool)self::getTypoScriptSetting($section . '.' . $setting, false);
+    }
+
+    /**
+     * Build the `integrity` and `crossorigin` attributes for SRI when requested.
+     *
+     * When `$arguments['integrity']` is `true`, computes a SHA-384 hash of the processed
+     * asset content and returns both attributes so they can be merged into the link/script attrs.
+     *
+     * @param array  $arguments ViewHelper arguments (integrity, crossorigin keys)
+     * @param string $content   The processed asset content to hash
+     * @return array<string, string>  Empty array when integrity is not requested
+     */
+    private static function buildIntegrityAttrs(array $arguments, string $content): array
+    {
+        if (empty($arguments['integrity'])) {
+            return [];
+        }
+
+        $hash       = base64_encode(hash('sha384', $content, true));
+        $crossorigin = is_string($arguments['crossorigin'] ?? null) && $arguments['crossorigin'] !== ''
+            ? $arguments['crossorigin']
+            : 'anonymous';
+
+        return [
+            'integrity'   => 'sha384-' . $hash,
+            'crossorigin' => $crossorigin,
+        ];
     }
 
     /**

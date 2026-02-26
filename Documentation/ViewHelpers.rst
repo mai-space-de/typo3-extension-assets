@@ -91,6 +91,28 @@ Arguments
       - No
       - ``all``
       - The ``media`` attribute for the generated ``<link>`` tag.
+    * - ``nonce``
+      - string
+      - No
+      - null
+      - CSP nonce value added as a ``nonce`` attribute on inline ``<style>`` tags.
+        Only applied when ``inline="true"``. Generate a per-request cryptographic nonce
+        in a PSR-15 middleware and pass it here to satisfy a ``Content-Security-Policy``
+        that restricts inline styles.
+    * - ``integrity``
+      - bool
+      - No
+      - null
+      - When ``true``, automatically compute a SHA-384 SRI hash of the processed CSS
+        and add an ``integrity`` attribute to the generated ``<link>`` tag.
+        Only applied for external file assets (not inline). Browsers refuse to load
+        the file if the hash does not match.
+    * - ``crossorigin``
+      - string
+      - No
+      - null
+      - Value for the ``crossorigin`` attribute added alongside ``integrity``.
+        Defaults to ``"anonymous"`` when ``integrity`` is enabled.
 
 .. _viewhelper-js:
 
@@ -168,7 +190,29 @@ Arguments
       - string
       - No
       - null
-      - The ``type`` attribute (e.g. ``module``). ES modules imply ``defer`` by the browser.
+      - The ``type`` attribute (e.g. ``"module"`` for ES modules, ``"importmap"`` for
+        inline import maps). ES modules imply ``defer`` by the browser.
+    * - ``nonce``
+      - string
+      - No
+      - null
+      - CSP nonce value added as a ``nonce`` attribute on inline ``<script>`` tags.
+        Only applied for inline JS (no ``src`` set). Generate a per-request nonce in a
+        PSR-15 middleware and pass it here to satisfy a ``Content-Security-Policy``.
+    * - ``integrity``
+      - bool
+      - No
+      - null
+      - When ``true``, automatically compute a SHA-384 SRI hash of the processed JS
+        and add an ``integrity`` attribute to the ``<script>`` tag.
+        Only applied for external file assets. Browsers refuse to execute the script
+        if the hash does not match.
+    * - ``crossorigin``
+      - string
+      - No
+      - null
+      - Value for the ``crossorigin`` attribute added alongside ``integrity``.
+        Defaults to ``"anonymous"`` when ``integrity`` is enabled.
 
 .. _viewhelper-scss:
 
@@ -526,6 +570,52 @@ Arguments
       - No
       - ``[]``
       - Additional HTML attributes merged onto the ``<img>`` tag.
+    * - ``srcset``
+      - string
+      - No
+      - null
+      - Comma-separated list of target widths for the ``srcset`` attribute,
+        e.g. ``"400, 800, 1200"``. Each width is processed independently; the actual
+        output pixel width becomes the ``w`` descriptor. Accepts TYPO3 width notation
+        (``"400c"``, ``"800m"``). The main ``src`` uses the ``width`` argument as usual.
+        Use :ref:`viewhelper-picture` for breakpoint-based art direction.
+    * - ``sizes``
+      - string
+      - No
+      - null
+      - Value for the HTML ``sizes`` attribute, e.g. ``"(max-width: 768px) 100vw, 50vw"``.
+        Has no effect when ``srcset`` is not set.
+    * - ``fileExtension``
+      - string
+      - No
+      - null
+      - Force the output image format, e.g. ``"webp"`` or ``"avif"``. Applied to both
+        ``src`` and all ``srcset`` entries. Overrides ``image.forceFormat`` from TypoScript.
+        Leave empty to use the source file format or the global TypoScript default.
+
+Responsive images with srcset
+------------------------------
+
+For simple responsive use cases that don't need different images per breakpoint, add
+``srcset`` and ``sizes`` to a single ``<mai:image>`` instead of reaching for ``<mai:picture>``:
+
+.. code-block:: html
+
+    <!-- Single image, multiple sizes for the browser to pick from -->
+    <mai:image image="{imageRef}" alt="{alt}" width="1200"
+               srcset="400, 800, 1200, 1600"
+               sizes="(max-width: 600px) 100vw, (max-width: 1200px) 80vw, 1200px" />
+
+    <!-- Output:
+    <img src="/img_1200.jpg" width="1200" height="675"
+         srcset="/img_400.jpg 400w, /img_800.jpg 800w, /img_1200.jpg 1200w, /img_1600.jpg 1600w"
+         sizes="(max-width: 600px) 100vw, (max-width: 1200px) 80vw, 1200px"
+         loading="lazy" alt="..."> -->
+
+    <!-- Responsive WebP with srcset -->
+    <mai:image image="{imageRef}" alt="{alt}" width="1200"
+               srcset="400, 800, 1200" fileExtension="webp"
+               sizes="(max-width: 768px) 100vw, 60vw" />
 
 .. _viewhelper-picture:
 
@@ -613,6 +703,27 @@ Arguments
       - No
       - ``[]``
       - Additional HTML attributes on the ``<picture>`` tag.
+    * - ``formats``
+      - string
+      - No
+      - null
+      - Comma-separated list of target formats in preference order, e.g. ``"avif, webp"``.
+        Renders one ``<source type="image/...">`` per format before the fallback ``<img>``,
+        allowing browsers to pick the best supported format. Falls back to the TypoScript
+        setting ``image.alternativeFormats`` when not set.
+    * - ``fallback``
+      - bool
+      - No
+      - ``true``
+      - When ``formats`` is set, also emit a ``<source>`` for the original (unmodified)
+        format directly before the fallback ``<img>``. Set to ``false`` to omit it.
+    * - ``fileExtension``
+      - string
+      - No
+      - null
+      - Force the output format for the fallback ``<img>`` only (e.g. ``"webp"``).
+        Overrides ``image.forceFormat`` from TypoScript. Has no effect on ``<source>``
+        tags generated by the ``formats`` argument.
 
 .. _viewhelper-picture-source:
 
@@ -668,7 +779,26 @@ Arguments
       - No
       - null
       - MIME type for the ``<source>`` tag (e.g. ``image/webp``). Auto-detected from the
-        processed file extension when omitted.
+        processed file extension when omitted. Has no effect when ``formats`` is set.
+    * - ``formats``
+      - string
+      - No
+      - null
+      - Comma-separated list of target formats in preference order, e.g. ``"avif, webp"``.
+        Renders one ``<source>`` per format before the original-format source. Falls back to
+        the TypoScript setting ``image.alternativeFormats`` when not set.
+    * - ``fallback``
+      - bool
+      - No
+      - ``true``
+      - When ``formats`` is set, also emit a ``<source>`` for the original (unmodified)
+        format as a final fallback within the ``<picture>``. Set to ``false`` to omit it.
+    * - ``fileExtension``
+      - string
+      - No
+      - null
+      - Force the output format when ``formats`` is not set, e.g. ``"webp"``.
+        Overrides ``image.forceFormat`` from TypoScript.
 
 .. _viewhelper-figure:
 
