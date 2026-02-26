@@ -375,18 +375,24 @@ definitions. The registry auto-discovers this file across all loaded extensions:
     declare(strict_types=1);
 
     return [
+        // Global icon — included on all sites
         'icon-arrow' => [
             'src' => 'EXT:my_sitepackage/Resources/Public/Icons/arrow.svg',
         ],
         'icon-close' => [
             'src' => 'EXT:my_sitepackage/Resources/Public/Icons/close.svg',
         ],
-        'icon-logo' => [
-            'src' => 'EXT:my_sitepackage/Resources/Public/Icons/logo.svg',
+        // Site-scoped icon — only included in the sprite for site "brand-a"
+        'icon-brand-logo' => [
+            'src'   => 'EXT:brand_a/Resources/Public/Icons/logo.svg',
+            'sites' => ['brand-a'],
         ],
     ];
 
 The symbol array key is the ID used in ``<ma:svgSprite use="icon-arrow" />``.
+
+The optional ``'sites'`` key restricts a symbol to specific TYPO3 site identifiers. Entries
+without ``'sites'`` are global. See :ref:`configuration-multisite` for details.
 
 Complete Layout Example
 -----------------------
@@ -416,3 +422,336 @@ Complete Layout Example
         <ma:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
     </body>
     </html>
+
+.. _viewhelper-image:
+
+ma:image
+========
+
+Render a single responsive ``<img>`` tag. Images are processed via TYPO3's native
+``ImageService``, which handles resizing, cropping, and format conversion (including WebP
+when configured in Install Tool).
+
+**Accepted image types:** ``sys_file_reference`` UID (int), FAL ``File`` / ``FileReference``
+object, ``EXT:`` path, or public-relative path string.
+
+**Width/height notation:** ``800`` (exact) · ``800c`` (centre crop) · ``800m`` (max, proportional).
+
+.. code-block:: html
+
+    <!-- From a sys_file_reference UID -->
+    <ma:image image="{file.uid}" alt="{file.alternative}" width="800" />
+
+    <!-- Hero: preloaded, high fetchpriority, no lazy -->
+    <ma:image image="{hero}" alt="{heroAlt}" width="1920"
+              lazyloading="false" preload="true" fetchPriority="high" />
+
+    <!-- Lazy load with a JS-hook class for lazysizes -->
+    <ma:image image="{img}" alt="{alt}" width="427c" height="240"
+              lazyloadWithClass="lazyload" />
+
+    <!-- From an EXT: path (static asset) -->
+    <ma:image image="EXT:theme/Resources/Public/Images/logo.png" alt="Logo" width="200m" />
+
+Arguments
+---------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 22 10 10 15 43
+
+    * - Argument
+      - Type
+      - Required
+      - Default
+      - Description
+    * - ``image``
+      - mixed
+      - **Yes**
+      - —
+      - UID (int), File/FileReference object, ``EXT:`` path, or public-relative string path.
+    * - ``alt``
+      - string
+      - **Yes**
+      - —
+      - Alt text. Pass an empty string for decorative images.
+    * - ``width``
+      - string
+      - No
+      - ``''``
+      - Width in TYPO3 notation: ``800``, ``800c``, ``800m``.
+    * - ``height``
+      - string
+      - No
+      - ``''``
+      - Height in TYPO3 notation. Derived proportionally from width when empty.
+    * - ``lazyloading``
+      - bool
+      - No
+      - null
+      - Add ``loading="lazy"``. ``null`` inherits ``image.lazyloading`` from TypoScript.
+    * - ``lazyloadWithClass``
+      - string
+      - No
+      - null
+      - CSS class added alongside ``loading="lazy"``. Also enables lazy loading.
+        ``null`` inherits ``image.lazyloadWithClass`` from TypoScript.
+    * - ``fetchPriority``
+      - string
+      - No
+      - null
+      - ``fetchpriority`` attribute. Allowed values: ``high``, ``low``, ``auto``.
+    * - ``preload``
+      - bool
+      - No
+      - ``false``
+      - Add ``<link rel="preload" as="image">`` to ``<head>``.
+    * - ``class``
+      - string
+      - No
+      - null
+      - CSS class(es) for the ``<img>`` element.
+    * - ``id``
+      - string
+      - No
+      - null
+      - ``id`` attribute for the ``<img>`` element.
+    * - ``title``
+      - string
+      - No
+      - null
+      - ``title`` attribute for the ``<img>`` element.
+    * - ``additionalAttributes``
+      - array
+      - No
+      - ``[]``
+      - Additional HTML attributes merged onto the ``<img>`` tag.
+
+.. _viewhelper-picture:
+
+ma:picture
+==========
+
+Render a responsive ``<picture>`` element. Child ``<ma:picture.source>`` ViewHelpers define
+the ``<source>`` tags. A fallback ``<img>`` is appended automatically from the parent image
+and dimensions.
+
+.. code-block:: html
+
+    <ma:picture image="{imageRef}" alt="{alt}" width="1200" lazyloadWithClass="lazyload">
+        <ma:picture.source media="(min-width: 980px)" width="1200" height="675" />
+        <ma:picture.source media="(min-width: 768px)" width="800" height="450" />
+        <ma:picture.source media="(max-width: 767px)" width="400" height="225" />
+    </ma:picture>
+
+    <!-- Hero picture: no lazy, preloaded fallback, high fetchpriority -->
+    <ma:picture image="{hero}" alt="{heroAlt}" width="1920"
+                lazyloading="false" preload="true" fetchPriority="high">
+        <ma:picture.source media="(min-width: 768px)" width="1920" />
+        <ma:picture.source media="(max-width: 767px)" width="600" />
+    </ma:picture>
+
+Arguments
+---------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 22 10 10 15 43
+
+    * - Argument
+      - Type
+      - Required
+      - Default
+      - Description
+    * - ``image``
+      - mixed
+      - **Yes**
+      - —
+      - Same as ``ma:image``.
+    * - ``alt``
+      - string
+      - **Yes**
+      - —
+      - Alt text for the fallback ``<img>``.
+    * - ``width``
+      - string
+      - No
+      - ``''``
+      - Width for the fallback ``<img>`` in TYPO3 notation.
+    * - ``height``
+      - string
+      - No
+      - ``''``
+      - Height for the fallback ``<img>``.
+    * - ``lazyloading``
+      - bool
+      - No
+      - null
+      - Propagated to the fallback ``<img>``. ``null`` inherits TypoScript default.
+    * - ``lazyloadWithClass``
+      - string
+      - No
+      - null
+      - CSS class added to the fallback ``<img>`` alongside ``loading="lazy"``.
+    * - ``fetchPriority``
+      - string
+      - No
+      - null
+      - ``fetchpriority`` on the fallback ``<img>``. Values: ``high``, ``low``, ``auto``.
+    * - ``preload``
+      - bool
+      - No
+      - ``false``
+      - Emit ``<link rel="preload" as="image">`` for the fallback image URL.
+    * - ``class``
+      - string
+      - No
+      - null
+      - CSS class(es) for the ``<picture>`` element.
+    * - ``additionalAttributes``
+      - array
+      - No
+      - ``[]``
+      - Additional HTML attributes on the ``<picture>`` tag.
+
+.. _viewhelper-picture-source:
+
+ma:picture.source
+=================
+
+Render a single ``<source>`` tag inside a ``<ma:picture>`` element. Must be a direct child
+of ``<ma:picture>``. Inherits the parent image unless overridden via the ``image`` argument.
+
+.. code-block:: html
+
+    <ma:picture image="{desktopImg}" alt="{alt}" width="1200">
+        <!-- Inherits parent image, processed to 1200px -->
+        <ma:picture.source media="(min-width: 768px)" width="1200" />
+        <!-- Override image for small screens -->
+        <ma:picture.source image="{mobileImg}" media="(max-width: 767px)" width="400" />
+    </ma:picture>
+
+Arguments
+---------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 22 10 10 15 43
+
+    * - Argument
+      - Type
+      - Required
+      - Default
+      - Description
+    * - ``media``
+      - string
+      - No
+      - null
+      - Media query, e.g. ``(min-width: 768px)``. Omit for a catch-all source.
+    * - ``width``
+      - string
+      - No
+      - ``''``
+      - Target width in TYPO3 notation.
+    * - ``height``
+      - string
+      - No
+      - ``''``
+      - Target height in TYPO3 notation.
+    * - ``image``
+      - mixed
+      - No
+      - null
+      - Override image for this breakpoint. Inherits parent ``<ma:picture>`` image when absent.
+    * - ``type``
+      - string
+      - No
+      - null
+      - MIME type for the ``<source>`` tag (e.g. ``image/webp``). Auto-detected from the
+        processed file extension when omitted.
+
+.. _viewhelper-figure:
+
+ma:figure
+=========
+
+Wrap content in a semantic ``<figure>`` element with an optional ``<figcaption>``. Intended
+as a standalone wrapper for images or any content that benefits from the figure/caption
+structure. Kept separate from ``ma:picture`` and ``ma:image`` so each ViewHelper has a
+single, focused responsibility.
+
+.. code-block:: html
+
+    <!-- Minimal wrapper, no caption -->
+    <ma:figure>
+        <ma:picture image="{file}" alt="{alt}" width="800" />
+    </ma:figure>
+
+    <!-- With caption text -->
+    <ma:figure caption="{file.description}" class="article-figure" classFigcaption="caption">
+        <ma:image image="{file.uid}" alt="{file.alternative}" width="600" />
+    </ma:figure>
+
+The ``caption`` argument is HTML-escaped. For a caption containing markup, omit the argument
+and place a ``<figcaption>`` element directly inside the ViewHelper's child content.
+
+Arguments
+---------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 22 10 10 15 43
+
+    * - Argument
+      - Type
+      - Required
+      - Default
+      - Description
+    * - ``caption``
+      - string
+      - No
+      - null
+      - Caption text rendered inside ``<figcaption>``. HTML-escaped.
+    * - ``class``
+      - string
+      - No
+      - null
+      - CSS class(es) for the ``<figure>`` element.
+    * - ``classFigcaption``
+      - string
+      - No
+      - null
+      - CSS class(es) for the ``<figcaption>`` element.
+
+Font Preloading
+===============
+
+Fonts are not registered via a ViewHelper. Instead, drop a ``Configuration/Fonts.php``
+file into any extension and return an array of font definitions. The font registry
+auto-discovers this file across all loaded extensions and emits
+``<link rel="preload" as="font" crossorigin>`` tags in ``<head>`` via
+``BeforeStylesheetsRenderingEvent``.
+
+.. code-block:: php
+
+    <?php
+    // EXT:my_sitepackage/Configuration/Fonts.php
+    declare(strict_types=1);
+
+    return [
+        'my-font-regular' => [
+            'src'  => 'EXT:my_sitepackage/Resources/Public/Fonts/MyFont-Regular.woff2',
+            // 'type' is auto-detected: .woff2 → font/woff2
+        ],
+        'my-font-bold' => [
+            'src'     => 'EXT:my_sitepackage/Resources/Public/Fonts/MyFont-Bold.woff2',
+            'preload' => false,  // loaded normally, no preload tag
+        ],
+        // Site-scoped font — only preloaded on "brand-a"
+        'brand-a-display' => [
+            'src'   => 'EXT:brand_a/Resources/Public/Fonts/Display.woff2',
+            'sites' => ['brand-a'],
+        ],
+    ];
+
+Supported font types (auto-detected from extension): ``.woff2``, ``.woff``, ``.ttf``, ``.otf``.

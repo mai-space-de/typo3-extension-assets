@@ -117,6 +117,51 @@ SCSS Settings
 
         plugin.tx_maispace_assets.scss.defaultImportPaths = EXT:theme/Resources/Private/Scss/Partials
 
+Image Settings
+==============
+
+.. confval:: plugin.tx_maispace_assets.image.lazyloading
+    :type: boolean
+    :Default: 1
+
+    Add ``loading="lazy"`` to all images rendered by ``<ma:image>`` and the fallback
+    ``<img>`` inside ``<ma:picture>`` by default.
+
+    ``0`` disables lazy loading globally. Override per image with the ViewHelper's
+    ``lazyloading`` argument.
+
+.. confval:: plugin.tx_maispace_assets.image.lazyloadWithClass
+    :type: string
+    :Default: *(empty)*
+
+    CSS class name added alongside ``loading="lazy"`` on all lazily-loaded images.
+    When set, this also enables lazy loading (setting a class implies lazy loading).
+    Useful for JS-based lazy loaders such as `lazysizes <https://github.com/aFarkas/lazysizes>`__.
+
+    Override per image with the ViewHelper's ``lazyloadWithClass`` argument.
+
+    Example:
+
+    .. code-block:: typoscript
+
+        plugin.tx_maispace_assets.image.lazyloadWithClass = lazyload
+
+Font Settings
+=============
+
+.. confval:: plugin.tx_maispace_assets.fonts.preload
+    :type: boolean
+    :Default: 1
+
+    Global switch for web font preloading. When ``1``, the font registry emits
+    ``<link rel="preload" as="font" crossorigin>`` tags for all registered fonts that
+    do not explicitly set ``'preload' => false``.
+
+    Set to ``0`` to suppress all font preload tags site-wide. Useful when fonts are
+    handled by a CDN or HTTP/2 push header instead.
+
+    See :ref:`configuration-fontregistry` for how to register fonts from your extension.
+
 SVG Sprite Settings
 ===================
 
@@ -127,8 +172,7 @@ Symbol Registration (SpriteIcons.php)
 
 SVG symbols are registered declaratively — not via the ViewHelper. Drop a
 ``Configuration/SpriteIcons.php`` file into any loaded extension and return an array
-where each key is the symbol ID and the value is a configuration array with at minimum
-a ``src`` entry:
+where each key is the symbol ID and the value is a configuration array:
 
 .. code-block:: php
 
@@ -137,11 +181,14 @@ a ``src`` entry:
     declare(strict_types=1);
 
     return [
+        // Global icon — available on all sites
         'icon-arrow' => [
             'src' => 'EXT:my_sitepackage/Resources/Public/Icons/arrow.svg',
         ],
-        'icon-close' => [
-            'src' => 'EXT:my_sitepackage/Resources/Public/Icons/close.svg',
+        // Site-scoped icon — only in the sprite for site "brand-a"
+        'icon-brand-logo' => [
+            'src'   => 'EXT:brand_a/Resources/Public/Icons/logo.svg',
+            'sites' => ['brand-a'],
         ],
     ];
 
@@ -149,6 +196,9 @@ The registry auto-discovers ``Configuration/SpriteIcons.php`` across all loaded
 extensions on the first sprite request. No ``ext_localconf.php`` boilerplate is needed.
 Symbol IDs must be unique across all extensions; later-loaded extensions' IDs take
 precedence on conflict (last-write-wins).
+
+The optional ``'sites'`` key accepts an array of TYPO3 site identifiers. See
+:ref:`configuration-multisite` for the full multi-site scoping documentation.
 
 Listen to :ref:`event-before-sprite-symbol-registered` to filter, rename, or veto
 individual symbols before they are stored in the registry.
@@ -247,9 +297,103 @@ Full Example Configuration
             cacheLifetime = 0
             defaultImportPaths = EXT:theme/Resources/Private/Scss/Partials
         }
+        image {
+            lazyloading = 1
+            lazyloadWithClass =
+        }
+        fonts {
+            preload = 1
+        }
         svgSprite {
             routePath = /maispace/sprite.svg
             symbolIdPrefix = icon-
             cache = 1
         }
     }
+
+.. _configuration-fontregistry:
+
+Font Registration (Fonts.php)
+=============================
+
+Web fonts are registered declaratively in ``Configuration/Fonts.php``. The font registry
+auto-discovers this file from all loaded extensions and emits
+``<link rel="preload" as="font" crossorigin>`` tags in ``<head>`` before stylesheets render.
+
+.. code-block:: php
+
+    <?php
+    // EXT:my_sitepackage/Configuration/Fonts.php
+    declare(strict_types=1);
+
+    return [
+        'my-font-regular' => [
+            'src'  => 'EXT:my_sitepackage/Resources/Public/Fonts/MyFont-Regular.woff2',
+            // 'type' auto-detected from extension: .woff2 → font/woff2
+        ],
+        'my-font-bold' => [
+            'src'     => 'EXT:my_sitepackage/Resources/Public/Fonts/MyFont-Bold.woff2',
+            'preload' => false,   // opt out of preloading for this font only
+        ],
+    ];
+
+**Configuration keys:**
+
+``src`` (string, required)
+    ``EXT:`` path or absolute path to the font file.
+
+``type`` (string, optional)
+    MIME type. Auto-detected from the file extension when omitted.
+    Supported: ``font/woff2``, ``font/woff``, ``font/ttf``, ``font/otf``.
+
+``preload`` (bool, optional, default ``true``)
+    Set to ``false`` to register the font without emitting a preload tag.
+
+``sites`` (array, optional)
+    List of TYPO3 site identifiers. When present, the font is only preloaded on matching
+    sites. See :ref:`configuration-multisite`.
+
+.. _configuration-multisite:
+
+Multi-site Scoping
+==================
+
+When a single TYPO3 instance hosts multiple sites (e.g. ``brand-a`` and ``brand-b``), it
+wastes bandwidth to preload all fonts and include all icons on every site. Both
+``SpriteIcons.php`` and ``Fonts.php`` support an optional ``'sites'`` key to restrict an
+entry to specific sites.
+
+**How it works:**
+
+* Entries **without** ``'sites'`` are global — included on every site (backwards compatible).
+* Entries **with** ``'sites'`` are only included when the current request's site identifier
+  matches one of the listed values.
+* The site identifier corresponds to the folder name under ``config/sites/{identifier}/``.
+
+.. code-block:: php
+
+    return [
+        // Global — served to all sites
+        'icon-arrow' => [
+            'src' => 'EXT:shared/Resources/Public/Icons/arrow.svg',
+        ],
+
+        // Only served on site "brand-a"
+        'icon-brand-a-logo' => [
+            'src'   => 'EXT:brand_a/Resources/Public/Icons/logo.svg',
+            'sites' => ['brand-a'],
+        ],
+
+        // Served on two sites (staging mirrors production identifier)
+        'icon-brand-b-logo' => [
+            'src'   => 'EXT:brand_b/Resources/Public/Icons/logo.svg',
+            'sites' => ['brand-b', 'brand-b-staging'],
+        ],
+    ];
+
+**SVG sprites:** Each site gets its own independently cached sprite. The sprite URL is the
+same across sites (configured via ``svgSprite.routePath``); the middleware serves
+site-specific content transparently using the ETag mechanism for efficient browser caching.
+
+**Font preloads:** Each page request emits only the preload tags applicable to the current
+site — no cross-site font URLs are ever sent to the browser.
