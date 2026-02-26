@@ -261,51 +261,47 @@ Arguments
 ma:svgSprite
 ============
 
-Build and output a bandwidth-efficient SVG sprite. The ViewHelper operates in three
-distinct modes controlled by its arguments.
+Output an ``<svg><use>`` reference to a symbol from the centrally served SVG sprite.
 
-Mode 1: Register
-----------------
+The sprite is assembled automatically from all ``Configuration/SpriteIcons.php`` files
+found across loaded extensions and served from a dedicated HTTP endpoint
+(default: ``/maispace/sprite.svg``). The endpoint response is browser-cacheable with
+``Cache-Control: public, max-age=31536000, immutable`` and supports conditional requests
+via ETag for efficient cache revalidation.
 
-Register an SVG file as a sprite symbol. Call this wherever the icon is used.
-Duplicate registrations are silently ignored (safe to call from loops or included partials).
+.. seealso::
 
-.. code-block:: html
+    See :ref:`configuration-spriteiconregistry` for how to register symbols from your
+    own extension and :ref:`events` for the ``BeforeSpriteSymbolRegisteredEvent`` and
+    ``AfterSpriteBuiltEvent`` hooks.
 
-    <!-- Auto-derives symbol ID from filename: "arrow.svg" → "icon-arrow" -->
-    <ma:svgSprite register="EXT:theme/Resources/Public/Icons/arrow.svg" />
-
-    <!-- Explicit symbol ID -->
-    <ma:svgSprite register="EXT:theme/Resources/Public/Icons/close.svg" symbolId="icon-close" />
-
-Mode 2: Render
---------------
-
-Assemble and output the hidden ``<svg>`` sprite container. Call this **once per page**
-at the **top of ``<body>``**, after all partials that register symbols have been rendered.
-
-.. code-block:: html
-
-    <body>
-        <ma:svgSprite render="true" />
-        <!-- page content -->
-    </body>
-
-Mode 3: Use
------------
-
-Output an ``<svg><use href="#symbol-id">`` reference.
+Usage
+-----
 
 .. code-block:: html
 
     <!-- Decorative icon (aria-hidden="true" added automatically) -->
     <ma:svgSprite use="icon-arrow" width="24" height="24" class="icon icon--arrow" />
 
-    <!-- Meaningful icon with accessible label -->
+    <!-- Meaningful icon with accessible label (role="img" added automatically) -->
     <ma:svgSprite use="icon-close" aria-label="Close dialog" width="20" height="20" />
 
-    <!-- Icon with title for additional screen reader context -->
+    <!-- Icon with <title> for screen reader context -->
     <ma:svgSprite use="icon-external" title="Opens in a new window" class="icon" />
+
+    <!-- Override the sprite URL for a multi-sprite setup -->
+    <ma:svgSprite use="icon-logo" src="/brand/sprite.svg" width="120" height="40" />
+
+Generated Output
+----------------
+
+For ``<ma:svgSprite use="icon-arrow" width="24" height="24" />``:
+
+.. code-block:: html
+
+    <svg width="24" height="24" aria-hidden="true">
+        <use href="/maispace/sprite.svg#icon-arrow"></use>
+    </svg>
 
 Arguments
 ---------
@@ -319,31 +315,24 @@ Arguments
       - Required
       - Default
       - Description
-    * - ``register``
-      - string
-      - No
-      - null
-      - EXT: or absolute path to an SVG file to register as a sprite symbol.
-    * - ``symbolId``
-      - string
-      - No
-      - null
-      - Custom symbol ID. Auto-derived from filename + TypoScript prefix when omitted.
-    * - ``render``
-      - bool
-      - No
-      - ``false``
-      - Output the full hidden SVG sprite block. Call once per page at top of ``<body>``.
     * - ``use``
       - string
+      - **Yes**
+      - —
+      - Symbol ID to reference. Must match a key defined in a ``SpriteIcons.php`` file
+        (after any ``BeforeSpriteSymbolRegisteredEvent`` renaming).
+    * - ``src``
+      - string
       - No
       - null
-      - Symbol ID to reference via ``<svg><use href="#id"></use></svg>``.
+      - Override the sprite URL. When ``null``, the URL is read from the TypoScript
+        setting ``plugin.tx_maispace_assets.svgSprite.routePath`` (default:
+        ``/maispace/sprite.svg``). Useful for multi-sprite setups.
     * - ``class``
       - string
       - No
       - null
-      - CSS class(es) for the ``<svg>`` element in use mode.
+      - CSS class(es) for the ``<svg>`` element.
     * - ``width``
       - string
       - No
@@ -358,25 +347,53 @@ Arguments
       - string
       - No
       - ``true``
-      - Defaults to ``"true"`` for decorative icons. Set to ``"false"`` with
+      - Defaults to ``"true"`` for decorative icons. Set to ``"false"`` together with
         ``aria-label`` to make the icon meaningful to screen readers.
     * - ``aria-label``
       - string
       - No
       - null
-      - Accessible label. When set, ``role="img"`` is added and ``aria-hidden`` is omitted.
+      - Accessible label. When set, ``role="img"`` is added automatically and
+        ``aria-hidden`` is omitted.
     * - ``title``
       - string
       - No
       - null
       - ``<title>`` element inside the ``<svg>`` for additional screen reader context.
 
+Registering Symbols
+-------------------
+
+Symbols are not registered via the ViewHelper. Instead, create
+``Configuration/SpriteIcons.php`` in your extension and return an array of symbol
+definitions. The registry auto-discovers this file across all loaded extensions:
+
+.. code-block:: php
+
+    <?php
+    // EXT:my_sitepackage/Configuration/SpriteIcons.php
+    declare(strict_types=1);
+
+    return [
+        'icon-arrow' => [
+            'src' => 'EXT:my_sitepackage/Resources/Public/Icons/arrow.svg',
+        ],
+        'icon-close' => [
+            'src' => 'EXT:my_sitepackage/Resources/Public/Icons/close.svg',
+        ],
+        'icon-logo' => [
+            'src' => 'EXT:my_sitepackage/Resources/Public/Icons/logo.svg',
+        ],
+    ];
+
+The symbol array key is the ID used in ``<ma:svgSprite use="icon-arrow" />``.
+
 Complete Layout Example
 -----------------------
 
 .. code-block:: html
 
-    <!-- Layout.html -->
+    <!-- Layout.html — symbols registered in SpriteIcons.php, no register calls needed -->
     <html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers">
     <head>
         <!-- Critical CSS inlined in <head> -->
@@ -385,12 +402,8 @@ Complete Layout Example
         </ma:scss>
     </head>
     <body>
-        <!-- Sprite rendered once at top of <body> -->
-        <ma:svgSprite render="true" />
-
         <header>
-            <!-- Register and use icons from partials/templates -->
-            <ma:svgSprite register="EXT:theme/Resources/Public/Icons/logo.svg" />
+            <!-- Use any symbol registered in SpriteIcons.php -->
             <ma:svgSprite use="icon-logo" width="120" height="40" aria-label="Company Logo" />
         </header>
 

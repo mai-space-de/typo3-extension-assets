@@ -5,105 +5,76 @@ declare(strict_types=1);
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Closure;
-use Maispace\MaispaceAssets\Service\SvgSpriteService;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
- * Build and output an SVG sprite for bandwidth-efficient icon usage.
+ * Output an `<svg><use>` reference to a symbol in the maispace_assets SVG sprite.
  *
- * This ViewHelper operates in three distinct modes controlled by its arguments:
- *
- * --- Mode 1: register ---
- * Register an SVG file as a sprite symbol. Call this wherever an SVG icon is used
- * (including inside loops and partials). Duplicate registrations are silently ignored.
- *
- *   <ma:svgSprite register="EXT:theme/Resources/Public/Icons/arrow.svg" />
- *   <ma:svgSprite register="EXT:theme/Resources/Public/Icons/close.svg" symbolId="icon-close" />
- *
- * --- Mode 2: render ---
- * Output the hidden SVG sprite container that defines all registered symbols.
- * Call this ONCE per page, at the very start of <body>, AFTER all partials that
- * register symbols have been rendered (or in a layout that renders content first).
- *
- * IMPORTANT: In TYPO3 Fluid layouts, the f:render(section="Content") call happens
- * before the layout's own markup is output. Place <ma:svgSprite render="true" />
- * at the top of your layout's <body> to ensure it appears first in the HTML output.
- *
- *   <body>
- *       <ma:svgSprite render="true" />
- *       <!-- page content with <use> references -->
- *   </body>
- *
- * --- Mode 3: use ---
- * Output a <svg><use href="#symbol-id"> reference. The referenced symbol must have
- * been registered before the sprite is rendered.
- *
- *   <ma:svgSprite use="icon-arrow" width="24" height="24" class="icon icon--arrow" />
- *   <ma:svgSprite use="icon-close" aria-label="Close dialog" />
- *
- * Accessibility:
- *   - Decorative icons (no aria-label): aria-hidden="true" is added automatically.
- *   - Meaningful icons: pass aria-label="Description" to add role="img" and the label.
- *   - The sprite container is always aria-hidden="true".
+ * The sprite is served by the SvgSpriteMiddleware from a dedicated, browser-cacheable
+ * URL (default: `/maispace/sprite.svg`). Icons are registered in
+ * `EXT:my_ext/Configuration/SpriteIcons.php` and auto-discovered across all loaded
+ * TYPO3 extensions — no register or render calls are needed in templates.
  *
  * Global namespace: declared as "ma" in ext_localconf.php.
  *
- * @see \Maispace\MaispaceAssets\Service\SvgSpriteService
+ * Usage examples:
+ *
+ *   <!-- Decorative icon (aria-hidden="true" added automatically) -->
+ *   <ma:svgSprite use="icon-arrow" width="24" height="24" class="icon" />
+ *
+ *   <!-- Meaningful icon with accessible label -->
+ *   <ma:svgSprite use="icon-close" aria-label="Close dialog" width="20" height="20" />
+ *
+ *   <!-- Icon with title for additional screen reader context -->
+ *   <ma:svgSprite use="icon-external" title="Opens in a new window" class="icon" />
+ *
+ *   <!-- Custom sprite URL (multi-sprite setups) -->
+ *   <ma:svgSprite use="brand-logo" src="/custom/brand-sprite.svg" width="120" height="40" />
+ *
+ * Registering icons:
+ *   Create `EXT:my_sitepackage/Configuration/SpriteIcons.php`:
+ *
+ *   <?php
+ *   return [
+ *       'icon-arrow' => ['src' => 'EXT:my_sitepackage/Resources/Public/Icons/arrow.svg'],
+ *       'icon-close' => ['src' => 'EXT:my_sitepackage/Resources/Public/Icons/close.svg'],
+ *   ];
+ *
+ * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
+ * @see \Maispace\MaispaceAssets\Middleware\SvgSpriteMiddleware
  */
 final class SvgSpriteViewHelper extends AbstractViewHelper
 {
     use CompileWithRenderStatic;
 
-    /**
-     * Disable output escaping — this ViewHelper returns raw HTML/SVG markup.
-     */
+    private const DEFAULT_ROUTE_PATH = '/maispace/sprite.svg';
+
+    /** Disable output escaping — this ViewHelper returns raw SVG markup. */
     protected $escapeOutput = false;
 
     public function initializeArguments(): void
     {
-        // --- Mode 1: register ---
-        $this->registerArgument(
-            'register',
-            'string',
-            'EXT: path or absolute path to an SVG file to register as a sprite symbol. The SVG\'s viewBox and inner content are extracted; the outer <svg> element is stripped.',
-            false,
-            null,
-        );
-
-        $this->registerArgument(
-            'symbolId',
-            'string',
-            'Custom symbol ID for the registered SVG. When omitted, the ID is auto-derived from the filename prefixed with the TypoScript svgSprite.symbolIdPrefix (default: "icon-"). Example: "arrow.svg" → "icon-arrow".',
-            false,
-            null,
-        );
-
-        // --- Mode 2: render ---
-        $this->registerArgument(
-            'render',
-            'bool',
-            'Output the full hidden SVG sprite block containing all registered symbols. Call once per page at the top of <body>.',
-            false,
-            false,
-        );
-
-        // --- Mode 3: use ---
         $this->registerArgument(
             'use',
             'string',
-            'Symbol ID to reference. Outputs <svg><use href="#id"></use></svg>.',
+            'Symbol ID to reference. Must match a key declared in a SpriteIcons.php file. Example: "icon-arrow".',
+            true,
+        );
+
+        $this->registerArgument(
+            'src',
+            'string',
+            'Override the sprite document URL. Useful when referencing a symbol from a different sprite. Defaults to the configured routePath (plugin.tx_maispace_assets.svgSprite.routePath).',
             false,
             null,
         );
 
-        // Attributes for the <svg> wrapper in use mode.
         $this->registerArgument(
             'class',
             'string',
-            'CSS class(es) for the <svg> element in use mode.',
+            'CSS class(es) for the outer <svg> element.',
             false,
             null,
         );
@@ -111,7 +82,7 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         $this->registerArgument(
             'width',
             'string',
-            'width attribute for the <svg> element in use mode.',
+            'width attribute for the <svg> element (e.g. "24" or "1.5rem").',
             false,
             null,
         );
@@ -119,7 +90,7 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         $this->registerArgument(
             'height',
             'string',
-            'height attribute for the <svg> element in use mode.',
+            'height attribute for the <svg> element.',
             false,
             null,
         );
@@ -127,7 +98,7 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         $this->registerArgument(
             'aria-hidden',
             'string',
-            'aria-hidden attribute. Defaults to "true" for decorative icons. Set to "false" together with aria-label to make the icon meaningful to screen readers.',
+            'aria-hidden attribute. Defaults to "true" for decorative icons. Set to "false" together with aria-label to expose the icon to screen readers.',
             false,
             null,
         );
@@ -135,7 +106,7 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         $this->registerArgument(
             'aria-label',
             'string',
-            'Accessible label for the icon. When set, role="img" is added and aria-hidden is not output.',
+            'Accessible label for the icon. When set, role="img" is added and aria-hidden is omitted. Use for meaningful icons that convey information not present in surrounding text.',
             false,
             null,
         );
@@ -154,28 +125,93 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
-        /** @var SvgSpriteService $service */
-        $service = GeneralUtility::makeInstance(SvgSpriteService::class);
-
-        // Mode 1: register a symbol.
-        if ($arguments['register'] !== null) {
-            $service->registerSymbol(
-                (string)$arguments['register'],
-                $arguments['symbolId'] !== null ? (string)$arguments['symbolId'] : null,
-            );
+        $symbolId = (string)$arguments['use'];
+        if ($symbolId === '') {
             return '';
         }
 
-        // Mode 2: render the full sprite block.
-        if ($arguments['render'] === true) {
-            return $service->renderSprite();
+        $spriteUrl = self::resolveSpriteSrc($arguments['src'] ?? null);
+        $href      = $spriteUrl . '#' . htmlspecialchars($symbolId, ENT_XML1);
+
+        $attrs = self::buildSvgAttributes($arguments);
+
+        $titleTag = '';
+        if (!empty($arguments['title'])) {
+            $titleTag = '<title>' . htmlspecialchars((string)$arguments['title']) . '</title>';
         }
 
-        // Mode 3: output a <use> reference.
-        if ($arguments['use'] !== null) {
-            return $service->renderUseTag($arguments);
+        return sprintf(
+            '<svg%s>%s<use href="%s"></use></svg>',
+            $attrs,
+            $titleTag,
+            $href,
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Resolve the sprite document URL.
+     * Uses the explicit `src` argument, then the TypoScript setting, then the default.
+     */
+    private static function resolveSpriteSrc(?string $explicit): string
+    {
+        if ($explicit !== null && $explicit !== '') {
+            return rtrim($explicit, '#');
         }
 
-        return '';
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request !== null) {
+            /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $fts */
+            $fts = $request->getAttribute('frontend.typoscript');
+            if ($fts !== null) {
+                $setup     = $fts->getSetupArray();
+                $routePath = $setup['plugin.']['tx_maispace_assets.']['svgSprite.']['routePath'] ?? '';
+                if (is_string($routePath) && $routePath !== '') {
+                    return '/' . ltrim(rtrim($routePath, '/'), '/');
+                }
+            }
+        }
+
+        return self::DEFAULT_ROUTE_PATH;
+    }
+
+    /**
+     * Build the HTML attribute string for the outer `<svg>` element.
+     *
+     * Accessibility rules:
+     * - aria-label set   → role="img" + aria-label, no aria-hidden
+     * - aria-hidden=false → aria-hidden="false" explicitly
+     * - default          → aria-hidden="true" (decorative icon)
+     */
+    private static function buildSvgAttributes(array $arguments): string
+    {
+        $attrs = [];
+
+        if (!empty($arguments['class'])) {
+            $attrs[] = 'class="' . htmlspecialchars((string)$arguments['class']) . '"';
+        }
+        if (!empty($arguments['width'])) {
+            $attrs[] = 'width="' . htmlspecialchars((string)$arguments['width']) . '"';
+        }
+        if (!empty($arguments['height'])) {
+            $attrs[] = 'height="' . htmlspecialchars((string)$arguments['height']) . '"';
+        }
+
+        $ariaLabel  = $arguments['aria-label'] ?? null;
+        $ariaHidden = $arguments['aria-hidden'] ?? null;
+
+        if ($ariaLabel !== null && $ariaLabel !== '') {
+            $attrs[] = 'role="img"';
+            $attrs[] = 'aria-label="' . htmlspecialchars((string)$ariaLabel) . '"';
+        } elseif ($ariaHidden === 'false') {
+            $attrs[] = 'aria-hidden="false"';
+        } else {
+            $attrs[] = 'aria-hidden="true"';
+        }
+
+        return $attrs !== [] ? ' ' . implode(' ', $attrs) : '';
     }
 }

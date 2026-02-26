@@ -68,8 +68,13 @@ plugin.tx_maispace_assets {
     # SVG Sprite settings
     # =========================================================================
     svgSprite {
-        # Prefix prepended to auto-derived symbol IDs.
-        # Example: "arrow.svg" → "icon-arrow" (with the default prefix "icon-").
+        # URL path at which the SVG sprite is served by SvgSpriteMiddleware.
+        # Must not conflict with any existing TYPO3 page slugs.
+        # The ViewHelper uses this value to build the href in <use href="...#id">.
+        routePath = /maispace/sprite.svg
+
+        # Prefix prepended to symbol IDs as a naming convention (for documentation
+        # and SpriteIcons.php key naming — not enforced by the registry).
         symbolIdPrefix = icon-
 
         # Cache the built sprite in the maispace_assets cache.

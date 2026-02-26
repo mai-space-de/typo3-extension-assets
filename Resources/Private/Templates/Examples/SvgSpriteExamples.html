@@ -11,114 +11,70 @@
 
     HOW IT WORKS
     ------------
-    The ViewHelper operates in three modes:
+    Icons are registered declaratively in each extension's SpriteIcons.php:
 
-      register  — parse an SVG file and store it as a <symbol> in memory
-      render    — assemble all registered symbols into one hidden <svg> block
-      use       — output a <svg><use href="#id"> reference
+      // EXT:my_sitepackage/Configuration/SpriteIcons.php
+      return [
+          'icon-arrow'   => ['src' => 'EXT:my_sitepackage/Resources/Public/Icons/arrow.svg'],
+          'icon-close'   => ['src' => 'EXT:my_sitepackage/Resources/Public/Icons/close.svg'],
+          'icon-search'  => ['src' => 'EXT:my_sitepackage/Resources/Public/Icons/search.svg'],
+          'icon-warning' => ['src' => 'EXT:my_sitepackage/Resources/Public/Icons/warning.svg'],
+      ];
 
-    The render mode MUST appear in the HTML BEFORE any <use> references.
-    The recommended place is the very top of <body> in your main layout.
+    The SpriteIconRegistry auto-discovers every loaded extension's SpriteIcons.php and
+    assembles all symbols into a single SVG sprite served from the HTTP endpoint
+    (default: /maispace/sprite.svg).
+
+    In your Fluid templates, simply reference a symbol ID with <ma:svgSprite use="...">.
+    The ViewHelper outputs an <svg><use href="/maispace/sprite.svg#id"></use></svg> element.
+    No register or render calls are needed in templates.
 
     ARGUMENT REFERENCE
     ------------------
-    register    string  EXT: or absolute path to an SVG file.
-    symbolId    string  Custom symbol ID (auto-derived from filename if omitted).
-    render      bool    Output the full sprite block. Call once per page.
-    use         string  Symbol ID to reference via <use>.
-    class       string  class attribute on the <svg> element (use mode).
-    width       string  width attribute on the <svg> element (use mode).
-    height      string  height attribute on the <svg> element (use mode).
+    use         string  Required. Symbol ID to reference (must exist in a SpriteIcons.php).
+    src         string  Override the sprite URL (for multi-sprite setups).
+    class       string  class attribute on the <svg> element.
+    width       string  width attribute on the <svg> element.
+    height      string  height attribute on the <svg> element.
     aria-hidden string  Defaults to "true" for decorative icons.
-    aria-label  string  Set for meaningful icons. Adds role="img" automatically.
+    aria-label  string  Set for meaningful icons — adds role="img" automatically.
     title       string  <title> inside <svg> for additional screen reader context.
 -->
 
 
 <!-- =========================================================================
-     PART 1: REGISTERING SYMBOLS
+     PART 1: BASIC USAGE
      =========================================================================
-     Register calls can appear anywhere in your templates or partials.
-     Call them as early as possible — the sprite is assembled when render="true"
-     is encountered, which should be at the top of <body>.
-
-     In a real TYPO3 layout, register calls in partials and content elements
-     run BEFORE the layout's own HTML is output (Fluid renders sections first),
-     so all symbols are already accumulated by the time render="true" executes.
+     The simplest call — symbol ID is all that is required.
+     aria-hidden="true" is added automatically for decorative icons.
 -->
 
-<!-- 1a. Auto-derived symbol ID from filename.
-         "arrow.svg" → prefix from TypoScript (default "icon-") + "arrow" → "icon-arrow" -->
-<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/arrow.svg" />
+<!-- 1a. Decorative icon (no accessible label needed, text provides the context) -->
+<a href="/search" class="search-link">
+    <ma:svgSprite use="icon-search" width="18" height="18" class="icon" />
+    Search
+</a>
 
-<!-- 1b. Explicit symbol ID — use when the filename alone is ambiguous -->
-<ma:svgSprite
-    register="EXT:my_sitepackage/Resources/Public/Icons/chevron-right.svg"
-    symbolId="icon-chevron-right"
-/>
-
-<!-- 1c. Register from a different extension's icon set -->
-<ma:svgSprite register="EXT:base_theme/Resources/Public/Icons/social/twitter.svg" />
-<ma:svgSprite register="EXT:base_theme/Resources/Public/Icons/social/linkedin.svg" />
-<ma:svgSprite register="EXT:base_theme/Resources/Public/Icons/social/youtube.svg" />
-
-<!-- 1d. Register from a loop — safe to call multiple times with same ID.
-         Duplicate registrations are silently ignored. -->
-<f:for each="{navigationItems}" as="item">
-    <f:if condition="{item.icon}">
-        <ma:svgSprite
-            register="{item.icon}"
-            symbolId="icon-nav-{item.uid}"
-        />
-    </f:if>
-</f:for>
-
-<!-- 1e. Conditional registration — only register when the icon will actually be used -->
-<f:if condition="{settings.showSearchIcon}">
-    <ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/search.svg" />
-</f:if>
-
-
-<!-- =========================================================================
-     PART 2: RENDERING THE SPRITE
-     =========================================================================
-     Output the hidden sprite block. Call exactly once per page, at the top
-     of <body>, AFTER all register calls from partials have run.
-
-     In a TYPO3 Fluid layout this is typically:
-
-       <body>
-           <ma:svgSprite render="true" />
-           ...page content...
-       </body>
-
-     The rendered output looks like:
-       <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
-           <symbol id="icon-arrow" viewBox="0 0 24 24">
-               <path d="M5 12h14M12 5l7 7-7 7"/>
-           </symbol>
-           <symbol id="icon-chevron-right" viewBox="0 0 24 24">
-               <path d="M9 18l6-6-6-6"/>
-           </symbol>
-           ...
-       </svg>
--->
-<ma:svgSprite render="true" />
-
-
-<!-- =========================================================================
-     PART 3: USING SYMBOLS — <use> references
-     =========================================================================
-     After the sprite is in the DOM, reference symbols anywhere on the page.
-     The symbol must have been registered (Part 1) before render="true" (Part 2).
--->
-
-<!-- 3a. Decorative icon — aria-hidden="true" added automatically -->
-<button class="btn btn--icon" aria-label="Go to next slide">
+<!-- 1b. Decorative icon in a button (aria-label on the button, not the icon) -->
+<button class="btn btn--icon" type="button" aria-label="Go to next slide">
     <ma:svgSprite use="icon-arrow" width="20" height="20" class="icon" />
 </button>
 
-<!-- 3b. Meaningful icon — provide aria-label, role="img" is added automatically -->
+<!-- 1c. Icon without explicit dimensions — size set via CSS -->
+<span class="icon-wrapper">
+    <ma:svgSprite use="icon-search" class="icon icon--search icon--sm" />
+</span>
+
+
+<!-- =========================================================================
+     PART 2: ACCESSIBLE ICONS
+     =========================================================================
+     When an icon carries meaning on its own (no adjacent text), use aria-label
+     or title to make it accessible to screen readers.
+-->
+
+<!-- 2a. Meaningful icon — aria-label provided, role="img" added automatically,
+         aria-hidden is omitted -->
 <a href="https://twitter.com/example" rel="noopener noreferrer">
     <ma:svgSprite
         use="icon-twitter"
@@ -129,7 +85,7 @@
     />
 </a>
 
-<!-- 3c. Icon with explicit title — alternative to aria-label for SVG accessibility -->
+<!-- 2b. Icon with <title> instead of aria-label — alternative accessible approach -->
 <a href="https://linkedin.com/company/example" rel="noopener noreferrer">
     <ma:svgSprite
         use="icon-linkedin"
@@ -140,30 +96,7 @@
     />
 </a>
 
-<!-- 3d. Icon with class only — size set via CSS -->
-<span class="icon-wrapper">
-    <ma:svgSprite use="icon-search" class="icon icon--search icon--sm" />
-</span>
-
-<!-- 3e. Icon in a navigation item with conditional rendering -->
-<nav class="main-nav" aria-label="Main navigation">
-    <f:for each="{navigationItems}" as="item">
-        <a href="{item.link}" class="nav-item {f:if(condition: item.active, then: 'nav-item--active')}">
-            <f:if condition="{item.icon}">
-                <ma:svgSprite
-                    use="icon-nav-{item.uid}"
-                    width="20"
-                    height="20"
-                    class="nav-item__icon"
-                    aria-hidden="true"
-                />
-            </f:if>
-            <span>{item.title}</span>
-        </a>
-    </f:for>
-</nav>
-
-<!-- 3f. Accessible icon-only button — aria-label on the <svg> -->
+<!-- 2c. Icon-only button — aria-label on the <svg> itself -->
 <button class="btn btn--icon-only" type="button">
     <ma:svgSprite
         use="icon-close"
@@ -174,13 +107,7 @@
     />
 </button>
 
-<!-- 3g. Icon alongside text — decorative, text provides the label -->
-<a href="/search" class="search-link">
-    <ma:svgSprite use="icon-search" width="18" height="18" class="icon" />
-    Search
-</a>
-
-<!-- 3h. Icon with aria-hidden="false" — explicit override to make it visible to AT -->
+<!-- 2d. Inline status icon with aria-hidden="false" — explicit override -->
 <span class="status-indicator status-indicator--error">
     <ma:svgSprite
         use="icon-warning"
@@ -194,25 +121,68 @@
 
 
 <!-- =========================================================================
-     PART 4: COMPLETE REALISTIC EXAMPLE — Card component
+     PART 3: ICONS IN DYNAMIC CONTEXTS
      =========================================================================
-     A realistic content element partial that registers its required icons,
-     then uses them in the markup.
-
-     Note: In a real project, register calls would be at the top of the Partial
-     and render="true" would be in the Layout — they're shown together here for
-     illustration only.
+     Icons used in loops and conditional rendering — the SpriteIcons.php registry
+     is static, so all symbols are always available regardless of template context.
 -->
 
-<!--
-    --- Card Partial (Resources/Private/Partials/Card/Card.html) ---
+<!-- 3a. Navigation with per-item icons registered in SpriteIcons.php -->
+<nav class="main-nav" aria-label="Main navigation">
+    <f:for each="{navigationItems}" as="item">
+        <a href="{item.link}" class="nav-item {f:if(condition: item.active, then: 'nav-item--active')}">
+            <f:if condition="{item.iconId}">
+                <ma:svgSprite
+                    use="{item.iconId}"
+                    width="20"
+                    height="20"
+                    class="nav-item__icon"
+                    aria-hidden="true"
+                />
+            </f:if>
+            <span>{item.title}</span>
+        </a>
+    </f:for>
+</nav>
+
+<!-- 3b. Conditional icon — only rendered when the condition is true,
+         but the symbol is always available in the sprite (no lazy-loading needed) -->
+<f:if condition="{settings.showSearch}">
+    <a href="/search" class="btn btn--ghost btn--icon" aria-label="Search">
+        <ma:svgSprite use="icon-search" width="20" height="20" aria-hidden="true" />
+    </a>
+</f:if>
+
+
+<!-- =========================================================================
+     PART 4: MULTI-SPRITE SETUP
+     =========================================================================
+     For large projects with distinct icon sets (e.g., a brand sprite served
+     from a CDN), override the sprite URL per icon with the src argument.
+     The default sprite URL (/maispace/sprite.svg) is used for all other icons.
 -->
 
-<!-- Register icons this partial needs -->
-<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/arrow.svg" />
-<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/external-link.svg" />
+<!-- 4a. Icon from the default extension sprite -->
+<ma:svgSprite use="icon-arrow" width="16" height="16" />
 
-<!-- The card component -->
+<!-- 4b. Icon from an alternative / CDN-hosted sprite -->
+<ma:svgSprite
+    use="icon-brand-logo"
+    src="/brand/sprite.svg"
+    width="120"
+    height="40"
+    aria-label="Brand"
+/>
+
+
+<!-- =========================================================================
+     PART 5: COMPLETE REALISTIC EXAMPLE — Card component
+     =========================================================================
+     A realistic content element partial.
+     Icons used here must be declared in a SpriteIcons.php file somewhere
+     across the loaded extensions — no register call in the template needed.
+-->
+
 <article class="card" aria-labelledby="card-{record.uid}-title">
     <f:if condition="{record.image}">
         <div class="card__media">
@@ -262,17 +232,30 @@
 
 
 <!-- =========================================================================
-     PART 5: SPRITE CACHING BEHAVIOUR
+     PART 6: SPRITE ENDPOINT AND CACHING BEHAVIOUR
      =========================================================================
-     The sprite cache key is derived from the sorted list of registered symbol IDs:
-       sha1(sort(['icon-arrow', 'icon-chevron-right', 'icon-twitter', ...]).join('|'))
+     The sprite is served from a PSR-15 middleware endpoint.
 
-     This means:
-       - Same set of icons on every request → single cache entry, served efficiently.
-       - A page that shows a different set (e.g., blog vs. shop) gets its own cache entry.
-       - The cache is invalidated on TYPO3 page cache clear.
+     Default URL:   /maispace/sprite.svg
+     Configurable:  plugin.tx_maispace_assets.svgSprite.routePath = /assets/icons.svg
 
-     Sprite caching can be disabled for development:
+     HTTP response headers:
+       Content-Type:  image/svg+xml; charset=utf-8
+       Cache-Control: public, max-age=31536000, immutable
+       ETag:          "<sha1-of-sprite-xml>"
+       Vary:          Accept-Encoding
+
+     Cache behaviour:
+       - The ETag is derived from a SHA-1 of the assembled sprite XML.
+       - Browsers cache the sprite for one year (immutable).
+       - On repeat visits the browser sends If-None-Match; the middleware returns
+         304 Not Modified if the sprite has not changed (zero body transfer).
+       - The server-side cache key includes every symbol's ID, absolute source path,
+         and filemtime — any SVG file change produces a new cache entry automatically.
+       - The cache belongs to groups "pages" and "all", so it is cleared whenever
+         the TYPO3 frontend cache is flushed.
+
+     Disable server-side caching during development:
        plugin.tx_maispace_assets.svgSprite.cache = 0
 -->
 

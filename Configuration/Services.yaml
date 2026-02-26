@@ -23,10 +23,13 @@ services:
     Maispace\MaispaceAssets\Service\ScssCompilerService:
         public: true
 
-    # SvgSpriteService implements SingletonInterface.
+    # SpriteIconRegistry implements SingletonInterface.
     # The DI container respects SingletonInterface and returns the same instance
     # throughout the request when resolved via GeneralUtility::makeInstance().
-    Maispace\MaispaceAssets\Service\SvgSpriteService:
+    # Must be public so SvgSpriteMiddleware (resolved via DI) and SvgSpriteViewHelper
+    # (resolved via GeneralUtility::makeInstance in static renderStatic) both get
+    # the identical singleton with the already-built sprite.
+    Maispace\MaispaceAssets\Registry\SpriteIconRegistry:
         public: true
 
     # -------------------------------------------------------------------------
@@ -43,7 +46,8 @@ services:
     #   - Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
     #   - Maispace\MaispaceAssets\Event\AfterJsProcessedEvent
     #   - Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
-    #   - Maispace\MaispaceAssets\Event\AfterSvgSpriteBuiltEvent
+    #   - Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
+    #   - Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
     # -------------------------------------------------------------------------
 
     # Maispace\MaispaceAssets\EventListener\AfterCssProcessedEventListener:
@@ -64,8 +68,14 @@ services:
     #             identifier: 'maispace-assets-example-scss'
     #             event: Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
 
-    # Maispace\MaispaceAssets\EventListener\AfterSvgSpriteBuiltEventListener:
+    # Maispace\MaispaceAssets\EventListener\BeforeSpriteSymbolRegisteredEventListener:
     #     tags:
     #         -   name: event.listener
-    #             identifier: 'maispace-assets-example-svg-sprite'
-    #             event: Maispace\MaispaceAssets\Event\AfterSvgSpriteBuiltEvent
+    #             identifier: 'maispace-assets-example-before-sprite-symbol'
+    #             event: Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
+
+    # Maispace\MaispaceAssets\EventListener\AfterSpriteBuiltEventListener:
+    #     tags:
+    #         -   name: event.listener
+    #             identifier: 'maispace-assets-example-after-sprite-built'
+    #             event: Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent

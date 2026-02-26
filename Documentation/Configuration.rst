@@ -120,18 +120,70 @@ SCSS Settings
 SVG Sprite Settings
 ===================
 
+.. _configuration-spriteiconregistry:
+
+Symbol Registration (SpriteIcons.php)
+--------------------------------------
+
+SVG symbols are registered declaratively — not via the ViewHelper. Drop a
+``Configuration/SpriteIcons.php`` file into any loaded extension and return an array
+where each key is the symbol ID and the value is a configuration array with at minimum
+a ``src`` entry:
+
+.. code-block:: php
+
+    <?php
+    // EXT:my_sitepackage/Configuration/SpriteIcons.php
+    declare(strict_types=1);
+
+    return [
+        'icon-arrow' => [
+            'src' => 'EXT:my_sitepackage/Resources/Public/Icons/arrow.svg',
+        ],
+        'icon-close' => [
+            'src' => 'EXT:my_sitepackage/Resources/Public/Icons/close.svg',
+        ],
+    ];
+
+The registry auto-discovers ``Configuration/SpriteIcons.php`` across all loaded
+extensions on the first sprite request. No ``ext_localconf.php`` boilerplate is needed.
+Symbol IDs must be unique across all extensions; later-loaded extensions' IDs take
+precedence on conflict (last-write-wins).
+
+Listen to :ref:`event-before-sprite-symbol-registered` to filter, rename, or veto
+individual symbols before they are stored in the registry.
+
+.. confval:: plugin.tx_maispace_assets.svgSprite.routePath
+    :type: string
+    :Default: ``/maispace/sprite.svg``
+
+    URL path at which ``SvgSpriteMiddleware`` intercepts requests and serves the
+    assembled SVG sprite document. The ViewHelper reads this setting to build the
+    ``href`` attribute in ``<use href="...#symbol-id">`` references.
+
+    The path must not conflict with any existing TYPO3 page slug.
+
+    .. code-block:: typoscript
+
+        plugin.tx_maispace_assets.svgSprite.routePath = /assets/icons.svg
+
+    The middleware is positioned after ``site-resolver`` (so TypoScript is available)
+    and before ``page-resolver`` (so no page lookup is triggered for sprite requests).
+    The sprite response includes:
+
+    * ``Content-Type: image/svg+xml; charset=utf-8``
+    * ``Cache-Control: public, max-age=31536000, immutable``
+    * ``ETag`` — derived from a SHA-1 of the sprite content; enables 304 responses.
+    * ``Vary: Accept-Encoding``
+
 .. confval:: plugin.tx_maispace_assets.svgSprite.symbolIdPrefix
     :type: string
     :Default: ``icon-``
 
-    Prefix prepended to symbol IDs that are auto-derived from the filename.
-    Example: ``arrow.svg`` → ``icon-arrow``.
-
-    To use no prefix, set it to an empty string:
-
-    .. code-block:: typoscript
-
-        plugin.tx_maispace_assets.svgSprite.symbolIdPrefix =
+    Naming convention prefix. This value is not enforced by the registry —
+    symbol IDs are taken verbatim from the array keys in ``SpriteIcons.php``.
+    The setting is documented here as a convention reference for teams that want
+    a consistent prefix across extensions.
 
 .. confval:: plugin.tx_maispace_assets.svgSprite.cache
     :type: boolean
@@ -139,6 +191,10 @@ SVG Sprite Settings
 
     Cache the assembled SVG sprite in the ``maispace_assets`` cache. Set to ``0``
     to rebuild the sprite on every request (useful during development, but not for production).
+
+    The cache key incorporates the SHA-1 of every registered symbol's ID, absolute
+    source path, and file modification time. Any change to an SVG source file
+    automatically produces a new cache entry without a manual cache flush.
 
 Debug Mode
 ==========
@@ -192,6 +248,7 @@ Full Example Configuration
             defaultImportPaths = EXT:theme/Resources/Private/Scss/Partials
         }
         svgSprite {
+            routePath = /maispace/sprite.svg
             symbolIdPrefix = icon-
             cache = 1
         }

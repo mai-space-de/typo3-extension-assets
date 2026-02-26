@@ -25,8 +25,11 @@ Overview
       - After JS is minified (or read from file), before caching and registration.
     * - :ref:`event-after-scss-compiled`
       - After SCSS is compiled to CSS by scssphp, before caching and registration.
-    * - :ref:`event-after-svg-sprite-built`
-      - After the SVG sprite HTML is assembled, before caching and output.
+    * - :ref:`event-before-sprite-symbol-registered`
+      - Before each SVG symbol is added to the registry during auto-discovery. Listeners
+        can rename, reconfigure, or veto individual symbols.
+    * - :ref:`event-after-sprite-built`
+      - After the full SVG sprite XML is assembled, before it is cached and served.
 
 All events carry **mutable data** — call ``set*()`` methods to modify the output.
 The modified content is cached, so subsequent requests serve the listener-modified version.
@@ -275,15 +278,19 @@ Example Listener
         }
     }
 
-.. _event-after-svg-sprite-built:
+.. _event-before-sprite-symbol-registered:
 
-AfterSvgSpriteBuiltEvent
-========================
+BeforeSpriteSymbolRegisteredEvent
+==================================
 
-**Class:** ``Maispace\MaispaceAssets\Event\AfterSvgSpriteBuiltEvent``
+**Class:** ``Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent``
 
-Fired by ``SvgSpriteService::renderSprite()`` after the SVG sprite HTML is assembled
-from all registered symbols, before it is cached and output to the template.
+Fired by ``SpriteIconRegistry`` once for each symbol found in any extension's
+``Configuration/SpriteIcons.php`` during auto-discovery. Listeners can rename a symbol,
+alter its source path, or veto it entirely so it is not included in the sprite.
+
+Auto-discovery runs lazily on the first call to ``buildSprite()`` and is idempotent —
+the event fires exactly once per symbol per request.
 
 API
 ---
@@ -294,12 +301,21 @@ API
 
     * - Method
       - Description
-    * - ``getSpriteHtml(): string``
-      - The assembled SVG sprite HTML string.
-    * - ``setSpriteHtml(string $html): void``
-      - Replace the sprite HTML before caching.
-    * - ``getRegisteredSymbolIds(): array``
-      - Array of all registered symbol ID strings in registration order.
+    * - ``getSymbolId(): string``
+      - The current symbol ID (array key from ``SpriteIcons.php``).
+    * - ``setSymbolId(string $symbolId): void``
+      - Rename the symbol. The new ID is used in the assembled sprite and in
+        ``<use href="...#new-id">`` references.
+    * - ``getConfig(): array``
+      - Current configuration array (at minimum: ``['src' => 'EXT:...']``).
+    * - ``setConfig(array $config): void``
+      - Replace the entire configuration — useful for redirecting to a different source file.
+    * - ``getSourceExtensionKey(): string``
+      - The extension key that contributed this symbol (e.g. ``my_sitepackage``).
+    * - ``skip(): void``
+      - Veto this symbol. It will not be included in the assembled sprite.
+    * - ``isSkipped(): bool``
+      - Returns ``true`` if ``skip()`` was called by this or a previous listener.
 
 Example Listener
 ----------------
@@ -307,49 +323,140 @@ Example Listener
 .. code-block:: php
 
     <?php
-    // my_site_package/Classes/EventListener/StaticSymbolsListener.php
+    // my_site_package/Classes/EventListener/SpriteSymbolFilterListener.php
 
     declare(strict_types=1);
 
     namespace MyVendor\MySitePackage\EventListener;
 
-    use Maispace\MaispaceAssets\Event\AfterSvgSpriteBuiltEvent;
+    use Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent;
 
     /**
-     * Appends static brand symbols to every page's SVG sprite without requiring
-     * a <ma:svgSprite register="..."> call in every template.
+     * Rename symbols from a third-party extension and exclude any that are
+     * not needed on this project.
      */
-    final class StaticSymbolsListener
+    final class SpriteSymbolFilterListener
     {
-        public function __invoke(AfterSvgSpriteBuiltEvent $event): void
-        {
-            $brandSymbol = '<symbol id="icon-brand" viewBox="0 0 200 60">'
-                . '<text x="0" y="40" font-size="40">Brand</text>'
-                . '</symbol>';
+        /** Symbol IDs from third-party extensions to exclude. */
+        private const BLOCKED = ['icon-legacy-close', 'icon-deprecated-arrow'];
 
-            // Insert the static symbol before the closing </svg> tag.
-            $html = str_replace('</svg>', $brandSymbol . '</svg>', $event->getSpriteHtml());
-            $event->setSpriteHtml($html);
+        public function __invoke(BeforeSpriteSymbolRegisteredEvent $event): void
+        {
+            // Exclude unwanted symbols from any extension.
+            if (in_array($event->getSymbolId(), self::BLOCKED, true)) {
+                $event->skip();
+                return;
+            }
+
+            // Prefix all symbols contributed by a specific extension.
+            if ($event->getSourceExtensionKey() === 'base_theme') {
+                $event->setSymbolId('base-' . $event->getSymbolId());
+            }
         }
     }
 
 .. code-block:: yaml
 
     # Services.yaml
-    MyVendor\MySitePackage\EventListener\StaticSymbolsListener:
+    MyVendor\MySitePackage\EventListener\SpriteSymbolFilterListener:
         tags:
             -   name: event.listener
-                identifier: 'my-site-static-svg-symbols'
-                event: Maispace\MaispaceAssets\Event\AfterSvgSpriteBuiltEvent
+                identifier: 'my-site-sprite-symbol-filter'
+                event: Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
+
+.. _event-after-sprite-built:
+
+AfterSpriteBuiltEvent
+=====================
+
+**Class:** ``Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent``
+
+Fired by ``SpriteIconRegistry::buildSprite()`` after the full SVG sprite XML is
+assembled from all registered symbols, before it is stored in the cache and served
+by ``SvgSpriteMiddleware``.
+
+Use this event to append static symbols that are not contributed by any extension,
+inject ``<defs>`` blocks, add an XML declaration, log bundle-size metrics, or
+minify/prettify the sprite XML.
+
+API
+---
+
+.. list-table::
+    :header-rows: 1
+    :widths: 40 60
+
+    * - Method
+      - Description
+    * - ``getSpriteXml(): string``
+      - The full assembled SVG sprite XML document.
+    * - ``setSpriteXml(string $xml): void``
+      - Replace the XML before it is cached and served.
+    * - ``getRegisteredSymbolIds(): array``
+      - Array of all symbol ID strings included in the sprite.
+
+Example Listener
+----------------
+
+.. code-block:: php
+
+    <?php
+    // my_site_package/Classes/EventListener/StaticBrandSymbolListener.php
+
+    declare(strict_types=1);
+
+    namespace MyVendor\MySitePackage\EventListener;
+
+    use Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent;
+
+    /**
+     * Appends a static brand symbol (defined inline, not from a file) and
+     * injects a reusable gradient <defs> block into the assembled sprite.
+     */
+    final class StaticBrandSymbolListener
+    {
+        public function __invoke(AfterSpriteBuiltEvent $event): void
+        {
+            $defs = '<defs>'
+                . '<linearGradient id="grad-brand" x1="0" y1="0" x2="1" y2="1">'
+                . '<stop offset="0%" stop-color="#e63946"/>'
+                . '<stop offset="100%" stop-color="#c1121f"/>'
+                . '</linearGradient>'
+                . '</defs>';
+
+            $brandSymbol = '<symbol id="icon-brand-logo" viewBox="0 0 200 60">'
+                . '<rect width="200" height="60" fill="url(#grad-brand)"/>'
+                . '<text x="10" y="42" font-size="32" fill="#fff">Brand</text>'
+                . '</symbol>';
+
+            // Insert <defs> + the static symbol before the closing </svg> tag.
+            $xml = str_replace(
+                '</svg>',
+                $defs . $brandSymbol . '</svg>',
+                $event->getSpriteXml(),
+            );
+            $event->setSpriteXml($xml);
+        }
+    }
+
+.. code-block:: yaml
+
+    # Services.yaml
+    MyVendor\MySitePackage\EventListener\StaticBrandSymbolListener:
+        tags:
+            -   name: event.listener
+                identifier: 'my-site-static-brand-symbol'
+                event: Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
 
 Example Listeners in the Extension
 ====================================
 
-The extension ships four example listener classes in
+The extension ships five example listener classes in
 ``Classes/EventListener/`` that are **commented out** in ``Configuration/Services.yaml``.
 They provide a comprehensive reference for all available event API methods:
 
 *  ``AfterCssProcessedEventListener`` — CSS post-processing examples
 *  ``AfterJsProcessedEventListener`` — JS configuration injection examples
 *  ``AfterScssCompiledEventListener`` — SCSS output post-processing examples
-*  ``AfterSvgSpriteBuiltEventListener`` — SVG sprite manipulation examples
+*  ``BeforeSpriteSymbolRegisteredEventListener`` — per-symbol filtering and renaming examples
+*  ``AfterSpriteBuiltEventListener`` — full sprite post-processing examples
