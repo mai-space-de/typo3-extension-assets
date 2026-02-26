@@ -53,7 +53,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 final class SpriteIconRegistry implements SingletonInterface
 {
-    private const CACHE_KEY_PREFIX = 'svg_api_sprite_';
+    private const CACHE_KEY_PREFIX = 'svg_sprite_';
     private const CACHE_TAG        = 'maispace_assets_svg';
 
     /** @var array<string, array{src: string, absoluteSrc: string}> symbolId => resolved config */
@@ -72,30 +72,39 @@ final class SpriteIconRegistry implements SingletonInterface
     // -------------------------------------------------------------------------
 
     /**
-     * Build (or return from cache) the full SVG sprite XML document.
+     * Build (or return from cache) the SVG sprite XML document for the given site.
+     *
+     * When `$siteIdentifier` is provided, symbols that declare a `sites` array are
+     * only included when the identifier matches. Symbols without a `sites` key are
+     * always included (global/shared icons).
+     *
+     * A separate cached sprite is maintained per site so each site gets exactly the
+     * symbols it needs without redundant rebuilds.
      *
      * The sprite is a hidden `<svg>` element containing one `<symbol>` per registered icon.
      * Returns an empty string if no symbols are registered.
      */
-    public function buildSprite(): string
+    public function buildSprite(?string $siteIdentifier = null): string
     {
         $this->discover();
 
-        if ($this->symbols === []) {
+        $symbols = $this->filterSymbolsForSite($siteIdentifier);
+
+        if ($symbols === []) {
             return '';
         }
 
-        $cacheKey = $this->buildCacheKey();
+        $cacheKey = $this->buildCacheKey($symbols, $siteIdentifier);
 
         if ($this->cache->has($cacheKey)) {
             return (string)$this->cache->get($cacheKey);
         }
 
-        $spriteXml = $this->assembleSpriteXml();
+        $spriteXml = $this->assembleSpriteXml($symbols);
 
         /** @var AfterSpriteBuiltEvent $event */
         $event = $this->eventDispatcher->dispatch(
-            new AfterSpriteBuiltEvent($spriteXml, array_keys($this->symbols)),
+            new AfterSpriteBuiltEvent($spriteXml, array_keys($symbols)),
         );
         $spriteXml = $event->getSpriteXml();
 
@@ -105,15 +114,16 @@ final class SpriteIconRegistry implements SingletonInterface
     }
 
     /**
-     * Return all symbol IDs that were successfully registered (after event filtering).
+     * Return all symbol IDs registered for a given site (after event filtering).
+     * Pass null to get all globally registered symbols regardless of site scope.
      * Triggers auto-discovery if not yet done.
      *
      * @return string[]
      */
-    public function getRegisteredSymbolIds(): array
+    public function getRegisteredSymbolIds(?string $siteIdentifier = null): array
     {
         $this->discover();
-        return array_keys($this->symbols);
+        return array_keys($this->filterSymbolsForSite($siteIdentifier));
     }
 
     // -------------------------------------------------------------------------
@@ -191,18 +201,49 @@ final class SpriteIconRegistry implements SingletonInterface
     }
 
     // -------------------------------------------------------------------------
+    // Site filtering
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return the subset of registered symbols that apply to the given site.
+     *
+     * A symbol is included when:
+     * - It has no `sites` key (global, available on all sites), OR
+     * - Its `sites` array contains `$siteIdentifier`.
+     *
+     * When `$siteIdentifier` is null, only global symbols (no `sites` key) are returned.
+     *
+     * @return array<string, array{src: string, absoluteSrc: string, sites?: string[]}>
+     */
+    private function filterSymbolsForSite(?string $siteIdentifier): array
+    {
+        $result = [];
+        foreach ($this->symbols as $symbolId => $config) {
+            if (!isset($config['sites'])) {
+                // No restriction — include on all sites.
+                $result[$symbolId] = $config;
+            } elseif ($siteIdentifier !== null && in_array($siteIdentifier, (array)$config['sites'], true)) {
+                $result[$symbolId] = $config;
+            }
+        }
+        return $result;
+    }
+
+    // -------------------------------------------------------------------------
     // Sprite assembly
     // -------------------------------------------------------------------------
 
     /**
      * Read each registered SVG file, extract its `<symbol>` representation,
      * and wrap everything in the sprite container.
+     *
+     * @param array<string, array{src: string, absoluteSrc: string}> $symbols
      */
-    private function assembleSpriteXml(): string
+    private function assembleSpriteXml(array $symbols): string
     {
         $symbolBlocks = [];
 
-        foreach ($this->symbols as $symbolId => $config) {
+        foreach ($symbols as $symbolId => $config) {
             $svgContent = @file_get_contents($config['absoluteSrc']);
             if ($svgContent === false) {
                 $this->logger->error(
@@ -278,21 +319,25 @@ final class SpriteIconRegistry implements SingletonInterface
     // -------------------------------------------------------------------------
 
     /**
-     * Build a cache key that encodes the identity of all registered symbols.
+     * Build a cache key that encodes the identity of the site-filtered symbol set.
      *
-     * The key includes each symbol's ID, its resolved file path, and the file
-     * modification time. Any change to a source SVG (or the addition/removal of
-     * a symbol) produces a different key — no manual cache flush required.
+     * The key includes the site identifier, each symbol's ID, its resolved file path,
+     * and the file modification time. Any change to a source SVG, the addition/removal
+     * of a symbol, or a different site produces a different key — no manual flush required.
+     *
+     * @param array<string, array{src: string, absoluteSrc: string}> $symbols
      */
-    private function buildCacheKey(): string
+    private function buildCacheKey(array $symbols, ?string $siteIdentifier): string
     {
         $parts = [];
-        foreach ($this->symbols as $symbolId => $config) {
-            $mtime  = @filemtime($config['absoluteSrc']) ?: 0;
+        foreach ($symbols as $symbolId => $config) {
+            $mtime   = @filemtime($config['absoluteSrc']) ?: 0;
             $parts[] = $symbolId . '|' . $config['absoluteSrc'] . '|' . $mtime;
         }
         sort($parts);
 
-        return self::CACHE_KEY_PREFIX . sha1(implode(',', $parts));
+        $siteSlug = $siteIdentifier !== null ? preg_replace('/[^a-z0-9_-]/i', '_', $siteIdentifier) . '_' : '';
+
+        return self::CACHE_KEY_PREFIX . $siteSlug . sha1(implode(',', $parts));
     }
 }

@@ -32,6 +32,26 @@ services:
     Maispace\MaispaceAssets\Registry\SpriteIconRegistry:
         public: true
 
+    # FontRegistry implements SingletonInterface — same reasoning as SpriteIconRegistry.
+    # Must be public so FontPreloadEventListener (DI-resolved) always gets the same
+    # singleton instance that has already performed auto-discovery.
+    Maispace\MaispaceAssets\Registry\FontRegistry:
+        public: true
+
+    # ImageRenderingService must be public so the ViewHelpers (which use static
+    # renderStatic() and resolve dependencies via GeneralUtility::makeInstance())
+    # receive the DI-configured instance with ImageService and LoggerInterface injected.
+    Maispace\MaispaceAssets\Service\ImageRenderingService:
+        public: true
+
+    # FontPreloadEventListener — registered as a real event listener (not an example).
+    # Font preloading is a core feature of maispace_assets, not an opt-in hook.
+    Maispace\MaispaceAssets\EventListener\FontPreloadEventListener:
+        tags:
+            -   name: event.listener
+                identifier: 'maispace-assets-font-preload'
+                event: TYPO3\CMS\Core\Page\Event\BeforeStylesheetsRenderingEvent
+
     # -------------------------------------------------------------------------
     # Example event listeners
     #

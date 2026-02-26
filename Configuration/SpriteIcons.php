@@ -19,7 +19,20 @@ declare(strict_types=1);
  * Return a flat array where:
  *   - The KEY    is the symbol ID (used as `<symbol id="...">` and `<use href="...#id">`)
  *   - The VALUE  is a config array with:
- *       'src' (string, required) — EXT: path or absolute path to the .svg file
+ *       'src'   (string, required) — EXT: path or absolute path to the .svg file
+ *       'sites' (array,  optional) — list of TYPO3 site identifiers; omit for all sites
+ *
+ * MULTI-SITE SCOPING
+ * ==================
+ * Use the 'sites' key to restrict a symbol to specific TYPO3 sites in the same instance.
+ * This ensures each site's sprite contains only its own icons — no wasted bandwidth.
+ *
+ *   'icon-brand-a-logo' => [
+ *       'src'   => 'EXT:brand_a/Resources/Public/Icons/logo.svg',
+ *       'sites' => ['brand-a'],   // only included in the sprite for site "brand-a"
+ *   ],
+ *
+ * Symbols without a 'sites' key are included on all sites (global/shared icons).
  *
  * SYMBOL ID NAMING CONVENTION
  * ============================

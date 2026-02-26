@@ -65,6 +65,34 @@ plugin.tx_maispace_assets {
     }
 
     # =========================================================================
+    # Image settings (ma:image, ma:picture, ma:picture.source)
+    # =========================================================================
+    image {
+        # Add loading="lazy" to all images by default.
+        # 1 = lazy (default), 0 = eager.
+        # Override per image via the ViewHelper's lazyloading="false" argument.
+        lazyloading = 1
+
+        # CSS class added alongside loading="lazy" for JS-based lazy loaders (e.g. lazysizes).
+        # When set, this class is appended to all lazily-loaded images.
+        # Leave empty to rely on native loading="lazy" only.
+        # Override per image via the ViewHelper's lazyloadWithClass="..." argument.
+        # Example: lazyloadWithClass = lazyload
+        lazyloadWithClass =
+    }
+
+    # =========================================================================
+    # Font preloading settings (Configuration/Fonts.php auto-discovery)
+    # =========================================================================
+    fonts {
+        # Global switch for font preloading.
+        # 1 = emit <link rel="preload" as="font"> for all registered fonts (default).
+        # 0 = suppress all font preload tags globally.
+        # Individual fonts can also opt out via 'preload' => false in Fonts.php.
+        preload = 1
+    }
+
+    # =========================================================================
     # SVG Sprite settings
     # =========================================================================
     svgSprite {

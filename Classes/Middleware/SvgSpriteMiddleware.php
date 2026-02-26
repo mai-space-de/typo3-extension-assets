@@ -67,7 +67,8 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        $spriteXml = $this->registry->buildSprite();
+        $siteIdentifier = $request->getAttribute('site')?->getIdentifier();
+        $spriteXml      = $this->registry->buildSprite($siteIdentifier);
 
         if ($spriteXml === '') {
             // No symbols registered — return a valid empty SVG rather than a 404.
