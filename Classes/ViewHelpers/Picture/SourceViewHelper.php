@@ -142,6 +142,16 @@ final class SourceViewHelper extends AbstractViewHelper
             false,
             true,
         );
+
+        $this->registerArgument(
+            'fileExtension',
+            'string',
+            'Force the output format for this source when formats is not set, e.g. "webp" or "avif". '
+            . 'Overrides the TypoScript setting plugin.tx_maispace_assets.image.forceFormat. '
+            . 'Has no effect when the formats argument is set.',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(
@@ -175,7 +185,8 @@ final class SourceViewHelper extends AbstractViewHelper
 
         // No format alternatives: render a single <source> tag (classic behaviour).
         if ($formats === []) {
-            $processed = $service->processImage($file, $width, $height);
+            $fileExtension = self::resolveFileExtension($arguments);
+            $processed = $service->processImage($file, $width, $height, $fileExtension);
             return $service->renderSourceTag($processed, $media, $arguments['type'] ?? null);
         }
 
@@ -199,6 +210,22 @@ final class SourceViewHelper extends AbstractViewHelper
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Resolve the effective output file extension when formats is not set.
+     *
+     * Priority: explicit `fileExtension` argument → TypoScript `image.forceFormat` → ""
+     */
+    private static function resolveFileExtension(array $arguments): string
+    {
+        $arg = $arguments['fileExtension'] ?? null;
+        if (is_string($arg) && $arg !== '') {
+            return $arg;
+        }
+
+        $ts = self::getTypoScriptSetting('image.forceFormat', '');
+        return is_string($ts) ? $ts : '';
+    }
 
     /**
      * Resolve the list of alternative formats from the ViewHelper argument or TypoScript.

@@ -242,6 +242,44 @@ final class ImageRenderingService implements SingletonInterface
     // -------------------------------------------------------------------------
 
     /**
+     * Build a `srcset` attribute string from a comma-separated list of target widths.
+     *
+     * Each width value is processed independently via `processImage()`. The resulting URL
+     * and the actual rendered pixel width (from the ProcessedFile's `width` property)
+     * form each `url Nw` entry — so the descriptor always reflects the true output size.
+     *
+     * Width entries follow TYPO3 notation (e.g. `"400"`, `"800c"`, `"1200m"`).
+     *
+     * @param string $widths        Comma-separated width values, e.g. `"400, 800, 1200"`
+     * @param string $height        Height constraint shared across all widths (empty = proportional).
+     * @param string $fileExtension Target format override, e.g. `"webp"` or `""` for source format.
+     * @return string               Srcset string, e.g. `"/img_400.jpg 400w, /img_800.jpg 800w"`
+     */
+    public function buildSrcsetString(
+        File|FileReference $file,
+        string $widths,
+        string $height = '',
+        string $fileExtension = '',
+    ): string {
+        $widthList = array_filter(array_map('trim', explode(',', $widths)));
+        $parts = [];
+
+        foreach ($widthList as $w) {
+            if ($w === '') {
+                continue;
+            }
+            $processed   = $this->processImage($file, $w, $height, $fileExtension);
+            $url         = $this->imageService->getImageUri($processed, true);
+            $actualWidth = (int)($processed->getProperty('width') ?: (int)preg_replace('/\D+/', '', $w));
+            if ($url !== '' && $actualWidth > 0) {
+                $parts[] = $url . ' ' . $actualWidth . 'w';
+            }
+        }
+
+        return implode(', ', $parts);
+    }
+
+    /**
      * Build an `<img>` tag string.
      *
      * @param array{
@@ -252,6 +290,8 @@ final class ImageRenderingService implements SingletonInterface
      *   lazyloading?: bool|null,
      *   lazyloadWithClass?: string|null,
      *   fetchPriority?: string|null,
+     *   srcset?: string|null,
+     *   sizes?: string|null,
      *   additionalAttributes?: array<string,string>,
      * } $options
      */
@@ -300,6 +340,16 @@ final class ImageRenderingService implements SingletonInterface
         $fetchPriority = $options['fetchPriority'] ?? null;
         if ($fetchPriority !== null && in_array($fetchPriority, ['high', 'low', 'auto'], true)) {
             $attrs['fetchpriority'] = $fetchPriority;
+        }
+
+        // srcset / sizes — for responsive images without <picture>
+        $srcset = $options['srcset'] ?? null;
+        if ($srcset !== null && $srcset !== '') {
+            $attrs['srcset'] = $srcset;
+        }
+        $sizes = $options['sizes'] ?? null;
+        if ($sizes !== null && $sizes !== '') {
+            $attrs['sizes'] = $sizes;
         }
 
         // Additional attributes (caller-supplied, not escaped — trust the caller)

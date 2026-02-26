@@ -146,6 +146,40 @@ Image Settings
 
         plugin.tx_maispace_assets.image.lazyloadWithClass = lazyload
 
+.. confval:: plugin.tx_maispace_assets.image.forceFormat
+    :type: string
+    :Default: *(empty)*
+
+    Force all images processed by ``<mai:image>``, the ``<mai:picture>`` fallback ``<img>``,
+    and ``<mai:picture.source>`` (when ``formats`` is not set) to a specific output format.
+
+    Leave empty (default) to keep the source file's format. The image processor (GraphicsMagick
+    or ImageMagick) must support the target format.
+
+    Override per image using the ViewHelper's ``fileExtension="webp"`` argument.
+
+    .. code-block:: typoscript
+
+        # Convert all images to WebP globally
+        plugin.tx_maispace_assets.image.forceFormat = webp
+
+.. confval:: plugin.tx_maispace_assets.image.alternativeFormats
+    :type: string
+    :Default: *(empty)*
+
+    Comma-separated list of target formats in preference order (most capable first).
+    When set, ``<mai:picture>`` and ``<mai:picture.source>`` automatically render
+    one ``<source type="image/...">`` tag per format before the fallback element,
+    allowing browsers to pick the best format they support.
+
+    Leave empty (default) to disable automatic format source sets globally. Override
+    per element using the ViewHelper's ``formats="avif, webp"`` argument.
+
+    .. code-block:: typoscript
+
+        # Serve AVIF to browsers that support it, WebP as second choice, original as fallback
+        plugin.tx_maispace_assets.image.alternativeFormats = avif, webp
+
 Font Settings
 =============
 
@@ -300,6 +334,8 @@ Full Example Configuration
         image {
             lazyloading = 1
             lazyloadWithClass =
+            forceFormat =
+            alternativeFormats =
         }
         fonts {
             preload = 1
@@ -310,6 +346,45 @@ Full Example Configuration
             cache = 1
         }
     }
+
+.. _configuration-cli:
+
+CLI Command — Deploy-time Cache Warm-up
+=======================================
+
+The extension ships a Symfony console command that pre-builds SVG sprites and
+discovers font registrations for every configured TYPO3 site. Run it at deploy
+time **after** clearing the TYPO3 cache to eliminate first-request cold-start latency:
+
+.. code-block:: bash
+
+    php vendor/bin/typo3 maispace:assets:warmup
+
+What the command does:
+
+1. **Font discovery** — triggers ``FontRegistry::discover()`` which loads all
+   ``Configuration/Fonts.php`` files from every loaded extension.
+2. **SVG sprite build** — calls ``SpriteIconRegistry::buildSprite($siteIdentifier)``
+   for each configured TYPO3 site, writing the result to the ``maispace_assets``
+   caching framework cache.
+
+The command is idempotent — running it multiple times is safe. Unchanged sprites are
+not rebuilt because the cache key encodes the content hash of each symbol.
+
+Example output:
+
+.. code-block:: text
+
+    Font registry: 3 font(s) discovered across all extensions.
+      · my-font-regular
+      · my-font-bold
+      · icon-font
+
+    Building SVG sprite for 2 site(s)
+      ✓  brand-a — 18 symbol(s) cached
+      ✓  brand-b — 12 symbol(s) cached
+
+     [OK] All sites warmed up successfully.
 
 .. _configuration-fontregistry:
 

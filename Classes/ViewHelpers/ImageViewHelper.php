@@ -148,6 +148,36 @@ final class ImageViewHelper extends AbstractViewHelper
             false,
             [],
         );
+
+        $this->registerArgument(
+            'srcset',
+            'string',
+            'Comma-separated list of widths to generate for the srcset attribute, e.g. "400, 800, 1200". '
+            . 'Each width is processed independently; the actual output pixel width becomes the w-descriptor. '
+            . 'Accepts the same TYPO3 width notation as the width argument (e.g. "400c", "800m"). '
+            . 'The main src still uses the width/height arguments as usual.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'sizes',
+            'string',
+            'Value for the HTML sizes attribute, e.g. "(max-width: 768px) 100vw, 50vw". '
+            . 'Only rendered when srcset is also set.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'fileExtension',
+            'string',
+            'Force the output image format, e.g. "webp" or "avif". '
+            . 'Overrides the TypoScript setting plugin.tx_maispace_assets.image.forceFormat. '
+            . 'Leave empty (null) to use the source file format or the global TypoScript default.',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(
@@ -163,10 +193,30 @@ final class ImageViewHelper extends AbstractViewHelper
             return '';
         }
 
-        $processed = $service->processImage($file, (string)$arguments['width'], (string)$arguments['height']);
+        // Resolve the output format: explicit argument → TypoScript forceFormat → source format.
+        $fileExtension = self::resolveFileExtension($arguments);
+
+        $processed = $service->processImage(
+            $file,
+            (string)$arguments['width'],
+            (string)$arguments['height'],
+            $fileExtension,
+        );
 
         // Resolve lazy loading from arguments, then TypoScript fallback.
         [$lazyloading, $lazyloadWithClass] = self::resolveLazyArguments($arguments);
+
+        // Build srcset string if srcset widths are specified.
+        $srcsetString = null;
+        $srcsetArg = $arguments['srcset'] ?? null;
+        if (is_string($srcsetArg) && $srcsetArg !== '') {
+            $srcsetString = $service->buildSrcsetString(
+                $file,
+                $srcsetArg,
+                (string)$arguments['height'],
+                $fileExtension,
+            );
+        }
 
         $imgHtml = $service->renderImgTag($processed, [
             'alt'               => (string)($arguments['alt'] ?? ''),
@@ -176,6 +226,8 @@ final class ImageViewHelper extends AbstractViewHelper
             'lazyloading'       => $lazyloading,
             'lazyloadWithClass' => $lazyloadWithClass,
             'fetchPriority'     => $arguments['fetchPriority'] ?? null,
+            'srcset'            => $srcsetString,
+            'sizes'             => $arguments['sizes'] ?? null,
             'additionalAttributes' => (array)($arguments['additionalAttributes'] ?? []),
         ]);
 
@@ -191,6 +243,25 @@ final class ImageViewHelper extends AbstractViewHelper
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Resolve the effective output file extension (image format).
+     *
+     * Priority order:
+     *  1. Explicit `fileExtension` ViewHelper argument
+     *  2. TypoScript `plugin.tx_maispace_assets.image.forceFormat`
+     *  3. Empty string → use source file format (no conversion)
+     */
+    private static function resolveFileExtension(array $arguments): string
+    {
+        $arg = $arguments['fileExtension'] ?? null;
+        if (is_string($arg) && $arg !== '') {
+            return $arg;
+        }
+
+        $ts = self::getTypoScriptSetting('image.forceFormat', '');
+        return is_string($ts) ? $ts : '';
+    }
 
     /**
      * Resolve the effective lazy-loading settings.

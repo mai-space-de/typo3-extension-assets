@@ -44,6 +44,9 @@ services:
     Maispace\MaispaceAssets\Service\ImageRenderingService:
         public: true
 
+    # WarmupCommand — auto-discovered via #[AsCommand] attribute + autoconfigure: true.
+    # Run at deploy time: php vendor/bin/typo3 maispace:assets:warmup
+
     # FontPreloadEventListener — registered as a real event listener (not an example).
     # Font preloading is a core feature of maispace_assets, not an opt-in hook.
     Maispace\MaispaceAssets\EventListener\FontPreloadEventListener:

@@ -68,6 +68,37 @@ final class CssViewHelper extends AbstractAssetViewHelper
             false,
             'all',
         );
+
+        $this->registerArgument(
+            'nonce',
+            'string',
+            'CSP nonce for the inline <style> tag. Only applied when inline="true". '
+            . 'When TYPO3\'s built-in Content Security Policy is enabled (Install Tool → Content Security Policy), '
+            . 'the nonce is read automatically from the request — no argument is needed. '
+            . 'Pass an explicit value only to override the auto-detected nonce.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'integrity',
+            'bool',
+            'Automatically compute and add an SRI integrity attribute (sha384) to the generated <link> tag. '
+            . 'Only applied for external file assets (not inline). '
+            . 'Browsers will refuse to load the file if its hash does not match.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'crossorigin',
+            'string',
+            'Value for the crossorigin attribute added alongside integrity. '
+            . 'Defaults to "anonymous" when integrity is enabled. '
+            . 'Use "use-credentials" for authenticated cross-origin requests.',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(

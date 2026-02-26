@@ -98,11 +98,14 @@ final class AssetProcessingService
         }
 
         // 8. Register with AssetCollector.
+        $nonce = self::resolveNonce($arguments);
+
         if ($isInline) {
+            $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
             $collector->addInlineStyleSheet(
                 $identifier,
                 $processed,
-                [],
+                $inlineAttrs,
                 ['priority' => $isPriority],
             );
             return;
@@ -115,6 +118,9 @@ final class AssetProcessingService
             return;
         }
 
+        // Build SRI integrity attributes when requested.
+        $integrityAttrs = self::buildIntegrityAttrs($arguments, $processed);
+
         if ($isDeferred) {
             // Deferred non-blocking load via media="print" onload swap trick.
             // The browser loads the stylesheet without blocking render, then the onload
@@ -123,10 +129,10 @@ final class AssetProcessingService
             $collector->addStyleSheet(
                 $identifier,
                 $publicPath,
-                [
+                array_filter([
                     'media'  => 'print',
                     'onload' => "this.media='" . addslashes($media) . "'",
-                ],
+                ] + $integrityAttrs),
                 ['priority' => false], // deferred CSS is never in <head>
             );
             // Noscript fallback — registered as a separate inline block.
@@ -140,7 +146,7 @@ final class AssetProcessingService
             $collector->addStyleSheet(
                 $identifier,
                 $publicPath,
-                ['media' => $media],
+                array_filter(['media' => $media] + $integrityAttrs),
                 ['priority' => $isPriority],
             );
         }
@@ -196,12 +202,15 @@ final class AssetProcessingService
             $cache->set($cacheKey, $processed, ['maispace_assets_js']);
         }
 
+        $nonce = self::resolveNonce($arguments);
+
         // Inline JS.
         if (empty($arguments['src'])) {
+            $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
             $collector->addInlineJavaScript(
                 $identifier,
                 $processed,
-                [],
+                $inlineAttrs,
                 ['priority' => $isPriority],
             );
             return;
@@ -213,6 +222,9 @@ final class AssetProcessingService
             $logger->error('maispace_assets: Could not write JS file for identifier ' . $identifier);
             return;
         }
+
+        // Build SRI integrity attributes when requested.
+        $integrityAttrs = self::buildIntegrityAttrs($arguments, $processed);
 
         $attributes = [];
         if ($useDefer) {
@@ -228,7 +240,7 @@ final class AssetProcessingService
         $collector->addJavaScript(
             $identifier,
             $publicPath,
-            $attributes,
+            array_filter($attributes + $integrityAttrs),
             ['priority' => $isPriority],
         );
     }
@@ -351,8 +363,11 @@ final class AssetProcessingService
         $collector  = self::collector();
         $logger     = self::logger();
 
+        $nonce = self::resolveNonce($arguments);
+
         if ($isInline) {
-            $collector->addInlineStyleSheet($identifier, $css, [], ['priority' => $isPriority]);
+            $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
+            $collector->addInlineStyleSheet($identifier, $css, $inlineAttrs, ['priority' => $isPriority]);
             return;
         }
 
@@ -362,11 +377,16 @@ final class AssetProcessingService
             return;
         }
 
+        $integrityAttrs = self::buildIntegrityAttrs($arguments, $css);
+
         if ($isDeferred) {
             $collector->addStyleSheet(
                 $identifier,
                 $publicPath,
-                ['media' => 'print', 'onload' => "this.media='" . addslashes($media) . "'"],
+                array_filter([
+                    'media'  => 'print',
+                    'onload' => "this.media='" . addslashes($media) . "'",
+                ] + $integrityAttrs),
                 ['priority' => false],
             );
             $collector->addInlineStyleSheet(
@@ -379,7 +399,7 @@ final class AssetProcessingService
             $collector->addStyleSheet(
                 $identifier,
                 $publicPath,
-                ['media' => $media],
+                array_filter(['media' => $media] + $integrityAttrs),
                 ['priority' => $isPriority],
             );
         }
@@ -449,6 +469,72 @@ final class AssetProcessingService
             return $argumentValue;
         }
         return (bool)self::getTypoScriptSetting($section . '.' . $setting, false);
+    }
+
+    /**
+     * Resolve the CSP nonce to attach to an inline <style> or <script> tag.
+     *
+     * Resolution order:
+     *  1. Explicit `nonce` ViewHelper argument — use as-is.
+     *  2. TYPO3's built-in per-request nonce (TYPO3 12.4+, when CSP is enabled in Install Tool).
+     *     Accessed via `$GLOBALS['TYPO3_REQUEST']->getAttribute('nonce')`. Cast to string.
+     *  3. null — no nonce attribute is added.
+     *
+     * This means that when TYPO3's CSP is enabled, inline assets automatically receive the
+     * correct nonce without any ViewHelper configuration. The explicit argument is an escape
+     * hatch for custom nonce values (e.g. passed from a PSR-15 middleware).
+     *
+     * Note: the nonce is intentionally only applied to inline assets (inline="true" / no src).
+     * External file assets use SRI `integrity` instead; they do not require a nonce.
+     */
+    private static function resolveNonce(array $arguments): ?string
+    {
+        // 1. Explicit argument.
+        $explicit = $arguments['nonce'] ?? null;
+        if (is_string($explicit) && $explicit !== '') {
+            return $explicit;
+        }
+
+        // 2. TYPO3's built-in request nonce (TYPO3 12.4+).
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request === null) {
+            return null;
+        }
+
+        $nonce = $request->getAttribute('nonce');
+        if ($nonce === null) {
+            return null;
+        }
+
+        $nonceValue = (string)$nonce;
+        return $nonceValue !== '' ? $nonceValue : null;
+    }
+
+    /**
+     * Build the `integrity` and `crossorigin` attributes for SRI when requested.
+     *
+     * When `$arguments['integrity']` is `true`, computes a SHA-384 hash of the processed
+     * asset content and returns both attributes so they can be merged into the link/script attrs.
+     *
+     * @param array  $arguments ViewHelper arguments (integrity, crossorigin keys)
+     * @param string $content   The processed asset content to hash
+     * @return array<string, string>  Empty array when integrity is not requested
+     */
+    private static function buildIntegrityAttrs(array $arguments, string $content): array
+    {
+        if (empty($arguments['integrity'])) {
+            return [];
+        }
+
+        $hash       = base64_encode(hash('sha384', $content, true));
+        $crossorigin = is_string($arguments['crossorigin'] ?? null) && $arguments['crossorigin'] !== ''
+            ? $arguments['crossorigin']
+            : 'anonymous';
+
+        return [
+            'integrity'   => 'sha384-' . $hash,
+            'crossorigin' => $crossorigin,
+        ];
     }
 
     /**

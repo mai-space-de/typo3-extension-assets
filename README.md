@@ -13,12 +13,17 @@ A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, ima
 | CSS from file or inline | `<mai:css>` |
 | JavaScript from file or inline | `<mai:js>` |
 | SCSS compiled server-side (no Node.js) | `<mai:scss>` |
-| Responsive `<img>` with lazy load + preload | `<mai:image>` |
+| Responsive `<img>` with lazy load, preload, srcset | `<mai:image>` |
 | Responsive `<picture>` with per-breakpoint sources | `<mai:picture>` + `<mai:picture.source>` |
+| Automatic WebP/AVIF `<source>` sets in `<picture>` | `formats="avif, webp"` or `image.alternativeFormats` |
+| Global image format conversion (WebP/AVIF) | `image.forceFormat` TypoScript / `fileExtension` argument |
+| CSP nonce on inline `<style>` / `<script>` | `nonce` argument on `<mai:css>` / `<mai:js>` |
+| SRI integrity hash on `<link>` / `<script>` | `integrity="true"` argument |
 | Semantic `<figure>/<figcaption>` wrapper | `<mai:figure>` |
 | SVG sprite served from a cacheable URL | `<mai:svgSprite>` + `Configuration/SpriteIcons.php` |
 | Web font `<link rel="preload">` in `<head>` | `Configuration/Fonts.php` |
 | Multi-site scoping for sprites and fonts | `'sites'` key in config files |
+| Deploy-time cache warm-up | `php vendor/bin/typo3 maispace:assets:warmup` |
 | PSR-14 events at every processing stage | `Classes/Event/` |
 
 ---
@@ -248,8 +253,10 @@ Hook into asset processing by registering listeners in your site package's `Conf
 | `AfterScssCompiledEvent` | After SCSS is compiled, before caching |
 | `BeforeSpriteSymbolRegisteredEvent` | Per symbol during auto-discovery — can rename, modify, or veto |
 | `AfterSpriteBuiltEvent` | After full sprite XML is assembled, before caching |
+| `BeforeImageProcessingEvent` | Before each image is processed — modify instructions, force WebP/AVIF, or skip |
+| `AfterImageProcessedEvent` | After each image is processed — inspect result, replace ProcessedFile, log metrics |
 
-Example listeners with full documentation are in `Classes/EventListener/` (inactive by default). Copy the relevant `Services.yaml` block to your site package to activate one.
+Seven example listeners with full documentation are in `Classes/EventListener/` (inactive by default). Copy the relevant `Services.yaml` block to your site package to activate one.
 
 ---
 
