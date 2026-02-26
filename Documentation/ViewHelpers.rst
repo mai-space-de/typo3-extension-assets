@@ -95,10 +95,10 @@ Arguments
       - string
       - No
       - null
-      - CSP nonce value added as a ``nonce`` attribute on inline ``<style>`` tags.
-        Only applied when ``inline="true"``. Generate a per-request cryptographic nonce
-        in a PSR-15 middleware and pass it here to satisfy a ``Content-Security-Policy``
-        that restricts inline styles.
+      - CSP nonce for the inline ``<style>`` tag. Only applied when ``inline="true"``.
+        **Auto-detected**: when TYPO3's built-in CSP is enabled, the nonce is read from
+        the request automatically — no argument needed. Pass an explicit value only to
+        override the auto-detected nonce.
     * - ``integrity``
       - bool
       - No
@@ -196,9 +196,10 @@ Arguments
       - string
       - No
       - null
-      - CSP nonce value added as a ``nonce`` attribute on inline ``<script>`` tags.
-        Only applied for inline JS (no ``src`` set). Generate a per-request nonce in a
-        PSR-15 middleware and pass it here to satisfy a ``Content-Security-Policy``.
+      - CSP nonce for the inline ``<script>`` tag. Only applied for inline JS (no ``src`` set).
+        **Auto-detected**: when TYPO3's built-in CSP is enabled, the nonce is read from
+        the request automatically — no argument needed. Pass an explicit value only to
+        override the auto-detected nonce.
     * - ``integrity``
       - bool
       - No

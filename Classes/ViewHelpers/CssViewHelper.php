@@ -72,10 +72,10 @@ final class CssViewHelper extends AbstractAssetViewHelper
         $this->registerArgument(
             'nonce',
             'string',
-            'CSP nonce value to add as a nonce attribute on the inline <style> tag. '
-            . 'Only applied when inline="true". Generate a per-request cryptographic nonce in your '
-            . 'site package (e.g. via a PSR-15 middleware) and pass it here to satisfy a '
-            . 'Content-Security-Policy that restricts inline styles.',
+            'CSP nonce for the inline <style> tag. Only applied when inline="true". '
+            . 'When TYPO3\'s built-in Content Security Policy is enabled (Install Tool → Content Security Policy), '
+            . 'the nonce is read automatically from the request — no argument is needed. '
+            . 'Pass an explicit value only to override the auto-detected nonce.',
             false,
             null,
         );

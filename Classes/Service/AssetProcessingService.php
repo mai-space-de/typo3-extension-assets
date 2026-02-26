@@ -98,9 +98,7 @@ final class AssetProcessingService
         }
 
         // 8. Register with AssetCollector.
-        $nonce = is_string($arguments['nonce'] ?? null) && ($arguments['nonce'] ?? '') !== ''
-            ? $arguments['nonce']
-            : null;
+        $nonce = self::resolveNonce($arguments);
 
         if ($isInline) {
             $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
@@ -204,9 +202,7 @@ final class AssetProcessingService
             $cache->set($cacheKey, $processed, ['maispace_assets_js']);
         }
 
-        $nonce = is_string($arguments['nonce'] ?? null) && ($arguments['nonce'] ?? '') !== ''
-            ? $arguments['nonce']
-            : null;
+        $nonce = self::resolveNonce($arguments);
 
         // Inline JS.
         if (empty($arguments['src'])) {
@@ -367,9 +363,7 @@ final class AssetProcessingService
         $collector  = self::collector();
         $logger     = self::logger();
 
-        $nonce = is_string($arguments['nonce'] ?? null) && ($arguments['nonce'] ?? '') !== ''
-            ? $arguments['nonce']
-            : null;
+        $nonce = self::resolveNonce($arguments);
 
         if ($isInline) {
             $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
@@ -475,6 +469,45 @@ final class AssetProcessingService
             return $argumentValue;
         }
         return (bool)self::getTypoScriptSetting($section . '.' . $setting, false);
+    }
+
+    /**
+     * Resolve the CSP nonce to attach to an inline <style> or <script> tag.
+     *
+     * Resolution order:
+     *  1. Explicit `nonce` ViewHelper argument — use as-is.
+     *  2. TYPO3's built-in per-request nonce (TYPO3 12.4+, when CSP is enabled in Install Tool).
+     *     Accessed via `$GLOBALS['TYPO3_REQUEST']->getAttribute('nonce')`. Cast to string.
+     *  3. null — no nonce attribute is added.
+     *
+     * This means that when TYPO3's CSP is enabled, inline assets automatically receive the
+     * correct nonce without any ViewHelper configuration. The explicit argument is an escape
+     * hatch for custom nonce values (e.g. passed from a PSR-15 middleware).
+     *
+     * Note: the nonce is intentionally only applied to inline assets (inline="true" / no src).
+     * External file assets use SRI `integrity` instead; they do not require a nonce.
+     */
+    private static function resolveNonce(array $arguments): ?string
+    {
+        // 1. Explicit argument.
+        $explicit = $arguments['nonce'] ?? null;
+        if (is_string($explicit) && $explicit !== '') {
+            return $explicit;
+        }
+
+        // 2. TYPO3's built-in request nonce (TYPO3 12.4+).
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request === null) {
+            return null;
+        }
+
+        $nonce = $request->getAttribute('nonce');
+        if ($nonce === null) {
+            return null;
+        }
+
+        $nonceValue = (string)$nonce;
+        return $nonceValue !== '' ? $nonceValue : null;
     }
 
     /**

@@ -78,10 +78,10 @@ final class JsViewHelper extends AbstractAssetViewHelper
         $this->registerArgument(
             'nonce',
             'string',
-            'CSP nonce value to add as a nonce attribute on the inline <script> tag. '
-            . 'Only applied for inline JS (when no src is set). Generate a per-request cryptographic '
-            . 'nonce in your site package and pass it here to satisfy a Content-Security-Policy '
-            . 'that restricts inline scripts.',
+            'CSP nonce for the inline <script> tag. Only applied for inline JS (no src set). '
+            . 'When TYPO3\'s built-in Content Security Policy is enabled (Install Tool → Content Security Policy), '
+            . 'the nonce is read automatically from the request — no argument is needed. '
+            . 'Pass an explicit value only to override the auto-detected nonce.',
             false,
             null,
         );
