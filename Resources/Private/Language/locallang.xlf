@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file source-language="en" datatype="plaintext" original="messages" date="2026-02-26T00:00:00Z"
+          product-name="maispace_assets">
+        <header/>
+        <body>
+            <trans-unit id="viewhelper.css.identifier">
+                <source>CSS asset identifier</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.css.src">
+                <source>CSS file path (EXT: notation)</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.css.priority">
+                <source>Place in head</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.css.minify">
+                <source>Minify CSS</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.css.inline">
+                <source>Render as inline style tag</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.css.deferred">
+                <source>Load deferred (media=print swap)</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.js.identifier">
+                <source>JS asset identifier</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.js.src">
+                <source>JS file path (EXT: notation)</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.js.defer">
+                <source>Add defer attribute</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.js.async">
+                <source>Add async attribute</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.scss.identifier">
+                <source>SCSS asset identifier</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.scss.src">
+                <source>SCSS file path (EXT: notation)</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.scss.importPaths">
+                <source>SCSS import paths (comma-separated)</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.svgSprite.register">
+                <source>SVG file to register as symbol</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.svgSprite.symbolId">
+                <source>Symbol ID override</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.svgSprite.render">
+                <source>Render sprite block</source>
+            </trans-unit>
+            <trans-unit id="viewhelper.svgSprite.use">
+                <source>Symbol ID to reference</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

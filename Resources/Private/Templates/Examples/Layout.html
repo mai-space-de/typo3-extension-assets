@@ -1,0 +1,117 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<!--
+    Example Layout: Layout.html
+    ============================
+    Demonstrates the recommended placement of maispace_assets ViewHelpers in a TYPO3 layout.
+
+    The global "ma" namespace is registered in ext_localconf.php — no {namespace} needed here.
+
+    Key patterns shown:
+      1.  Critical CSS (above-the-fold) inlined in <head> using priority + inline
+      2.  External CSS file loaded deferred by default (TypoScript css.deferred = 1)
+      3.  SCSS compiled server-side, also deferred
+      4.  SVG sprite rendered once at the very top of <body>
+      5.  Page-specific JS deferred in the footer (TYPO3 AssetCollector default)
+      6.  f:render(section) calls that let child templates register their own assets
+-->
+<f:spaceless>
+<!DOCTYPE html>
+<html lang="{site.language.twoLetterIsoCode}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><f:render section="Title" /></title>
+
+    <!--
+        1. CRITICAL CSS — inlined as <style> in <head>.
+           Use this for the minimum styles needed to render above-the-fold content
+           without a render-blocking network request.
+
+           priority="true"  → placed in <head>
+           inline="true"    → outputs <style>...</style> instead of <link href="...">
+           minify="true"    → removes whitespace even in dev (override TypoScript default)
+    -->
+    <ma:css identifier="critical-reset" priority="true" inline="true" minify="true">
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; font-family: system-ui, sans-serif; line-height: 1.5; }
+        img, svg { display: block; max-width: 100%; }
+    </ma:css>
+
+    <!--
+        2. NON-CRITICAL CSS — loaded deferred (TypoScript default: css.deferred = 1).
+           The browser fetches it as a print stylesheet (non-render-blocking),
+           then switches to media="all" via onload. A <noscript> fallback is added.
+
+           You can also write: deferred="true" explicitly, but it is the default.
+    -->
+    <ma:css src="EXT:my_sitepackage/Resources/Public/Css/layout.css" />
+
+    <!--
+        3. SCSS compiled server-side and loaded deferred.
+           The compiled CSS is cached; file changes automatically bust the cache.
+    -->
+    <ma:scss src="EXT:my_sitepackage/Resources/Private/Scss/theme.scss" />
+
+    <!--
+        4. Allow child templates to inject their own <head> assets (e.g. page-specific CSS).
+           f:render is called here, before </head>, so priority="true" assets from
+           child sections also land in <head>.
+    -->
+    <f:render section="HeadAssets" optional="true" />
+</head>
+<body>
+
+    <!--
+        5. SVG SPRITE — rendered once, at the top of <body>.
+           All symbols registered via <ma:svgSprite register="..."> anywhere in this
+           request (partials, content elements, this layout) are collected and output here
+           as a single hidden <svg> block.
+
+           IMPORTANT: In a Fluid layout, f:render(section="Content") executes BEFORE the
+           layout's own HTML is output. This means all child-template register calls have
+           already run by the time we reach this line — the sprite is complete.
+    -->
+    <ma:svgSprite render="true" />
+
+    <!--
+        6. Register icons used in this layout (header navigation, etc.).
+           Duplicate registrations from other templates are ignored automatically.
+    -->
+    <ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/logo.svg" />
+    <ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/menu.svg" />
+    <ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/close.svg" />
+
+    <header class="site-header">
+        <a href="/" class="site-header__logo" aria-label="Homepage">
+            <ma:svgSprite use="icon-logo" width="140" height="40" aria-label="My Site" />
+        </a>
+        <nav class="site-nav" aria-label="Main navigation">
+            <f:render section="Navigation" optional="true" />
+            <button class="site-nav__toggle" aria-expanded="false" aria-controls="main-nav">
+                <ma:svgSprite use="icon-menu" width="24" height="24" aria-label="Open menu" />
+            </button>
+        </nav>
+    </header>
+
+    <main id="main-content">
+        <f:render section="Content" />
+    </main>
+
+    <footer class="site-footer">
+        <f:render section="Footer" optional="true" />
+    </footer>
+
+    <!--
+        7. JS in footer — loaded with defer by default (TypoScript js.defer = 1).
+           AssetCollector places non-priority JS before </body> automatically.
+           Any JS registered from child templates also lands here.
+    -->
+    <ma:js src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js" />
+
+</body>
+</html>
+</f:spaceless>
+</html>

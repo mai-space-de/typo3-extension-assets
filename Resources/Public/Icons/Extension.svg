@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="8" fill="#e63946"/>
+  <!-- CSS bracket left -->
+  <text x="8" y="42" font-family="monospace" font-size="28" font-weight="bold" fill="white">{</text>
+  <!-- CSS bracket right -->
+  <text x="44" y="42" font-family="monospace" font-size="28" font-weight="bold" fill="white">}</text>
+  <!-- Small "ma" label -->
+  <text x="22" y="56" font-family="monospace" font-size="10" fill="rgba(255,255,255,0.7)">ma</text>
+</svg>

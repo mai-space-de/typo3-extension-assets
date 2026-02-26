@@ -1,0 +1,246 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<!--
+    Example Template: CssExamples.html
+    =====================================
+    Demonstrates every argument and usage pattern of <ma:css>.
+
+    The global "ma" namespace is pre-registered — no {namespace} declaration needed.
+
+    ARGUMENT REFERENCE
+    ------------------
+    identifier  string  Unique key for AssetCollector. Auto-generated from content hash if omitted.
+    src         string  EXT: path or absolute path to a .css file.
+    priority    bool    true = place in <head>. false (default) = footer.
+    minify      bool    null = use TypoScript default (css.minify). true/false overrides per asset.
+    inline      bool    true = render as <style> tag. false (default) = <link> to external file.
+    deferred    bool    null = use TypoScript default (css.deferred = 1). Loads non-blocking.
+    media       string  media attribute for <link>. Default: "all".
+-->
+
+<!-- =========================================================================
+     1. FILE-BASED CSS — Simplest usage
+     =========================================================================
+     Loads a CSS file from an EXT: path.
+     With the default TypoScript settings (minify=1, deferred=1), this will:
+       - Read and minify the file content
+       - Write the result to typo3temp/assets/maispace_assets/css/
+       - Register a deferred <link media="print" onload="this.media='all'">
+       - Append a <noscript><link> fallback
+-->
+<ma:css src="EXT:my_sitepackage/Resources/Public/Css/layout.css" />
+
+
+<!-- =========================================================================
+     2. FILE-BASED CSS — Explicit identifier
+     =========================================================================
+     An explicit identifier prevents duplicate registration when this template
+     is included multiple times or from different partials.
+     With the same identifier, only the first registration wins.
+-->
+<ma:css
+    identifier="sitepackage-layout"
+    src="EXT:my_sitepackage/Resources/Public/Css/layout.css"
+/>
+
+
+<!-- =========================================================================
+     3. FILE-BASED CSS — Non-deferred (standard <link> in head)
+     =========================================================================
+     Override the TypoScript default to load synchronously in <head>.
+     Use this only for truly critical stylesheets where FOUC is unacceptable
+     and the file is small enough to not meaningfully block rendering.
+
+     priority="true"  → registered in <head>
+     deferred="false" → standard <link>, no media="print" trick
+-->
+<ma:css
+    src="EXT:my_sitepackage/Resources/Public/Css/critical-layout.css"
+    priority="true"
+    deferred="false"
+/>
+
+
+<!-- =========================================================================
+     4. FILE-BASED CSS — Print stylesheet
+     =========================================================================
+     Pass a custom media attribute for print or viewport-specific stylesheets.
+     Note: deferred="false" to keep the media attribute clean (deferred mode
+     temporarily overrides media to "print" for the loading trick).
+-->
+<ma:css
+    identifier="print-styles"
+    src="EXT:my_sitepackage/Resources/Public/Css/print.css"
+    media="print"
+    deferred="false"
+/>
+
+
+<!-- =========================================================================
+     5. INLINE CSS — Written directly in the Fluid template
+     =========================================================================
+     The content between the tags is captured as the CSS source.
+     An auto-identifier is derived from the content hash, so the same CSS always
+     maps to the same cached file — even if the template is rendered many times.
+
+     Use for: component-scoped styles, template-specific tweaks that don't
+     justify a separate file.
+-->
+<ma:css identifier="hero-component">
+    .hero {
+        position: relative;
+        min-height: 60vh;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(135deg, #e63946 0%, #c1121f 100%);
+        color: #fff;
+        padding: 4rem 2rem;
+    }
+    .hero__title {
+        font-size: clamp(2rem, 5vw, 4rem);
+        font-weight: 700;
+        line-height: 1.1;
+        margin: 0 0 1rem;
+    }
+    .hero__subtitle {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        max-width: 60ch;
+    }
+</ma:css>
+
+
+<!-- =========================================================================
+     6. INLINE CSS — Critical above-the-fold styles in <head>
+     =========================================================================
+     This is the recommended pattern for critical CSS:
+       - inline="true"    → outputs <style>...</style> directly in <head>
+       - priority="true"  → places it in <head> (required for inline critical CSS)
+       - minify="true"    → ensures whitespace is stripped even in debug mode
+       - deferred has no effect when inline="true"
+
+     Result in rendered HTML:
+       <style>.above-fold { ... }</style>
+-->
+<ma:css identifier="above-fold-critical" priority="true" inline="true" minify="true">
+    :root {
+        --color-primary:   #e63946;
+        --color-secondary: #457b9d;
+        --color-bg:        #f8f9fa;
+        --color-text:      #1d3557;
+        --spacing-base:    1rem;
+        --radius-base:     0.375rem;
+        --font-base:       system-ui, -apple-system, sans-serif;
+    }
+    body {
+        background: var(--color-bg);
+        color: var(--color-text);
+        font-family: var(--font-base);
+    }
+    .skip-link {
+        position: absolute;
+        top: -100%;
+        left: 0;
+        background: var(--color-primary);
+        color: #fff;
+        padding: 0.5rem 1rem;
+        z-index: 9999;
+    }
+    .skip-link:focus { top: 0; }
+</ma:css>
+
+
+<!-- =========================================================================
+     7. INLINE CSS — Scoped to a Fluid variable (dynamic styles)
+     =========================================================================
+     You can interpolate Fluid variables inside the CSS block.
+     The content hash auto-identifier will change when the variable value changes,
+     so each unique colour gets its own cache entry.
+-->
+<ma:css identifier="brand-color-{settings.brandColor}">
+    :root {
+        --color-brand: {settings.brandColor};
+        --color-brand-dark: color-mix(in srgb, {settings.brandColor} 80%, black);
+    }
+</ma:css>
+
+
+<!-- =========================================================================
+     8. DISABLE MINIFICATION for a single asset
+     =========================================================================
+     Pass minify="false" to skip minification for this asset only.
+     Useful for third-party CSS that is already minified and would be corrupted
+     by an additional minification pass.
+-->
+<ma:css
+    identifier="vendor-already-minified"
+    src="EXT:my_sitepackage/Resources/Public/Css/vendor.min.css"
+    minify="false"
+/>
+
+
+<!-- =========================================================================
+     9. MULTIPLE CSS FILES — each registered independently
+     =========================================================================
+     Register several files at once by repeating the ViewHelper.
+     Each gets its own cache entry and AssetCollector registration.
+     TYPO3's AssetCollector concatenates them if concatenation is enabled.
+-->
+<ma:css src="EXT:my_sitepackage/Resources/Public/Css/base.css" />
+<ma:css src="EXT:my_sitepackage/Resources/Public/Css/components.css" />
+<ma:css src="EXT:my_sitepackage/Resources/Public/Css/utilities.css" />
+
+
+<!-- =========================================================================
+     10. CONDITIONAL CSS — loaded only for specific page types
+     =========================================================================
+     Combine with Fluid's f:if to conditionally register stylesheets.
+     Only the rendered branch registers the asset.
+-->
+<f:if condition="{page.tx_myext_has_slider}">
+    <ma:css src="EXT:my_sitepackage/Resources/Public/Css/slider.css" />
+</f:if>
+
+<f:if condition="{settings.enableDarkMode}">
+    <ma:css identifier="dark-mode-overrides" priority="true" inline="true">
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg:   #1d1d1d;
+                --color-text: #f0f0f0;
+            }
+        }
+    </ma:css>
+</f:if>
+
+
+<!-- =========================================================================
+     WHAT GETS RENDERED IN THE FINAL HTML
+     =========================================================================
+     Given the defaults (minify=1, deferred=1), a file-based <ma:css> produces:
+
+       <!-- In <head> or footer, depending on priority: -->
+       <link rel="stylesheet"
+             href="/typo3temp/assets/maispace_assets/css/abc123.css"
+             media="print"
+             onload="this.media='all'">
+       <noscript>
+           <link rel="stylesheet"
+                 href="/typo3temp/assets/maispace_assets/css/abc123.css">
+       </noscript>
+
+     With inline="true" + priority="true":
+
+       <!-- In <head>: -->
+       <style>.hero { ... }</style>
+
+     With deferred="false" + priority="true":
+
+       <!-- In <head>: -->
+       <link rel="stylesheet"
+             href="/typo3temp/assets/maispace_assets/css/abc123.css"
+             media="all">
+-->
+
+</html>

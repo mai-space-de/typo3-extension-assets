@@ -1,0 +1,230 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<!--
+    Example Partial: SiteFooter.html
+    ==================================
+    Demonstrates registering social/decorative SVG icons in a footer partial,
+    scoping styles to the component, and using SCSS for more complex styling.
+
+    Called from a layout via: <f:render partial="Examples/SiteFooter" />
+    Arguments:
+      footerColumns   array   Footer link columns [{title, links: [{label, href}]}]
+      socialLinks     array   Social links [{platform, url, icon}]
+      settings        array   Plugin settings (e.g., companyName, year)
+-->
+
+<!-- Register icons for social links -->
+<f:for each="{socialLinks}" as="link">
+    <ma:svgSprite
+        register="{link.icon}"
+        symbolId="icon-social-{link.platform}"
+    />
+</f:for>
+
+<!-- Register generic footer icons -->
+<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/mail.svg" />
+<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/phone.svg" />
+<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/location.svg" />
+
+<!--
+    Footer styles via SCSS — deferred (non-critical, loads after page render).
+    Uses SCSS nesting and variables for cleaner maintainable code.
+-->
+<ma:scss identifier="site-footer-styles">
+    $footer-bg:       #1d3557;
+    $footer-text:     rgba(255, 255, 255, 0.75);
+    $footer-heading:  #ffffff;
+    $footer-border:   rgba(255, 255, 255, 0.1);
+    $footer-social-size: 2.25rem;
+
+    .site-footer {
+        background: $footer-bg;
+        color: $footer-text;
+        padding: 4rem 2rem 2rem;
+
+        &__inner {
+            max-width: 72rem;
+            margin: 0 auto;
+        }
+
+        &__grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+            gap: 3rem 2rem;
+            padding-bottom: 3rem;
+            border-bottom: 1px solid $footer-border;
+        }
+
+        &__col-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: $footer-heading;
+            margin: 0 0 1rem;
+        }
+
+        &__links {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        &__link {
+            color: $footer-text;
+            text-decoration: none;
+            font-size: 0.9375rem;
+            transition: color 150ms;
+
+            &:hover { color: $footer-heading; }
+        }
+
+        &__bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding-top: 2rem;
+            font-size: 0.875rem;
+        }
+
+        &__legal { color: $footer-text; }
+        &__legal a { color: $footer-text; }
+        &__legal a:hover { color: $footer-heading; }
+
+        &__social {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        &__social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: $footer-social-size;
+            height: $footer-social-size;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            color: $footer-text;
+            text-decoration: none;
+            transition: background 150ms, color 150ms;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.18);
+                color: $footer-heading;
+            }
+        }
+
+        &__contact {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        &__contact-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: $footer-text;
+            font-size: 0.9375rem;
+
+            a { color: $footer-text; text-decoration: none; }
+            a:hover { color: $footer-heading; }
+            .icon { flex-shrink: 0; color: rgba(255, 255, 255, 0.5); }
+        }
+    }
+</ma:scss>
+
+<!-- ===================== MARKUP ===================== -->
+<footer class="site-footer" role="contentinfo">
+    <div class="site-footer__inner">
+
+        <!-- Footer link columns -->
+        <div class="site-footer__grid">
+            <f:for each="{footerColumns}" as="column">
+                <div class="site-footer__col">
+                    <h3 class="site-footer__col-title">{column.title}</h3>
+
+                    <!-- Contact column with icons -->
+                    <f:if condition="{column.isContact}">
+                        <f:then>
+                            <address class="site-footer__contact">
+                                <f:if condition="{column.email}">
+                                    <p class="site-footer__contact-item">
+                                        <ma:svgSprite use="icon-mail" width="16" height="16" class="icon" aria-hidden="true" />
+                                        <a href="mailto:{column.email}">{column.email}</a>
+                                    </p>
+                                </f:if>
+                                <f:if condition="{column.phone}">
+                                    <p class="site-footer__contact-item">
+                                        <ma:svgSprite use="icon-phone" width="16" height="16" class="icon" aria-hidden="true" />
+                                        <a href="tel:{column.phoneClean}">{column.phone}</a>
+                                    </p>
+                                </f:if>
+                                <f:if condition="{column.address}">
+                                    <p class="site-footer__contact-item">
+                                        <ma:svgSprite use="icon-location" width="16" height="16" class="icon" aria-hidden="true" />
+                                        <span>{column.address}</span>
+                                    </p>
+                                </f:if>
+                            </address>
+                        </f:then>
+                        <f:else>
+                            <!-- Standard link column -->
+                            <ul class="site-footer__links">
+                                <f:for each="{column.links}" as="link">
+                                    <li>
+                                        <a
+                                            href="{link.href}"
+                                            class="site-footer__link"
+                                            {f:if(condition: link.external, then: 'rel="noopener noreferrer" target="_blank"')}
+                                        >
+                                            {link.label}
+                                        </a>
+                                    </li>
+                                </f:for>
+                            </ul>
+                        </f:else>
+                    </f:if>
+                </div>
+            </f:for>
+        </div>
+
+        <!-- Bottom bar: copyright + social links -->
+        <div class="site-footer__bottom">
+            <p class="site-footer__legal">
+                &copy; {settings.year} {settings.companyName} &middot;
+                <a href="/privacy-policy">Privacy Policy</a> &middot;
+                <a href="/imprint">Imprint</a>
+            </p>
+
+            <!-- Social links using the SVG sprite -->
+            <nav class="site-footer__social" aria-label="Social media">
+                <f:for each="{socialLinks}" as="link">
+                    <a
+                        href="{link.url}"
+                        class="site-footer__social-link"
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        aria-label="{link.platform}"
+                    >
+                        <ma:svgSprite
+                            use="icon-social-{link.platform}"
+                            width="18"
+                            height="18"
+                            aria-hidden="true"
+                        />
+                    </a>
+                </f:for>
+            </nav>
+        </div>
+
+    </div>
+</footer>
+</html>

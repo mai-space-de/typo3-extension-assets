@@ -1,0 +1,101 @@
+plugin.tx_maispace_assets {
+
+    # =========================================================================
+    # CSS settings
+    # =========================================================================
+    css {
+        # Minify CSS assets using matthiasmullie/minify.
+        # 1 = enabled (default), 0 = disabled.
+        # Can be overridden per asset via the ViewHelper's minify="false" argument.
+        minify = 1
+
+        # Load external CSS files non-blocking by default using the
+        # media="print" onload swap trick. A <noscript> fallback is appended.
+        # 1 = deferred (default), 0 = normal <link> in head/footer.
+        # Can be overridden per asset via the ViewHelper's deferred="false" argument.
+        deferred = 1
+
+        # Output directory for processed CSS files, relative to the site's public root.
+        # The directory is created automatically if it does not exist.
+        outputDir = typo3temp/assets/maispace_assets/css/
+
+        # Prefix for auto-generated asset identifiers (when no identifier is specified
+        # on the ViewHelper). The full identifier is: {prefix}{type}_{md5(source)}.
+        identifierPrefix = maispace_
+    }
+
+    # =========================================================================
+    # JS settings
+    # =========================================================================
+    js {
+        # Minify JS assets using matthiasmullie/minify.
+        minify = 1
+
+        # Add the defer attribute to external <script> tags by default.
+        # Deferred scripts execute after the document is parsed, in order.
+        # 1 = defer (default), 0 = no defer attribute.
+        # Can be overridden per asset via the ViewHelper's defer="false" argument.
+        defer = 1
+
+        # Output directory for processed JS files.
+        outputDir = typo3temp/assets/maispace_assets/js/
+
+        identifierPrefix = maispace_
+    }
+
+    # =========================================================================
+    # SCSS settings
+    # =========================================================================
+    scss {
+        # Minify compiled SCSS output.
+        # When enabled, scssphp uses OutputStyle::COMPRESSED (removes all whitespace).
+        # This avoids a redundant second pass through matthiasmullie/minify.
+        minify = 1
+
+        # Cache lifetime in seconds for compiled SCSS.
+        # 0 = permanent until the TYPO3 page cache is flushed (recommended for production).
+        # For file-based SCSS the cache is also invalidated automatically when the source
+        # file changes (via filemtime), regardless of this setting.
+        cacheLifetime = 0
+
+        # Default additional import paths for all SCSS compilation, comma-separated.
+        # Supports EXT: notation. The source file's directory is always available automatically.
+        # Example: defaultImportPaths = EXT:theme/Resources/Private/Scss/Partials
+        defaultImportPaths =
+    }
+
+    # =========================================================================
+    # SVG Sprite settings
+    # =========================================================================
+    svgSprite {
+        # Prefix prepended to auto-derived symbol IDs.
+        # Example: "arrow.svg" → "icon-arrow" (with the default prefix "icon-").
+        symbolIdPrefix = icon-
+
+        # Cache the built sprite in the maispace_assets cache.
+        # 1 = cache (default), 0 = rebuild on every request (only for development).
+        cache = 1
+    }
+}
+
+# =============================================================================
+# Debug mode
+#
+# When a backend user is logged in AND the request includes ?debug=1,
+# all processing is disabled so developers see the original, unprocessed assets.
+# =============================================================================
+[backend.user.isLoggedIn && request && traverse(request.getQueryParams(), 'debug') > 0]
+    plugin.tx_maispace_assets {
+        css {
+            minify = 0
+            deferred = 0
+        }
+        js {
+            minify = 0
+            defer = 0
+        }
+        scss {
+            minify = 0
+        }
+    }
+[global]

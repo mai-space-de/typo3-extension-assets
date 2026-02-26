@@ -1,0 +1,134 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<!--
+    Example Partial: Icon.html
+    ============================
+    A reusable icon partial that wraps <ma:svgSprite> with sensible defaults
+    and handles both the register and use modes in one call.
+
+    This pattern is useful when you want a single, consistent API for icons
+    across all templates, without scattering raw <ma:svgSprite> calls everywhere.
+
+    ARGUMENTS
+    ----------
+    icon        string  (required) Icon name without prefix, e.g. "arrow" → "icon-arrow"
+    src         string  Optional EXT: path override. Falls back to the default icon path.
+    size        string  Icon size preset: "xs"=12, "sm"=16, "md"=20 (default), "lg"=24, "xl"=32
+    width       string  Explicit width override (overrides size).
+    height      string  Explicit height override (overrides size).
+    class       string  Additional CSS classes on the <svg> element.
+    label       string  Accessible label. If set: role="img" + aria-label. If not: aria-hidden="true".
+    title       string  <title> element inside <svg> for additional screen reader context.
+    register    bool    If true, only register the symbol (no <use> output). Default: false.
+    iconPath    string  Base EXT: path for icon files. Defaults to the sitepackage icons dir.
+
+    USAGE IN TEMPLATES
+    -------------------
+    Register + render in one call (most common pattern):
+
+        <f:render
+            partial="Examples/Icon"
+            arguments="{
+                icon:  'arrow',
+                size:  'sm',
+                class: 'icon icon--inline',
+                label: 'Next'
+            }"
+        />
+
+    Register only (e.g. at the top of a partial, before the sprite is rendered):
+
+        <f:render partial="Examples/Icon" arguments="{icon: 'arrow', register: true}" />
+        ...later in the layout...
+        <ma:svgSprite render="true" />
+        <ma:svgSprite use="icon-arrow" width="20" height="20" />
+
+    IMPLEMENTATION NOTE
+    --------------------
+    This partial both registers AND uses the symbol in one call. That works because
+    SvgSpriteService is a per-request singleton: calling register after render="true"
+    has already been called will NOT add the symbol to the cached sprite.
+
+    The cleanest architecture therefore is:
+      - Call register="true" at the TOP of every partial that needs icons
+      - Call render="true" ONCE in the layout at the top of <body>
+      - Call use="..." wherever you need the icon in the markup
+
+    This partial combines all three for convenience in simple cases where
+    you control the order (i.e. the partial renders BEFORE the sprite render call).
+-->
+
+<!--
+    Determine the symbol ID: "icon-" prefix + icon name.
+    (matches the TypoScript svgSprite.symbolIdPrefix = "icon-" default)
+-->
+<f:variable name="symbolId" value="icon-{icon}" />
+
+<!--
+    Determine the source path.
+    Falls back to a conventional path in the sitepackage.
+-->
+<f:variable
+    name="iconSrc"
+    value="{f:if(condition: src, then: src, else: '{iconPath}{icon}.svg')}"
+/>
+<f:variable
+    name="iconPath"
+    value="{f:if(condition: iconPath, then: iconPath, else: 'EXT:my_sitepackage/Resources/Public/Icons/')}"
+/>
+<f:variable
+    name="resolvedSrc"
+    value="{f:if(condition: src, then: src, else: '{iconPath}{icon}.svg')}"
+/>
+
+<!-- Register the symbol (always, idempotent) -->
+<ma:svgSprite register="{resolvedSrc}" symbolId="{symbolId}" />
+
+<!-- If register-only mode requested, stop here -->
+<f:if condition="{register}">
+    <f:else>
+        <!--
+            Resolve size preset to pixel dimensions.
+            width/height arguments take precedence if provided.
+        -->
+        <f:switch expression="{size}">
+            <f:case value="xs"><f:variable name="resolvedSize" value="12" /></f:case>
+            <f:case value="sm"><f:variable name="resolvedSize" value="16" /></f:case>
+            <f:case value="lg"><f:variable name="resolvedSize" value="24" /></f:case>
+            <f:case value="xl"><f:variable name="resolvedSize" value="32" /></f:case>
+            <f:defaultCase><f:variable name="resolvedSize" value="20" /></f:defaultCase>
+        </f:switch>
+
+        <f:variable name="w" value="{f:if(condition: width,  then: width,  else: resolvedSize)}" />
+        <f:variable name="h" value="{f:if(condition: height, then: height, else: resolvedSize)}" />
+
+        <!-- Output the <svg><use> reference with correct accessibility attributes -->
+        <f:if condition="{label}">
+            <f:then>
+                <!-- Meaningful icon: aria-label + role="img" -->
+                <ma:svgSprite
+                    use="{symbolId}"
+                    width="{w}"
+                    height="{h}"
+                    class="icon {class}"
+                    aria-label="{label}"
+                    title="{title}"
+                />
+            </f:then>
+            <f:else>
+                <!-- Decorative icon: aria-hidden="true" -->
+                <ma:svgSprite
+                    use="{symbolId}"
+                    width="{w}"
+                    height="{h}"
+                    class="icon {class}"
+                    title="{title}"
+                />
+            </f:else>
+        </f:if>
+    </f:else>
+</f:if>
+
+</html>

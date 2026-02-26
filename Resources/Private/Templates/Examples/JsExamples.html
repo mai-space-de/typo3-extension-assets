@@ -1,0 +1,245 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<!--
+    Example Template: JsExamples.html
+    ====================================
+    Demonstrates every argument and usage pattern of <ma:js>.
+
+    The global "ma" namespace is pre-registered — no {namespace} declaration needed.
+
+    ARGUMENT REFERENCE
+    ------------------
+    identifier  string  Unique key for AssetCollector. Auto-generated from content hash if omitted.
+    src         string  EXT: path or absolute path to a .js file.
+    priority    bool    true = place in <head>. false (default) = footer (before </body>).
+    minify      bool    null = use TypoScript default (js.minify). true/false overrides per asset.
+    defer       bool    null = use TypoScript default (js.defer = 1). Adds defer attribute.
+    async       bool    false (default). Adds async attribute to <script>.
+    type        string  type attribute, e.g. "module". Omit for classic scripts.
+-->
+
+
+<!-- =========================================================================
+     1. FILE-BASED JS — Simplest usage
+     =========================================================================
+     Loads a JS file from an EXT: path.
+     With TypoScript defaults (minify=1, defer=1, priority=false):
+       - Minifies the file content
+       - Writes result to typo3temp/assets/maispace_assets/js/
+       - TYPO3 AssetCollector renders: <script src="..." defer></script>
+       - Placed before </body> (footer, non-priority)
+-->
+<ma:js src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js" />
+
+
+<!-- =========================================================================
+     2. FILE-BASED JS — Explicit identifier
+     =========================================================================
+     Prevents duplicate registration when the same ViewHelper call appears
+     in multiple templates or partials included on the same page.
+-->
+<ma:js
+    identifier="sitepackage-app"
+    src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js"
+/>
+
+
+<!-- =========================================================================
+     3. ES MODULE — type="module"
+     =========================================================================
+     Browsers treat type="module" scripts as deferred by default.
+     The defer attribute is redundant for modules but harmless.
+     Use for modern JavaScript with import/export syntax.
+
+     Result: <script type="module" src="..."></script>
+-->
+<ma:js
+    src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js"
+    type="module"
+    defer="false"
+/>
+
+
+<!-- =========================================================================
+     4. ASYNC — Independent third-party scripts
+     =========================================================================
+     async fetches the script in parallel and executes it immediately when ready,
+     potentially before the DOM is fully parsed. Do not use for scripts that
+     depend on or modify the DOM.
+
+     Good use cases: analytics, ad scripts, chat widgets.
+
+     Result: <script src="..." async></script>
+
+     Note: async and defer together is technically valid but defer is ignored
+     by modern browsers when async is present. Use one or the other.
+-->
+<ma:js
+    identifier="analytics-script"
+    src="EXT:my_sitepackage/Resources/Public/JavaScript/analytics.js"
+    async="true"
+    defer="false"
+/>
+
+
+<!-- =========================================================================
+     5. CRITICAL JS IN <head> — polyfills, feature detection
+     =========================================================================
+     Some scripts must run before the page renders:
+       - Polyfills (e.g. for CSS custom properties in IE)
+       - Feature detection that blocks layout (e.g. class toggling on <html>)
+       - Inline configuration for other head scripts
+
+     priority="true"  → placed in <head>
+     defer="false"    → executes synchronously (blocking), use sparingly!
+-->
+<ma:js
+    src="EXT:my_sitepackage/Resources/Public/JavaScript/polyfills.js"
+    priority="true"
+    defer="false"
+/>
+
+
+<!-- =========================================================================
+     6. INLINE JS — Written directly in the Fluid template
+     =========================================================================
+     Content between the tags is captured as the JS source.
+     Processed (minified) and registered as an inline <script> via AssetCollector.
+     The auto-identifier is derived from the content hash.
+
+     Use for: small page-specific init scripts, passing server data to JS.
+-->
+<ma:js identifier="page-ready-init">
+    document.addEventListener('DOMContentLoaded', function () {
+        // Reveal content after fonts and layout are ready.
+        document.body.classList.add('is-ready');
+
+        // Activate all disclosure widgets on the page.
+        document.querySelectorAll('[data-disclosure]').forEach(function (el) {
+            el.addEventListener('click', function () {
+                var target = document.getElementById(el.getAttribute('aria-controls'));
+                var expanded = el.getAttribute('aria-expanded') === 'true';
+                el.setAttribute('aria-expanded', String(!expanded));
+                target.hidden = expanded;
+            });
+        });
+    });
+</ma:js>
+
+
+<!-- =========================================================================
+     7. INLINE JS IN <head> — configuration object
+     =========================================================================
+     Pass server-side data to the frontend. By registering this in <head>
+     (priority="true"), the data is available to all subsequent scripts.
+
+     Note: Fluid variable interpolation works inside the JS block.
+     Always sanitize values passed into JS to prevent XSS.
+-->
+<ma:js identifier="site-config" priority="true">
+    window.__SITE_CONFIG__ = {
+        lang:    '{site.language.twoLetterIsoCode}',
+        baseUrl: '{site.baseUrl}',
+        debug:   {f:if(condition: '{settings.debug}', then: 'true', else: 'false')}
+    };
+</ma:js>
+
+
+<!-- =========================================================================
+     8. DISABLE MINIFICATION for a single asset
+     =========================================================================
+     Skip minification for pre-minified vendor bundles.
+-->
+<ma:js
+    identifier="vendor-bundle"
+    src="EXT:my_sitepackage/Resources/Public/JavaScript/vendor.min.js"
+    minify="false"
+/>
+
+
+<!-- =========================================================================
+     9. MULTIPLE JS FILES — load order control via priority
+     =========================================================================
+     priority=false (default): rendered in footer, in registration order.
+     priority=true: rendered in <head>, also in registration order.
+
+     This pattern: polyfill first (head), then main bundle (footer, deferred).
+-->
+<ma:js
+    src="EXT:my_sitepackage/Resources/Public/JavaScript/polyfill.js"
+    priority="true"
+    defer="false"
+/>
+<ma:js src="EXT:my_sitepackage/Resources/Public/JavaScript/vendor.js" />
+<ma:js src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js" />
+
+
+<!-- =========================================================================
+     10. CONDITIONAL JS — only load for specific content types or settings
+     =========================================================================
+-->
+<f:if condition="{page.tx_myext_has_map}">
+    <ma:js
+        identifier="leaflet-maps"
+        src="EXT:my_sitepackage/Resources/Public/JavaScript/maps.js"
+        defer="true"
+    />
+</f:if>
+
+<f:if condition="{settings.enableCookieBanner}">
+    <ma:js identifier="cookie-banner-init">
+        // Inline init runs after DOM ready, shows the banner if consent not given.
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!localStorage.getItem('cookieConsent')) {
+                document.getElementById('cookie-banner').removeAttribute('hidden');
+            }
+        });
+    </ma:js>
+</f:if>
+
+
+<!-- =========================================================================
+     11. PASSING DATA FROM TYPO3 TO JS via f:format.json
+     =========================================================================
+     Use f:format.json (TYPO3 13+) or json_encode in a custom ViewHelper
+     to safely encode server-side data for use in JavaScript.
+-->
+<ma:js identifier="menu-data">
+    window.__MENU__ = <f:format.json>{navigationItems}</f:format.json>;
+    window.__BREAKPOINTS__ = {
+        md: 768,
+        lg: 1024,
+        xl: 1280
+    };
+</ma:js>
+
+
+<!-- =========================================================================
+     WHAT GETS RENDERED IN THE FINAL HTML
+     =========================================================================
+     File-based, deferred (default):
+
+       <!-- Before </body>: -->
+       <script src="/typo3temp/assets/maispace_assets/js/abc123.js" defer></script>
+
+     File-based, async:
+
+       <script src="/typo3temp/assets/maispace_assets/js/def456.js" async></script>
+
+     ES module:
+
+       <script type="module" src="/typo3temp/assets/maispace_assets/js/ghi789.js"></script>
+
+     Inline, footer:
+
+       <script>document.addEventListener('DOMContentLoaded', ...)</script>
+
+     Inline, priority (head):
+
+       <!-- In <head>: -->
+       <script>window.__SITE_CONFIG__ = {...};</script>
+-->
+
+</html>

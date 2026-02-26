@@ -1,0 +1,275 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<!--
+    Example Template: ScssExamples.html
+    ======================================
+    Demonstrates every argument and usage pattern of <ma:scss>.
+
+    The global "ma" namespace is pre-registered — no {namespace} declaration needed.
+
+    HOW IT WORKS
+    ------------
+    1. SCSS is compiled to CSS server-side via scssphp (pure PHP, no Node.js).
+    2. The compiled CSS is cached in the TYPO3 caching framework.
+    3. For file-based SCSS, the cache key includes filemtime() — file changes
+       automatically bust the cache without a manual TYPO3 cache flush.
+    4. The compiled CSS then follows the same pipeline as <ma:css>:
+       optionally written to typo3temp/, registered with AssetCollector.
+
+    ARGUMENT REFERENCE
+    ------------------
+    identifier   string  Unique key. Auto-generated from content hash if omitted.
+    src          string  EXT: path or absolute path to a .scss file.
+    priority     bool    true = <head>. false (default) = footer.
+    minify       bool    null = TypoScript scss.minify (uses OutputStyle::COMPRESSED).
+    inline       bool    true = render compiled CSS as <style> tag.
+    deferred     bool    null = TypoScript css.deferred. Deferred loading.
+    media        string  media attribute for <link>. Default: "all".
+    importPaths  string  Comma-separated additional @import/@use paths (EXT: supported).
+-->
+
+
+<!-- =========================================================================
+     1. FILE-BASED SCSS — Simplest usage
+     =========================================================================
+     Compile a .scss file and load the result as a deferred external stylesheet.
+     Cache is automatically invalidated when main.scss changes on disk.
+
+     With TypoScript defaults (scss.minify=1, css.deferred=1):
+       - Compiles with OutputStyle::COMPRESSED
+       - Writes to typo3temp/assets/maispace_assets/css/
+       - Registers a deferred <link media="print" onload="this.media='all'">
+-->
+<ma:scss src="EXT:my_sitepackage/Resources/Private/Scss/main.scss" />
+
+
+<!-- =========================================================================
+     2. FILE-BASED SCSS — With additional import paths
+     =========================================================================
+     When your .scss file uses @import or @use to pull in partials from
+     other directories or extensions, declare the root paths here.
+
+     The source file's own directory is always available automatically,
+     so only list *additional* roots here.
+
+     Example file structure:
+       my_sitepackage/Resources/Private/Scss/main.scss  ← src
+         @use 'variables';     ← resolves from Partials/ via importPaths
+         @use 'mixins';
+         @import 'base/reset'; ← resolves from Partials/
+       my_sitepackage/Resources/Private/Scss/Partials/_variables.scss
+       my_sitepackage/Resources/Private/Scss/Partials/base/_reset.scss
+-->
+<ma:scss
+    src="EXT:my_sitepackage/Resources/Private/Scss/main.scss"
+    importPaths="EXT:my_sitepackage/Resources/Private/Scss/Partials"
+/>
+
+<!-- Multiple import paths — comma-separated -->
+<ma:scss
+    src="EXT:my_sitepackage/Resources/Private/Scss/main.scss"
+    importPaths="EXT:my_sitepackage/Resources/Private/Scss/Partials,EXT:base_theme/Resources/Private/Scss"
+/>
+
+
+<!-- =========================================================================
+     3. FILE-BASED SCSS — Force non-deferred load in <head>
+     =========================================================================
+     For stylesheets that are needed before the page renders.
+     priority="true"  → registered in <head>
+     deferred="false" → standard <link>, not the print-swap trick
+-->
+<ma:scss
+    src="EXT:my_sitepackage/Resources/Private/Scss/critical-layout.scss"
+    priority="true"
+    deferred="false"
+/>
+
+
+<!-- =========================================================================
+     4. FILE-BASED SCSS — Disable minification (development / debugging)
+     =========================================================================
+     Passing minify="false" uses OutputStyle::EXPANDED — readable output.
+     Note: The debug mode condition in setup.typoscript already sets scss.minify=0
+     for backend users when ?debug=1, so this is rarely needed explicitly.
+-->
+<ma:scss
+    src="EXT:my_sitepackage/Resources/Private/Scss/main.scss"
+    minify="false"
+/>
+
+
+<!-- =========================================================================
+     5. INLINE SCSS — Written directly in the Fluid template
+     =========================================================================
+     The SCSS between the tags is compiled server-side.
+     The auto-identifier is derived from a hash of the raw SCSS content, so the
+     same source always maps to the same cache entry.
+
+     Use for: component-scoped variables, template-specific design tokens,
+     small one-off styles that don't justify a separate file.
+-->
+<ma:scss identifier="hero-component-theme">
+    $hero-bg:      #e63946;
+    $hero-accent:  #c1121f;
+    $hero-padding: clamp(2rem, 8vw, 6rem);
+
+    .hero {
+        background: linear-gradient(135deg, $hero-bg, $hero-accent);
+        padding: $hero-padding 2rem;
+        color: #fff;
+
+        &__title {
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin: 0 0 1rem;
+        }
+
+        &__cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #fff;
+            color: $hero-bg;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            text-decoration: none;
+
+            &:hover { background: darken(#fff, 5%); }
+        }
+    }
+</ma:scss>
+
+
+<!-- =========================================================================
+     6. INLINE SCSS — Critical design tokens inlined in <head>
+     =========================================================================
+     Compile SCSS variables to a :root CSS custom properties block and inject
+     it as an inline <style> in <head>.
+
+     This pattern lets you define design tokens in SCSS (with all the
+     organizational benefits of SCSS maps, loops, etc.) while still delivering
+     them as native CSS custom properties that are available globally.
+
+     priority="true" + inline="true" → <style> in <head>
+-->
+<ma:scss identifier="design-tokens" priority="true" inline="true" minify="true">
+    // SCSS map of design tokens
+    $tokens: (
+        'color-primary':   #e63946,
+        'color-secondary': #457b9d,
+        'color-bg':        #f8f9fa,
+        'color-text':      #1d3557,
+        'space-xs':        0.25rem,
+        'space-sm':        0.5rem,
+        'space-md':        1rem,
+        'space-lg':        2rem,
+        'space-xl':        4rem,
+        'radius-sm':       0.25rem,
+        'radius-md':       0.5rem,
+        'radius-lg':       1rem,
+        'font-base':       'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+        'font-mono':       'ui-monospace, SFMono-Regular, monospace',
+    );
+
+    // Output all tokens as CSS custom properties on :root
+    :root {
+        @each $name, $value in $tokens {
+            --#{$name}: #{$value};
+        }
+    }
+</ma:scss>
+
+
+<!-- =========================================================================
+     7. INLINE SCSS with Fluid variable interpolation
+     =========================================================================
+     Mix SCSS variables with Fluid's {variable} syntax for dynamic design tokens
+     driven by TYPO3 settings (e.g., from TypoScript or a FlexForm field).
+
+     IMPORTANT: Fluid processes its variables first, then the result is compiled
+     as SCSS. Ensure interpolated values are valid SCSS (e.g., valid color codes,
+     numbers with units).
+-->
+<ma:scss identifier="dynamic-brand-{settings.brandColorHex}">
+    $brand-primary:   {settings.brandColorHex};
+    $brand-secondary: {settings.brandColorSecondary};
+    $brand-font:      '{settings.brandFont}', system-ui, sans-serif;
+
+    :root {
+        --brand-primary:   #{$brand-primary};
+        --brand-secondary: #{$brand-secondary};
+        --brand-font:      #{$brand-font};
+    }
+
+    .btn--primary {
+        background: $brand-primary;
+        color: #fff;
+
+        &:hover {
+            background: darken($brand-primary, 10%);
+        }
+    }
+</ma:scss>
+
+
+<!-- =========================================================================
+     8. CONDITIONAL SCSS — loaded based on page or record state
+     =========================================================================
+-->
+<f:if condition="{page.tx_myext_has_slider}">
+    <ma:scss src="EXT:my_sitepackage/Resources/Private/Scss/components/_slider.scss" />
+</f:if>
+
+<f:if condition="{settings.enableDarkMode}">
+    <ma:scss identifier="dark-mode-tokens" priority="true" inline="true">
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg:   #1a1a2e;
+                --color-text: #e8e8e8;
+                --color-primary: #e63946;
+            }
+        }
+    </ma:scss>
+</f:if>
+
+
+<!-- =========================================================================
+     9. SCSS from a loop — per-item component styles
+     =========================================================================
+     Generate unique scoped styles per content element.
+     Each content element gets its own identifier derived from its UID,
+     so styles don't collide across elements.
+-->
+<f:for each="{contentElements}" as="element">
+    <f:if condition="{element.tx_myext_background_color}">
+        <ma:scss identifier="ce-bg-{element.uid}">
+            #c{element.uid} {
+                background-color: {element.tx_myext_background_color};
+                .dark & { filter: brightness(0.8); }
+            }
+        </ma:scss>
+    </f:if>
+</f:for>
+
+
+<!-- =========================================================================
+     CACHING BEHAVIOUR SUMMARY
+     =========================================================================
+     File-based SCSS cache key:  sha1(identifier + "_file_" + filemtime)
+       → Cache busts automatically when the file is saved.
+       → You never need to manually flush the cache during development.
+
+     Inline SCSS cache key:      sha1(identifier + "_inline")
+       → Since the identifier is derived from md5(scss_content), any change
+         to the inline SCSS produces a new identifier → new cache key.
+       → Old entries are flushed on TYPO3 page cache clear.
+
+     Both are stored in the maispace_assets FileBackend cache (group: pages, all).
+-->
+
+</html>

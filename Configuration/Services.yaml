@@ -1,0 +1,71 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    Maispace\MaispaceAssets\:
+        resource: '../Classes/*'
+
+    # -------------------------------------------------------------------------
+    # Public services
+    #
+    # These services must be public so GeneralUtility::makeInstance() (used inside
+    # static ViewHelper renderStatic() methods) can resolve them from the DI container.
+    # -------------------------------------------------------------------------
+
+    Maispace\MaispaceAssets\Cache\AssetCacheManager:
+        public: true
+
+    Maispace\MaispaceAssets\Service\AssetProcessingService:
+        public: true
+
+    Maispace\MaispaceAssets\Service\ScssCompilerService:
+        public: true
+
+    # SvgSpriteService implements SingletonInterface.
+    # The DI container respects SingletonInterface and returns the same instance
+    # throughout the request when resolved via GeneralUtility::makeInstance().
+    Maispace\MaispaceAssets\Service\SvgSpriteService:
+        public: true
+
+    # -------------------------------------------------------------------------
+    # Example event listeners
+    #
+    # These listeners are intentionally commented out. They ship as working
+    # examples to demonstrate how to hook into the maispace_assets event system.
+    #
+    # To activate a listener, copy the relevant block into your site package's
+    # Configuration/Services.yaml and uncomment it there. Do NOT uncomment here,
+    # as that would activate the example for every project using this extension.
+    #
+    # Available events:
+    #   - Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
+    #   - Maispace\MaispaceAssets\Event\AfterJsProcessedEvent
+    #   - Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
+    #   - Maispace\MaispaceAssets\Event\AfterSvgSpriteBuiltEvent
+    # -------------------------------------------------------------------------
+
+    # Maispace\MaispaceAssets\EventListener\AfterCssProcessedEventListener:
+    #     tags:
+    #         -   name: event.listener
+    #             identifier: 'maispace-assets-example-css'
+    #             event: Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
+
+    # Maispace\MaispaceAssets\EventListener\AfterJsProcessedEventListener:
+    #     tags:
+    #         -   name: event.listener
+    #             identifier: 'maispace-assets-example-js'
+    #             event: Maispace\MaispaceAssets\Event\AfterJsProcessedEvent
+
+    # Maispace\MaispaceAssets\EventListener\AfterScssCompiledEventListener:
+    #     tags:
+    #         -   name: event.listener
+    #             identifier: 'maispace-assets-example-scss'
+    #             event: Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
+
+    # Maispace\MaispaceAssets\EventListener\AfterSvgSpriteBuiltEventListener:
+    #     tags:
+    #         -   name: event.listener
+    #             identifier: 'maispace-assets-example-svg-sprite'
+    #             event: Maispace\MaispaceAssets\Event\AfterSvgSpriteBuiltEvent
