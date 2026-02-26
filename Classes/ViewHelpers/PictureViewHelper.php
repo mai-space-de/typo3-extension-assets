@@ -6,8 +6,6 @@ namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Closure;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
-use TYPO3\CMS\Core\Resource\File;
-use TYPO3\CMS\Core\Resource\FileReference;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -48,6 +46,31 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  *   <mai:picture image="{img}" alt="{alt}" width="800" lazyloadWithClass="lazyload">
  *       <mai:picture.source media="(min-width: 768px)" width="1200" />
  *   </mai:picture>
+ *
+ * Format alternatives (automatic source sets)
+ * ============================================
+ * The `formats` argument renders additional `<source>` tags before the fallback `<img>`,
+ * one per format in preference order (most capable first). This allows browsers to pick
+ * the best supported format without template duplication.
+ *
+ * Example with formats="avif, webp":
+ *
+ *   <mai:picture image="{img}" alt="{alt}" width="1200" formats="avif, webp">
+ *       <mai:picture.source media="(min-width: 768px)" width="1200" formats="avif, webp" />
+ *   </mai:picture>
+ *
+ * Output:
+ *   <picture>
+ *     <source srcset="…1200.avif" media="(min-width: 768px)" type="image/avif">
+ *     <source srcset="…1200.webp" media="(min-width: 768px)" type="image/webp">
+ *     <source srcset="…1200.jpg"  media="(min-width: 768px)" type="image/jpeg">
+ *     <source srcset="…1200.avif" type="image/avif">
+ *     <source srcset="…1200.webp" type="image/webp">
+ *     <img src="…1200.jpg" …>
+ *   </picture>
+ *
+ * TypoScript global default for all images:
+ *   plugin.tx_maispace_assets.image.alternativeFormats = avif, webp
  *
  * @see \Maispace\MaispaceAssets\ViewHelpers\Picture\SourceViewHelper
  * @see \Maispace\MaispaceAssets\Service\ImageRenderingService
@@ -146,6 +169,24 @@ final class PictureViewHelper extends AbstractViewHelper
             false,
             [],
         );
+
+        $this->registerArgument(
+            'formats',
+            'string',
+            'Comma-separated list of target formats in preference order, e.g. "avif, webp". '
+            . 'Renders additional <source> tags before the fallback <img> so browsers can pick the best supported format. '
+            . 'Falls back to the TypoScript setting plugin.tx_maispace_assets.image.alternativeFormats when not set.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'fallback',
+            'bool',
+            'When formats is set, also emit a <source> for the original (unmodified) format directly before the fallback <img>. Defaults to true.',
+            false,
+            true,
+        );
     }
 
     public static function renderStatic(
@@ -170,15 +211,36 @@ final class PictureViewHelper extends AbstractViewHelper
         $varContainer->add(self::class, self::VAR_LAZYLOADING, $lazyloading);
         $varContainer->add(self::class, self::VAR_LAZYLOAD_CLASS, $lazyloadWithClass);
 
-        // Render children — each <mai:picture.source> outputs a <source> tag.
+        // Render children — each <mai:picture.source> outputs one or more <source> tags.
         $sourcesHtml = (string)$renderChildrenClosure();
 
         $varContainer->remove(self::class, self::VAR_FILE);
         $varContainer->remove(self::class, self::VAR_LAZYLOADING);
         $varContainer->remove(self::class, self::VAR_LAZYLOAD_CLASS);
 
+        $width  = (string)$arguments['width'];
+        $height = (string)$arguments['height'];
+
+        // Resolve alternative formats for the fallback area (catch-all sources + img).
+        $formats = self::resolveAlternativeFormats($arguments['formats'] ?? null);
+
+        // Render format-alternative catch-all <source> tags before the fallback <img>.
+        $fallbackSourcesHtml = '';
+        if ($formats !== []) {
+            $alternatives = $service->processImageAlternatives($file, $width, $height, $formats);
+            foreach ($alternatives as $altProcessed) {
+                $fallbackSourcesHtml .= $service->renderSourceTag($altProcessed, null);
+            }
+
+            // Original-format catch-all <source> (browser fallback within <picture>).
+            if ((bool)($arguments['fallback'] ?? true)) {
+                $originalProcessed    = $service->processImage($file, $width, $height);
+                $fallbackSourcesHtml .= $service->renderSourceTag($originalProcessed, null);
+            }
+        }
+
         // Build fallback <img>.
-        $processed = $service->processImage($file, (string)$arguments['width'], (string)$arguments['height']);
+        $processed = $service->processImage($file, $width, $height);
         $imgHtml   = $service->renderImgTag($processed, [
             'alt'               => (string)($arguments['alt'] ?? ''),
             'lazyloading'       => $lazyloading,
@@ -199,6 +261,7 @@ final class PictureViewHelper extends AbstractViewHelper
 
         return '<picture' . $pictureAttrs . '>'
             . $sourcesHtml
+            . $fallbackSourcesHtml
             . $imgHtml
             . '</picture>';
     }
@@ -224,6 +287,29 @@ final class PictureViewHelper extends AbstractViewHelper
         }
 
         return [(bool)$lazyloading, $lazyloadWithClass !== '' ? $lazyloadWithClass : null];
+    }
+
+    /**
+     * Resolve the list of alternative formats from the ViewHelper argument or TypoScript.
+     *
+     * Returns an empty array when no formats are configured.
+     *
+     * @return list<string>
+     */
+    private static function resolveAlternativeFormats(?string $formatsArg): array
+    {
+        $raw = $formatsArg;
+
+        if ($raw === null) {
+            $raw = self::getTypoScriptSetting('image.alternativeFormats', null);
+        }
+
+        if (!is_string($raw) || $raw === '') {
+            return [];
+        }
+
+        $formats = array_filter(array_map('trim', explode(',', $raw)));
+        return array_values(array_map('strtolower', $formats));
     }
 
     private static function buildPictureAttributes(array $arguments): string

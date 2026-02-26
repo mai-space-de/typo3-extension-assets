@@ -68,6 +68,8 @@ services:
     #   - Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
     #   - Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
     #   - Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
+    #   - Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
+    #   - Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
     # -------------------------------------------------------------------------
 
     # Maispace\MaispaceAssets\EventListener\AfterCssProcessedEventListener:
@@ -99,3 +101,15 @@ services:
     #         -   name: event.listener
     #             identifier: 'maispace-assets-example-after-sprite-built'
     #             event: Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
+
+    # Maispace\MaispaceAssets\EventListener\BeforeImageProcessingEventListener:
+    #     tags:
+    #         -   name: event.listener
+    #             identifier: 'maispace-assets-example-before-image-processing'
+    #             event: Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
+
+    # Maispace\MaispaceAssets\EventListener\AfterImageProcessedEventListener:
+    #     tags:
+    #         -   name: event.listener
+    #             identifier: 'maispace-assets-example-after-image-processed'
+    #             event: Maispace\MaispaceAssets\Event\AfterImageProcessedEvent

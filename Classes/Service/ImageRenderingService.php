@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Maispace\MaispaceAssets\Service;
 
+use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
+use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Resource\File;
@@ -37,6 +40,16 @@ use TYPO3\CMS\Extbase\Service\ImageService;
  *  - `800c`  → crop to exact width
  *  - `800m`  → maximum width (proportional scale)
  *
+ * Format alternatives (for <picture> source sets)
+ * ================================================
+ * `processImageAlternatives()` accepts a list of target formats and returns one
+ * ProcessedFile per format, in the order given. This powers the automatic
+ * `<source type="image/avif">` / `<source type="image/webp">` / `<img>` pattern
+ * without requiring template changes.
+ *
+ * TypoScript-driven alternative formats are configurable via:
+ *   plugin.tx_maispace_assets.image.alternativeFormats = avif, webp
+ *
  * Lazy loading
  * ============
  * - `lazyloading="true"`            → adds `loading="lazy"` attribute on `<img>`
@@ -47,6 +60,13 @@ use TYPO3\CMS\Extbase\Service\ImageService;
  * =======
  * When `preload="true"`, a `<link rel="preload" as="image">` tag is added to `<head>`
  * via PageRenderer. An optional `media` attribute scopes the hint to a breakpoint.
+ *
+ * Events
+ * ======
+ * - BeforeImageProcessingEvent — dispatched before each processImage() call;
+ *   listeners can modify processing instructions, force a target format, or skip.
+ * - AfterImageProcessedEvent  — dispatched after each processImage() call;
+ *   listeners can inspect or replace the resulting ProcessedFile.
  */
 final class ImageRenderingService implements SingletonInterface
 {
@@ -56,6 +76,7 @@ final class ImageRenderingService implements SingletonInterface
     public function __construct(
         private readonly ImageService $imageService,
         private readonly LoggerInterface $logger,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {}
 
     // -------------------------------------------------------------------------
@@ -123,10 +144,22 @@ final class ImageRenderingService implements SingletonInterface
      *
      * Results are cached statically within the current request to avoid duplicate
      * processing when the same image/dimensions combination appears multiple times.
+     *
+     * Dispatches BeforeImageProcessingEvent before and AfterImageProcessedEvent after
+     * processing, allowing listeners to modify instructions, force formats, or replace
+     * the resulting ProcessedFile.
+     *
+     * @param string $fileExtension Optional target format override, e.g. "webp" or "avif".
+     *                              When empty, the format from BeforeImageProcessingEvent
+     *                              or the source file format is used.
      */
-    public function processImage(File|FileReference $file, string $width, string $height): ProcessedFile
-    {
-        $cacheKey = $this->buildProcessingCacheKey($file, $width, $height);
+    public function processImage(
+        File|FileReference $file,
+        string $width,
+        string $height,
+        string $fileExtension = '',
+    ): ProcessedFile {
+        $cacheKey = $this->buildProcessingCacheKey($file, $width, $height, $fileExtension);
 
         if (isset(self::$processedFileCache[$cacheKey])) {
             return self::$processedFileCache[$cacheKey];
@@ -139,12 +172,69 @@ final class ImageRenderingService implements SingletonInterface
         if ($height !== '') {
             $instructions['height'] = $height;
         }
+        if ($fileExtension !== '') {
+            $instructions['fileExtension'] = $fileExtension;
+        }
 
-        $processed = $this->imageService->applyProcessingInstructions($file, $instructions);
+        // Dispatch BeforeImageProcessingEvent — listeners can modify instructions or skip.
+        $beforeEvent = new BeforeImageProcessingEvent($file, $instructions);
+        $this->eventDispatcher->dispatch($beforeEvent);
+
+        if ($beforeEvent->isSkipped()) {
+            // Return the original file as a pass-through ProcessedFile.
+            $processed = $this->imageService->applyProcessingInstructions($file, []);
+        } else {
+            $processed = $this->imageService->applyProcessingInstructions($file, $beforeEvent->getInstructions());
+        }
+
+        // Dispatch AfterImageProcessedEvent — listeners can replace or inspect the result.
+        $afterEvent = new AfterImageProcessedEvent($file, $processed, $beforeEvent->getInstructions());
+        $this->eventDispatcher->dispatch($afterEvent);
+
+        $processed = $afterEvent->getProcessedFile();
 
         self::$processedFileCache[$cacheKey] = $processed;
 
         return $processed;
+    }
+
+    /**
+     * Process the same image to multiple target formats and return one ProcessedFile
+     * per format.
+     *
+     * This is the engine behind automatic format source sets in `<mai:picture>` and
+     * `<mai:picture.source>`. Given formats ["avif", "webp"], it will return two
+     * processed files in that order — the caller is responsible for rendering
+     * `<source>` tags (most capable format first) followed by the `<img>` fallback.
+     *
+     * Only formats listed in $GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'] and
+     * supported by the configured image processor are guaranteed to succeed. If a
+     * format is unsupported, the ImageService will silently fall back to the source
+     * format — the returned ProcessedFile will have the original extension.
+     *
+     * @param File|FileReference   $file       The source image to process
+     * @param string               $width      Width in TYPO3 notation (e.g. "800", "800c")
+     * @param string               $height     Height in TYPO3 notation
+     * @param list<string>         $formats    Target formats in preference order, e.g. ["avif", "webp"]
+     * @return array<string, ProcessedFile>    Keyed by format string, in the order given
+     */
+    public function processImageAlternatives(
+        File|FileReference $file,
+        string $width,
+        string $height,
+        array $formats,
+    ): array {
+        $results = [];
+
+        foreach ($formats as $format) {
+            $format = strtolower(trim($format));
+            if ($format === '') {
+                continue;
+            }
+            $results[$format] = $this->processImage($file, $width, $height, $format);
+        }
+
+        return $results;
     }
 
     // -------------------------------------------------------------------------
@@ -278,10 +368,14 @@ final class ImageRenderingService implements SingletonInterface
     /**
      * Build a stable cache key for processed file lookup within the current request.
      */
-    private function buildProcessingCacheKey(File|FileReference $file, string $width, string $height): string
-    {
+    private function buildProcessingCacheKey(
+        File|FileReference $file,
+        string $width,
+        string $height,
+        string $fileExtension = '',
+    ): string {
         $fileUid = $file instanceof FileReference ? $file->getOriginalFile()->getUid() : $file->getUid();
-        return $fileUid . '_' . md5($width . 'x' . $height);
+        return $fileUid . '_' . md5($width . 'x' . $height . ':' . $fileExtension);
     }
 
     /**
