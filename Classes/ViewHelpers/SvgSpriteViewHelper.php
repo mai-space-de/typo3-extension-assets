@@ -17,21 +17,21 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  * `EXT:my_ext/Configuration/SpriteIcons.php` and auto-discovered across all loaded
  * TYPO3 extensions — no register or render calls are needed in templates.
  *
- * Global namespace: declared as "ma" in ext_localconf.php.
+ * Global namespace: declared as "mai" in ext_localconf.php.
  *
  * Usage examples:
  *
  *   <!-- Decorative icon (aria-hidden="true" added automatically) -->
- *   <ma:svgSprite use="icon-arrow" width="24" height="24" class="icon" />
+ *   <mai:svgSprite use="icon-arrow" width="24" height="24" class="icon" />
  *
  *   <!-- Meaningful icon with accessible label -->
- *   <ma:svgSprite use="icon-close" aria-label="Close dialog" width="20" height="20" />
+ *   <mai:svgSprite use="icon-close" aria-label="Close dialog" width="20" height="20" />
  *
  *   <!-- Icon with title for additional screen reader context -->
- *   <ma:svgSprite use="icon-external" title="Opens in a new window" class="icon" />
+ *   <mai:svgSprite use="icon-external" title="Opens in a new window" class="icon" />
  *
  *   <!-- Custom sprite URL (multi-sprite setups) -->
- *   <ma:svgSprite use="brand-logo" src="/custom/brand-sprite.svg" width="120" height="40" />
+ *   <mai:svgSprite use="brand-logo" src="/custom/brand-sprite.svg" width="120" height="40" />
  *
  * Registering icons:
  *   Create `EXT:my_sitepackage/Configuration/SpriteIcons.php`:

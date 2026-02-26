@@ -19,24 +19,24 @@ Include a CSS asset from a file or inline Fluid content.
 .. code-block:: html
 
     <!-- From a file -->
-    <ma:css src="EXT:my_ext/Resources/Public/Css/app.css" />
+    <mai:css src="EXT:my_ext/Resources/Public/Css/app.css" />
 
     <!-- Inline CSS (auto-identifier from content hash) -->
-    <ma:css identifier="hero-styles">
+    <mai:css identifier="hero-styles">
         .hero { background: #e63946; color: #fff; padding: 4rem; }
-    </ma:css>
+    </mai:css>
 
     <!-- Critical CSS inlined in <head> -->
-    <ma:css identifier="critical" priority="true" inline="true" minify="true">
+    <mai:css identifier="critical" priority="true" inline="true" minify="true">
         body { margin: 0; font-family: sans-serif; }
         :root { --color-primary: #e63946; }
-    </ma:css>
+    </mai:css>
 
     <!-- Non-critical CSS loaded deferred (media="print" swap) -->
-    <ma:css src="EXT:theme/Resources/Public/Css/non-critical.css" deferred="true" />
+    <mai:css src="EXT:theme/Resources/Public/Css/non-critical.css" deferred="true" />
 
     <!-- Standard <link> in footer, no deferral -->
-    <ma:css src="EXT:theme/Resources/Public/Css/layout.css" deferred="false" />
+    <mai:css src="EXT:theme/Resources/Public/Css/layout.css" deferred="false" />
 
 Arguments
 ---------
@@ -102,24 +102,24 @@ Include a JavaScript asset from a file or inline Fluid content.
 .. code-block:: html
 
     <!-- External file (deferred by default per TypoScript) -->
-    <ma:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
+    <mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
 
     <!-- ES module -->
-    <ma:js src="EXT:theme/Resources/Public/JavaScript/app.js" type="module" />
+    <mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" type="module" />
 
     <!-- Async (loaded in parallel, executed immediately when ready) -->
-    <ma:js src="EXT:theme/Resources/Public/JavaScript/analytics.js" async="true" />
+    <mai:js src="EXT:theme/Resources/Public/JavaScript/analytics.js" async="true" />
 
     <!-- Critical JS in <head>, no defer -->
-    <ma:js src="EXT:theme/Resources/Public/JavaScript/polyfills.js"
+    <mai:js src="EXT:theme/Resources/Public/JavaScript/polyfills.js"
            priority="true" defer="false" />
 
     <!-- Inline JS -->
-    <ma:js identifier="page-init">
+    <mai:js identifier="page-init">
         document.addEventListener('DOMContentLoaded', function() {
             document.body.classList.add('js-ready');
         });
-    </ma:js>
+    </mai:js>
 
 Arguments
 ---------
@@ -181,27 +181,27 @@ No Node.js or build pipeline is required.
 .. code-block:: html
 
     <!-- SCSS from file (cache auto-invalidated on file change) -->
-    <ma:scss src="EXT:theme/Resources/Private/Scss/main.scss" />
+    <mai:scss src="EXT:theme/Resources/Private/Scss/main.scss" />
 
     <!-- SCSS file with additional @import paths -->
-    <ma:scss src="EXT:theme/Resources/Private/Scss/main.scss"
+    <mai:scss src="EXT:theme/Resources/Private/Scss/main.scss"
              importPaths="EXT:theme/Resources/Private/Scss/Partials,EXT:base/Resources/Private/Scss" />
 
     <!-- Inline SCSS (identifier derived from content hash) -->
-    <ma:scss identifier="hero-theme">
+    <mai:scss identifier="hero-theme">
         $primary: #e63946;
         $spacing: 1.5rem;
         .hero { background: $primary; padding: $spacing; color: white; }
-    </ma:scss>
+    </mai:scss>
 
     <!-- Inline SCSS as <style> in <head> (critical styles) -->
-    <ma:scss identifier="critical-reset" priority="true" inline="true">
+    <mai:scss identifier="critical-reset" priority="true" inline="true">
         *, *::before, *::after { box-sizing: border-box; }
         body { margin: 0; }
-    </ma:scss>
+    </mai:scss>
 
     <!-- Compiled SCSS loaded deferred -->
-    <ma:scss src="EXT:theme/Resources/Private/Scss/non-critical.scss" deferred="true" />
+    <mai:scss src="EXT:theme/Resources/Private/Scss/non-critical.scss" deferred="true" />
 
 Arguments
 ---------
@@ -281,21 +281,21 @@ Usage
 .. code-block:: html
 
     <!-- Decorative icon (aria-hidden="true" added automatically) -->
-    <ma:svgSprite use="icon-arrow" width="24" height="24" class="icon icon--arrow" />
+    <mai:svgSprite use="icon-arrow" width="24" height="24" class="icon icon--arrow" />
 
     <!-- Meaningful icon with accessible label (role="img" added automatically) -->
-    <ma:svgSprite use="icon-close" aria-label="Close dialog" width="20" height="20" />
+    <mai:svgSprite use="icon-close" aria-label="Close dialog" width="20" height="20" />
 
     <!-- Icon with <title> for screen reader context -->
-    <ma:svgSprite use="icon-external" title="Opens in a new window" class="icon" />
+    <mai:svgSprite use="icon-external" title="Opens in a new window" class="icon" />
 
     <!-- Override the sprite URL for a multi-sprite setup -->
-    <ma:svgSprite use="icon-logo" src="/brand/sprite.svg" width="120" height="40" />
+    <mai:svgSprite use="icon-logo" src="/brand/sprite.svg" width="120" height="40" />
 
 Generated Output
 ----------------
 
-For ``<ma:svgSprite use="icon-arrow" width="24" height="24" />``:
+For ``<mai:svgSprite use="icon-arrow" width="24" height="24" />``:
 
 .. code-block:: html
 
@@ -389,7 +389,7 @@ definitions. The registry auto-discovers this file across all loaded extensions:
         ],
     ];
 
-The symbol array key is the ID used in ``<ma:svgSprite use="icon-arrow" />``.
+The symbol array key is the ID used in ``<mai:svgSprite use="icon-arrow" />``.
 
 The optional ``'sites'`` key restricts a symbol to specific TYPO3 site identifiers. Entries
 without ``'sites'`` are global. See :ref:`configuration-multisite` for details.
@@ -403,23 +403,23 @@ Complete Layout Example
     <html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers">
     <head>
         <!-- Critical CSS inlined in <head> -->
-        <ma:scss identifier="critical" priority="true" inline="true">
+        <mai:scss identifier="critical" priority="true" inline="true">
             body { margin: 0; font-family: sans-serif; }
-        </ma:scss>
+        </mai:scss>
     </head>
     <body>
         <header>
             <!-- Use any symbol registered in SpriteIcons.php -->
-            <ma:svgSprite use="icon-logo" width="120" height="40" aria-label="Company Logo" />
+            <mai:svgSprite use="icon-logo" width="120" height="40" aria-label="Company Logo" />
         </header>
 
         <f:render section="Content" />
 
         <!-- Non-critical CSS loaded deferred -->
-        <ma:scss src="EXT:theme/Resources/Private/Scss/layout.scss" />
+        <mai:scss src="EXT:theme/Resources/Private/Scss/layout.scss" />
 
         <!-- JS at end of body, deferred -->
-        <ma:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
+        <mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
     </body>
     </html>
 
@@ -440,18 +440,18 @@ object, ``EXT:`` path, or public-relative path string.
 .. code-block:: html
 
     <!-- From a sys_file_reference UID -->
-    <ma:image image="{file.uid}" alt="{file.alternative}" width="800" />
+    <mai:image image="{file.uid}" alt="{file.alternative}" width="800" />
 
     <!-- Hero: preloaded, high fetchpriority, no lazy -->
-    <ma:image image="{hero}" alt="{heroAlt}" width="1920"
+    <mai:image image="{hero}" alt="{heroAlt}" width="1920"
               lazyloading="false" preload="true" fetchPriority="high" />
 
     <!-- Lazy load with a JS-hook class for lazysizes -->
-    <ma:image image="{img}" alt="{alt}" width="427c" height="240"
+    <mai:image image="{img}" alt="{alt}" width="427c" height="240"
               lazyloadWithClass="lazyload" />
 
     <!-- From an EXT: path (static asset) -->
-    <ma:image image="EXT:theme/Resources/Public/Images/logo.png" alt="Logo" width="200m" />
+    <mai:image image="EXT:theme/Resources/Public/Images/logo.png" alt="Logo" width="200m" />
 
 Arguments
 ---------
@@ -532,24 +532,24 @@ Arguments
 ma:picture
 ==========
 
-Render a responsive ``<picture>`` element. Child ``<ma:picture.source>`` ViewHelpers define
+Render a responsive ``<picture>`` element. Child ``<mai:picture.source>`` ViewHelpers define
 the ``<source>`` tags. A fallback ``<img>`` is appended automatically from the parent image
 and dimensions.
 
 .. code-block:: html
 
-    <ma:picture image="{imageRef}" alt="{alt}" width="1200" lazyloadWithClass="lazyload">
-        <ma:picture.source media="(min-width: 980px)" width="1200" height="675" />
-        <ma:picture.source media="(min-width: 768px)" width="800" height="450" />
-        <ma:picture.source media="(max-width: 767px)" width="400" height="225" />
-    </ma:picture>
+    <mai:picture image="{imageRef}" alt="{alt}" width="1200" lazyloadWithClass="lazyload">
+        <mai:picture.source media="(min-width: 980px)" width="1200" height="675" />
+        <mai:picture.source media="(min-width: 768px)" width="800" height="450" />
+        <mai:picture.source media="(max-width: 767px)" width="400" height="225" />
+    </mai:picture>
 
     <!-- Hero picture: no lazy, preloaded fallback, high fetchpriority -->
-    <ma:picture image="{hero}" alt="{heroAlt}" width="1920"
+    <mai:picture image="{hero}" alt="{heroAlt}" width="1920"
                 lazyloading="false" preload="true" fetchPriority="high">
-        <ma:picture.source media="(min-width: 768px)" width="1920" />
-        <ma:picture.source media="(max-width: 767px)" width="600" />
-    </ma:picture>
+        <mai:picture.source media="(min-width: 768px)" width="1920" />
+        <mai:picture.source media="(max-width: 767px)" width="600" />
+    </mai:picture>
 
 Arguments
 ---------
@@ -567,7 +567,7 @@ Arguments
       - mixed
       - **Yes**
       - —
-      - Same as ``ma:image``.
+      - Same as ``mai:image``.
     * - ``alt``
       - string
       - **Yes**
@@ -619,17 +619,17 @@ Arguments
 ma:picture.source
 =================
 
-Render a single ``<source>`` tag inside a ``<ma:picture>`` element. Must be a direct child
-of ``<ma:picture>``. Inherits the parent image unless overridden via the ``image`` argument.
+Render a single ``<source>`` tag inside a ``<mai:picture>`` element. Must be a direct child
+of ``<mai:picture>``. Inherits the parent image unless overridden via the ``image`` argument.
 
 .. code-block:: html
 
-    <ma:picture image="{desktopImg}" alt="{alt}" width="1200">
+    <mai:picture image="{desktopImg}" alt="{alt}" width="1200">
         <!-- Inherits parent image, processed to 1200px -->
-        <ma:picture.source media="(min-width: 768px)" width="1200" />
+        <mai:picture.source media="(min-width: 768px)" width="1200" />
         <!-- Override image for small screens -->
-        <ma:picture.source image="{mobileImg}" media="(max-width: 767px)" width="400" />
-    </ma:picture>
+        <mai:picture.source image="{mobileImg}" media="(max-width: 767px)" width="400" />
+    </mai:picture>
 
 Arguments
 ---------
@@ -662,7 +662,7 @@ Arguments
       - mixed
       - No
       - null
-      - Override image for this breakpoint. Inherits parent ``<ma:picture>`` image when absent.
+      - Override image for this breakpoint. Inherits parent ``<mai:picture>`` image when absent.
     * - ``type``
       - string
       - No
@@ -677,20 +677,20 @@ ma:figure
 
 Wrap content in a semantic ``<figure>`` element with an optional ``<figcaption>``. Intended
 as a standalone wrapper for images or any content that benefits from the figure/caption
-structure. Kept separate from ``ma:picture`` and ``ma:image`` so each ViewHelper has a
+structure. Kept separate from ``mai:picture`` and ``mai:image`` so each ViewHelper has a
 single, focused responsibility.
 
 .. code-block:: html
 
     <!-- Minimal wrapper, no caption -->
-    <ma:figure>
-        <ma:picture image="{file}" alt="{alt}" width="800" />
-    </ma:figure>
+    <mai:figure>
+        <mai:picture image="{file}" alt="{alt}" width="800" />
+    </mai:figure>
 
     <!-- With caption text -->
-    <ma:figure caption="{file.description}" class="article-figure" classFigcaption="caption">
-        <ma:image image="{file.uid}" alt="{file.alternative}" width="600" />
-    </ma:figure>
+    <mai:figure caption="{file.description}" class="article-figure" classFigcaption="caption">
+        <mai:image image="{file.uid}" alt="{file.alternative}" width="600" />
+    </mai:figure>
 
 The ``caption`` argument is HTML-escaped. For a caption containing markup, omit the argument
 and place a ``<figcaption>`` element directly inside the ViewHelper's child content.

@@ -5,11 +5,11 @@
 <!--
     Example Partial: Icon.html
     ============================
-    A reusable icon partial that wraps <ma:svgSprite> with sensible defaults
+    A reusable icon partial that wraps <mai:svgSprite> with sensible defaults
     and handles both the register and use modes in one call.
 
     This pattern is useful when you want a single, consistent API for icons
-    across all templates, without scattering raw <ma:svgSprite> calls everywhere.
+    across all templates, without scattering raw <mai:svgSprite> calls everywhere.
 
     ARGUMENTS
     ----------
@@ -42,8 +42,8 @@
 
         <f:render partial="Examples/Icon" arguments="{icon: 'arrow', register: true}" />
         ...later in the layout...
-        <ma:svgSprite render="true" />
-        <ma:svgSprite use="icon-arrow" width="20" height="20" />
+        <mai:svgSprite render="true" />
+        <mai:svgSprite use="icon-arrow" width="20" height="20" />
 
     IMPLEMENTATION NOTE
     --------------------
@@ -84,7 +84,7 @@
 />
 
 <!-- Register the symbol (always, idempotent) -->
-<ma:svgSprite register="{resolvedSrc}" symbolId="{symbolId}" />
+<mai:svgSprite register="{resolvedSrc}" symbolId="{symbolId}" />
 
 <!-- If register-only mode requested, stop here -->
 <f:if condition="{register}">
@@ -108,7 +108,7 @@
         <f:if condition="{label}">
             <f:then>
                 <!-- Meaningful icon: aria-label + role="img" -->
-                <ma:svgSprite
+                <mai:svgSprite
                     use="{symbolId}"
                     width="{w}"
                     height="{h}"
@@ -119,7 +119,7 @@
             </f:then>
             <f:else>
                 <!-- Decorative icon: aria-hidden="true" -->
-                <ma:svgSprite
+                <mai:svgSprite
                     use="{symbolId}"
                     width="{w}"
                     height="{h}"

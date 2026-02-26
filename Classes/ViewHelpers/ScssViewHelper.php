@@ -19,12 +19,12 @@ use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
  * OutputStyle::COMPRESSED which removes all whitespace — no redundant double-pass
  * through a CSS minifier is needed.
  *
- * Global namespace: declared as "ma" in ext_localconf.php.
+ * Global namespace: declared as "mai" in ext_localconf.php.
  *
  * Usage examples:
  *
  *   <!-- Inline SCSS compiled server-side -->
- *   <ma:scss identifier="hero-theme">
+ *   <mai:scss identifier="hero-theme">
  *       $primary: #e63946;
  *       $spacing: 1.5rem;
  *
@@ -33,23 +33,23 @@ use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
  *           padding: $spacing;
  *           color: white;
  *       }
- *   </ma:scss>
+ *   </mai:scss>
  *
  *   <!-- SCSS from file (auto-invalidated cache when file changes) -->
- *   <ma:scss src="EXT:theme/Resources/Private/Scss/main.scss" />
+ *   <mai:scss src="EXT:theme/Resources/Private/Scss/main.scss" />
  *
  *   <!-- SCSS file with additional import paths for @import partials -->
- *   <ma:scss src="EXT:theme/Resources/Private/Scss/main.scss"
+ *   <mai:scss src="EXT:theme/Resources/Private/Scss/main.scss"
  *            importPaths="EXT:theme/Resources/Private/Scss/Partials,EXT:base/Resources/Private/Scss" />
  *
  *   <!-- Inline SCSS rendered as <style> in <head> (critical styles) -->
- *   <ma:scss identifier="critical-theme" priority="true" inline="true">
+ *   <mai:scss identifier="critical-theme" priority="true" inline="true">
  *       $font-size-base: 16px;
  *       body { font-size: $font-size-base; margin: 0; }
- *   </ma:scss>
+ *   </mai:scss>
  *
  *   <!-- SCSS loaded deferred as external CSS file -->
- *   <ma:scss src="EXT:theme/Resources/Private/Scss/non-critical.scss" deferred="true" />
+ *   <mai:scss src="EXT:theme/Resources/Private/Scss/non-critical.scss" deferred="true" />
  *
  * @see \Maispace\MaispaceAssets\Service\AssetProcessingService::handleScss()
  * @see \Maispace\MaispaceAssets\Service\ScssCompilerService

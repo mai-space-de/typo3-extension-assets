@@ -18,26 +18,26 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * The image is processed via TYPO3's native ImageService, which handles resizing,
  * cropping, and format conversion (including WebP when configured in Install Tool).
  *
- * Global namespace: declared as "ma" in ext_localconf.php.
+ * Global namespace: declared as "mai" in ext_localconf.php.
  *
  * Usage examples:
  *
  *   <!-- From a sys_file_reference UID (e.g. from a content element) -->
- *   <ma:image image="{file.uid}" alt="{file.alternative}" width="800" />
+ *   <mai:image image="{file.uid}" alt="{file.alternative}" width="800" />
  *
  *   <!-- From an EXT: path (static/design image) -->
- *   <ma:image image="EXT:my_ext/Resources/Public/Images/logo.png" alt="Logo" width="200" />
+ *   <mai:image image="EXT:my_ext/Resources/Public/Images/logo.png" alt="Logo" width="200" />
  *
  *   <!-- Lazy loaded with a JS-hook class -->
- *   <ma:image image="{imageRef}" alt="{alt}" width="427c" height="240"
+ *   <mai:image image="{imageRef}" alt="{alt}" width="427c" height="240"
  *             lazyloadWithClass="lazyload" />
  *
  *   <!-- Above-the-fold hero: preloaded, high fetchpriority, no lazy -->
- *   <ma:image image="{hero}" alt="{heroAlt}" width="1920"
+ *   <mai:image image="{hero}" alt="{heroAlt}" width="1920"
  *             preload="true" fetchPriority="high" />
  *
  *   <!-- Eager load (disable lazy even if TypoScript default is lazy) -->
- *   <ma:image image="{img}" alt="{alt}" width="400" lazyloading="false" />
+ *   <mai:image image="{img}" alt="{alt}" width="400" lazyloading="false" />
  *
  * Width/height notation:
  *   800    → exact pixel width

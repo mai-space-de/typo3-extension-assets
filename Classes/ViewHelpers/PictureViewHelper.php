@@ -16,38 +16,38 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 /**
  * Render a responsive `<picture>` element.
  *
- * Child `<ma:picture.source>` ViewHelpers define the `<source>` tags. A fallback
+ * Child `<mai:picture.source>` ViewHelpers define the `<source>` tags. A fallback
  * `<img>` is appended automatically using the parent image and dimensions.
  *
  * The resolved image and lazy-loading settings are shared with child ViewHelpers
- * via the `ViewHelperVariableContainer` so that each `<ma:picture.source>` can
+ * via the `ViewHelperVariableContainer` so that each `<mai:picture.source>` can
  * inherit the parent image without repeating it.
  *
- * Global namespace: declared as "ma" in ext_localconf.php.
+ * Global namespace: declared as "mai" in ext_localconf.php.
  *
  * Usage examples:
  *
  *   <!-- Basic responsive picture -->
- *   <ma:picture image="{imageRef}" alt="{alt}" width="1200" height="675">
- *       <ma:picture.source media="(min-width: 980px)" width="1200" height="675" />
- *       <ma:picture.source media="(min-width: 768px)" width="800" height="450" />
- *       <ma:picture.source media="(max-width: 767px)" width="400" height="225" />
- *   </ma:picture>
+ *   <mai:picture image="{imageRef}" alt="{alt}" width="1200" height="675">
+ *       <mai:picture.source media="(min-width: 980px)" width="1200" height="675" />
+ *       <mai:picture.source media="(min-width: 768px)" width="800" height="450" />
+ *       <mai:picture.source media="(max-width: 767px)" width="400" height="225" />
+ *   </mai:picture>
  *
  *   <!-- Different image per breakpoint -->
- *   <ma:picture image="{desktopImg}" alt="{alt}" width="1200">
- *       <ma:picture.source media="(min-width: 768px)" width="1200" />
- *       <ma:picture.source image="{mobileImg}" media="(max-width: 767px)" width="400" />
- *   </ma:picture>
+ *   <mai:picture image="{desktopImg}" alt="{alt}" width="1200">
+ *       <mai:picture.source media="(min-width: 768px)" width="1200" />
+ *       <mai:picture.source image="{mobileImg}" media="(max-width: 767px)" width="400" />
+ *   </mai:picture>
  *
  *   <!-- Hero: preloaded, high fetchpriority fallback, no lazy -->
- *   <ma:picture image="{hero}" alt="{alt}" width="1920" lazyloading="false"
+ *   <mai:picture image="{hero}" alt="{alt}" width="1920" lazyloading="false"
  *               fetchPriority="high" preload="true" />
  *
  *   <!-- With lazy-load class for JS hook -->
- *   <ma:picture image="{img}" alt="{alt}" width="800" lazyloadWithClass="lazyload">
- *       <ma:picture.source media="(min-width: 768px)" width="1200" />
- *   </ma:picture>
+ *   <mai:picture image="{img}" alt="{alt}" width="800" lazyloadWithClass="lazyload">
+ *       <mai:picture.source media="(min-width: 768px)" width="1200" />
+ *   </mai:picture>
  *
  * @see \Maispace\MaispaceAssets\ViewHelpers\Picture\SourceViewHelper
  * @see \Maispace\MaispaceAssets\Service\ImageRenderingService
@@ -102,7 +102,7 @@ final class PictureViewHelper extends AbstractViewHelper
         $this->registerArgument(
             'lazyloading',
             'bool',
-            'Add loading="lazy" to the fallback <img>. Also propagated to child <ma:picture.source> elements. Null uses the TypoScript default.',
+            'Add loading="lazy" to the fallback <img>. Also propagated to child <mai:picture.source> elements. Null uses the TypoScript default.',
             false,
             null,
         );
@@ -170,7 +170,7 @@ final class PictureViewHelper extends AbstractViewHelper
         $varContainer->add(self::class, self::VAR_LAZYLOADING, $lazyloading);
         $varContainer->add(self::class, self::VAR_LAZYLOAD_CLASS, $lazyloadWithClass);
 
-        // Render children — each <ma:picture.source> outputs a <source> tag.
+        // Render children — each <mai:picture.source> outputs a <source> tag.
         $sourcesHtml = (string)$renderChildrenClosure();
 
         $varContainer->remove(self::class, self::VAR_FILE);

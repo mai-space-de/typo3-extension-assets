@@ -5,7 +5,7 @@
 <!--
     Example Template: SvgSpriteExamples.html
     ==========================================
-    Demonstrates every argument and usage pattern of <ma:svgSprite>.
+    Demonstrates every argument and usage pattern of <mai:svgSprite>.
 
     The global "ma" namespace is pre-registered — no {namespace} declaration needed.
 
@@ -25,7 +25,7 @@
     assembles all symbols into a single SVG sprite served from the HTTP endpoint
     (default: /maispace/sprite.svg).
 
-    In your Fluid templates, simply reference a symbol ID with <ma:svgSprite use="...">.
+    In your Fluid templates, simply reference a symbol ID with <mai:svgSprite use="...">.
     The ViewHelper outputs an <svg><use href="/maispace/sprite.svg#id"></use></svg> element.
     No register or render calls are needed in templates.
 
@@ -51,18 +51,18 @@
 
 <!-- 1a. Decorative icon (no accessible label needed, text provides the context) -->
 <a href="/search" class="search-link">
-    <ma:svgSprite use="icon-search" width="18" height="18" class="icon" />
+    <mai:svgSprite use="icon-search" width="18" height="18" class="icon" />
     Search
 </a>
 
 <!-- 1b. Decorative icon in a button (aria-label on the button, not the icon) -->
 <button class="btn btn--icon" type="button" aria-label="Go to next slide">
-    <ma:svgSprite use="icon-arrow" width="20" height="20" class="icon" />
+    <mai:svgSprite use="icon-arrow" width="20" height="20" class="icon" />
 </button>
 
 <!-- 1c. Icon without explicit dimensions — size set via CSS -->
 <span class="icon-wrapper">
-    <ma:svgSprite use="icon-search" class="icon icon--search icon--sm" />
+    <mai:svgSprite use="icon-search" class="icon icon--search icon--sm" />
 </span>
 
 
@@ -76,7 +76,7 @@
 <!-- 2a. Meaningful icon — aria-label provided, role="img" added automatically,
          aria-hidden is omitted -->
 <a href="https://twitter.com/example" rel="noopener noreferrer">
-    <ma:svgSprite
+    <mai:svgSprite
         use="icon-twitter"
         width="24"
         height="24"
@@ -87,7 +87,7 @@
 
 <!-- 2b. Icon with <title> instead of aria-label — alternative accessible approach -->
 <a href="https://linkedin.com/company/example" rel="noopener noreferrer">
-    <ma:svgSprite
+    <mai:svgSprite
         use="icon-linkedin"
         width="24"
         height="24"
@@ -98,7 +98,7 @@
 
 <!-- 2c. Icon-only button — aria-label on the <svg> itself -->
 <button class="btn btn--icon-only" type="button">
-    <ma:svgSprite
+    <mai:svgSprite
         use="icon-close"
         width="24"
         height="24"
@@ -109,7 +109,7 @@
 
 <!-- 2d. Inline status icon with aria-hidden="false" — explicit override -->
 <span class="status-indicator status-indicator--error">
-    <ma:svgSprite
+    <mai:svgSprite
         use="icon-warning"
         width="16"
         height="16"
@@ -132,7 +132,7 @@
     <f:for each="{navigationItems}" as="item">
         <a href="{item.link}" class="nav-item {f:if(condition: item.active, then: 'nav-item--active')}">
             <f:if condition="{item.iconId}">
-                <ma:svgSprite
+                <mai:svgSprite
                     use="{item.iconId}"
                     width="20"
                     height="20"
@@ -149,7 +149,7 @@
          but the symbol is always available in the sprite (no lazy-loading needed) -->
 <f:if condition="{settings.showSearch}">
     <a href="/search" class="btn btn--ghost btn--icon" aria-label="Search">
-        <ma:svgSprite use="icon-search" width="20" height="20" aria-hidden="true" />
+        <mai:svgSprite use="icon-search" width="20" height="20" aria-hidden="true" />
     </a>
 </f:if>
 
@@ -163,10 +163,10 @@
 -->
 
 <!-- 4a. Icon from the default extension sprite -->
-<ma:svgSprite use="icon-arrow" width="16" height="16" />
+<mai:svgSprite use="icon-arrow" width="16" height="16" />
 
 <!-- 4b. Icon from an alternative / CDN-hosted sprite -->
-<ma:svgSprite
+<mai:svgSprite
     use="icon-brand-logo"
     src="/brand/sprite.svg"
     width="120"
@@ -207,7 +207,7 @@
             <f:if condition="{record.isExternal}">
                 <f:then>
                     Read more
-                    <ma:svgSprite
+                    <mai:svgSprite
                         use="icon-external-link"
                         width="14"
                         height="14"
@@ -217,7 +217,7 @@
                 </f:then>
                 <f:else>
                     Read more
-                    <ma:svgSprite
+                    <mai:svgSprite
                         use="icon-arrow"
                         width="16"
                         height="16"

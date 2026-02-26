@@ -15,8 +15,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Service\ImageService;
 
 /**
- * Resolves, processes, and renders images for the ma:image, ma:picture, and
- * ma:picture.source ViewHelpers.
+ * Resolves, processes, and renders images for the mai:image, mai:picture, and
+ * mai:picture.source ViewHelpers.
  *
  * Image input resolution
  * ======================

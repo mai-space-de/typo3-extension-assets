@@ -55,7 +55,7 @@ final class BeforeSpriteSymbolRegisteredEvent
 
     /**
      * Rename the symbol. The new ID will be used as the `<symbol id="">` attribute.
-     * Update any corresponding <ma:svgSprite use="..."> calls if you rename icons.
+     * Update any corresponding <mai:svgSprite use="..."> calls if you rename icons.
      */
     public function setSymbolId(string $symbolId): void
     {

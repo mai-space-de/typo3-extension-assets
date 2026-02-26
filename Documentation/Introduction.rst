@@ -41,7 +41,7 @@ SCSS ViewHelper
 Image ViewHelpers
 -----------------
 
-*  ``<ma:image>`` renders a single ``<img>`` tag; ``<ma:picture>`` with ``<ma:picture.source>``
+*  ``<mai:image>`` renders a single ``<img>`` tag; ``<mai:picture>`` with ``<mai:picture.source>``
    children renders a responsive ``<picture>`` element.
 *  Source sets are configured **inline in the template** — no central YAML or TypoScript
    configuration file needed per image.
@@ -53,7 +53,7 @@ Image ViewHelpers
 *  Optional CSS class alongside lazy loading for JS-based loaders (e.g. lazysizes).
 *  ``fetchpriority`` attribute support for hero images.
 *  ``<link rel="preload" as="image">`` emission via the ``preload`` argument.
-*  ``<ma:figure>`` provides a standalone semantic ``<figure>`` / ``<figcaption>`` wrapper.
+*  ``<mai:figure>`` provides a standalone semantic ``<figure>`` / ``<figcaption>`` wrapper.
 
 SVG Sprite ViewHelper
 ---------------------
@@ -64,7 +64,7 @@ SVG Sprite ViewHelper
    cached, and served from a dedicated HTTP endpoint (default: ``/maispace/sprite.svg``).
 *  The endpoint is browser-cacheable for one year (``Cache-Control: public, max-age=31536000,
    immutable``) and supports conditional GET via ETag for efficient revalidation.
-*  Reference symbols anywhere with ``<ma:svgSprite use="icon-name" />``.
+*  Reference symbols anywhere with ``<mai:svgSprite use="icon-name" />``.
 *  Fully accessible: decorative icons default to ``aria-hidden="true"``; pass ``aria-label``
    to make an icon meaningful to screen readers.
 
@@ -107,24 +107,24 @@ at the top of your Fluid templates:
 .. code-block:: html
 
     <!-- CSS from a file (deferred by default) -->
-    <ma:css src="EXT:theme/Resources/Public/Css/app.css" />
+    <mai:css src="EXT:theme/Resources/Public/Css/app.css" />
 
     <!-- Inline JS -->
-    <ma:js identifier="page-init">
+    <mai:js identifier="page-init">
         document.addEventListener('DOMContentLoaded', function() { console.log('ready'); });
-    </ma:js>
+    </mai:js>
 
     <!-- SCSS compiled server-side -->
-    <ma:scss src="EXT:theme/Resources/Private/Scss/main.scss" />
+    <mai:scss src="EXT:theme/Resources/Private/Scss/main.scss" />
 
     <!-- Single responsive image with lazy loading -->
-    <ma:image image="{file.uid}" alt="{file.alternative}" width="800" />
+    <mai:image image="{file.uid}" alt="{file.alternative}" width="800" />
 
     <!-- Responsive picture with breakpoints configured in the template -->
-    <ma:picture image="{imageRef}" alt="{alt}" width="1200">
-        <ma:picture.source media="(min-width: 768px)" width="1200" />
-        <ma:picture.source media="(max-width: 767px)" width="400" />
-    </ma:picture>
+    <mai:picture image="{imageRef}" alt="{alt}" width="1200">
+        <mai:picture.source media="(min-width: 768px)" width="1200" />
+        <mai:picture.source media="(max-width: 767px)" width="400" />
+    </mai:picture>
 
     <!-- SVG icon from the auto-discovered sprite -->
-    <ma:svgSprite use="icon-arrow" width="24" height="24" class="icon" />
+    <mai:svgSprite use="icon-arrow" width="24" height="24" class="icon" />

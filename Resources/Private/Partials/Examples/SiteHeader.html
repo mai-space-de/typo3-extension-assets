@@ -19,18 +19,18 @@
     Register every icon this partial uses.
     Safe to call from loops and multiple includes — duplicates are ignored.
 -->
-<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/logo.svg" />
-<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/menu.svg" />
-<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/close.svg" />
-<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/search.svg" />
-<ma:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/chevron-down.svg" />
+<mai:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/logo.svg" />
+<mai:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/menu.svg" />
+<mai:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/close.svg" />
+<mai:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/search.svg" />
+<mai:svgSprite register="EXT:my_sitepackage/Resources/Public/Icons/chevron-down.svg" />
 
 <!--
     Scoped CSS for this component — inline so it is critical and available immediately.
     priority="true" ensures it lands in <head> alongside the critical reset.
     inline="true" avoids an extra HTTP request for a small component's styles.
 -->
-<ma:css identifier="site-header-styles" priority="true" inline="true">
+<mai:css identifier="site-header-styles" priority="true" inline="true">
     .site-header {
         position: sticky;
         top: 0;
@@ -98,13 +98,13 @@
             z-index: 200;
         }
     }
-</ma:css>
+</mai:css>
 
 <!--
     Scoped JS for the header — deferred, footer placement.
     Handles mobile menu toggle and dropdown navigation.
 -->
-<ma:js identifier="site-header-js">
+<mai:js identifier="site-header-js">
     (function () {
         'use strict';
 
@@ -158,13 +158,13 @@
             }
         });
     }());
-</ma:js>
+</mai:js>
 
 <!-- ===================== MARKUP ===================== -->
 <header class="site-header" role="banner">
 
     <a href="/" class="site-header__logo" aria-label="Homepage — {site.configuration.websiteTitle}">
-        <ma:svgSprite use="icon-logo" aria-hidden="true" />
+        <mai:svgSprite use="icon-logo" aria-hidden="true" />
     </a>
 
     <!-- Mobile menu toggle button -->
@@ -175,7 +175,7 @@
         aria-controls="main-navigation"
         aria-label="Open navigation menu"
     >
-        <ma:svgSprite use="icon-menu" width="24" height="24" aria-hidden="true" />
+        <mai:svgSprite use="icon-menu" width="24" height="24" aria-hidden="true" />
     </button>
 
     <!-- Main navigation -->
@@ -190,7 +190,7 @@
             type="button"
             aria-label="Close navigation menu"
         >
-            <ma:svgSprite use="icon-close" width="24" height="24" aria-hidden="true" />
+            <mai:svgSprite use="icon-close" width="24" height="24" aria-hidden="true" />
         </button>
 
         <f:for each="{navigationItems}" as="item">
@@ -204,7 +204,7 @@
                             aria-haspopup="true"
                         >
                             {item.title}
-                            <ma:svgSprite
+                            <mai:svgSprite
                                 use="icon-chevron-down"
                                 width="16"
                                 height="16"
@@ -246,7 +246,7 @@
     <div class="site-header__actions">
         <f:if condition="{settings.showSearch}">
             <a href="/search" class="btn btn--ghost btn--icon" aria-label="Search">
-                <ma:svgSprite use="icon-search" width="20" height="20" aria-hidden="true" />
+                <mai:svgSprite use="icon-search" width="20" height="20" aria-hidden="true" />
             </a>
         </f:if>
         <f:if condition="{settings.ctaLabel}">

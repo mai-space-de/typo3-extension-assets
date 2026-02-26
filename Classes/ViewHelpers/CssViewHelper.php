@@ -14,28 +14,28 @@ use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
  * The asset is processed (optionally minified), cached, written to typo3temp/,
  * and registered with TYPO3's AssetCollector for output in the rendered page.
  *
- * Global namespace: declared as "ma" in ext_localconf.php.
+ * Global namespace: declared as "mai" in ext_localconf.php.
  *
  * Usage examples:
  *
  *   <!-- Inline CSS written directly in the template -->
- *   <ma:css identifier="hero-styles">
+ *   <mai:css identifier="hero-styles">
  *       .hero { background: #e63946; color: #fff; padding: 4rem; }
- *   </ma:css>
+ *   </mai:css>
  *
  *   <!-- CSS from a file (EXT: notation) -->
- *   <ma:css src="EXT:my_ext/Resources/Public/Css/app.css" />
+ *   <mai:css src="EXT:my_ext/Resources/Public/Css/app.css" />
  *
  *   <!-- Critical CSS inlined in <head> (not a <link> tag) -->
- *   <ma:css identifier="critical" priority="true" inline="true" minify="true">
+ *   <mai:css identifier="critical" priority="true" inline="true" minify="true">
  *       body { margin: 0; font-family: sans-serif; }
- *   </ma:css>
+ *   </mai:css>
  *
  *   <!-- Non-critical CSS loaded deferred (media="print" swap trick) -->
- *   <ma:css src="EXT:theme/Resources/Public/Css/non-critical.css" deferred="true" />
+ *   <mai:css src="EXT:theme/Resources/Public/Css/non-critical.css" deferred="true" />
  *
  *   <!-- Override minification for a single asset -->
- *   <ma:css src="EXT:theme/Resources/Public/Css/vendor.css" minify="false" />
+ *   <mai:css src="EXT:theme/Resources/Public/Css/vendor.css" minify="false" />
  *
  * @see \Maispace\MaispaceAssets\Service\AssetProcessingService::handleCss()
  */

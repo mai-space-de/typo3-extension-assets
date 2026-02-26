@@ -5,10 +5,10 @@ declare(strict_types=1);
 defined('TYPO3') or die();
 
 call_user_func(static function (): void {
-    // Register global Fluid ViewHelper namespace 'ma'.
-    // This allows templates to use <ma:css>, <ma:js>, <ma:scss>, <ma:svgSprite>
+    // Register global Fluid ViewHelper namespace 'mai'.
+    // This allows templates to use <mai:css>, <mai:js>, <mai:scss>, <mai:svgSprite>
     // without a {namespace} declaration at the top of each template.
-    $GLOBALS['TYPO3_CONF_VARS']['SYS']['fluid']['namespaces']['ma'] =
+    $GLOBALS['TYPO3_CONF_VARS']['SYS']['fluid']['namespaces']['mai'] =
         ['Maispace\\MaispaceAssets\\ViewHelpers'];
 
     // Register the maispace_assets caching framework cache.

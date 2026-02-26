@@ -17,44 +17,44 @@ New Features
 Asset ViewHelpers
 ~~~~~~~~~~~~~~~~~
 
-*  **CSS ViewHelper** (``ma:css``) — Include CSS from file (EXT: path) or inline Fluid
+*  **CSS ViewHelper** (``mai:css``) — Include CSS from file (EXT: path) or inline Fluid
    content. Supports minification, deferred loading (``media="print"`` swap), inline
    ``<style>`` in ``<head>``, and the ``media`` attribute.
 
-*  **JS ViewHelper** (``ma:js``) — Include JavaScript from file or inline. Supports
+*  **JS ViewHelper** (``mai:js``) — Include JavaScript from file or inline. Supports
    minification, ``defer``, ``async``, ``type="module"``, and footer/head placement.
 
-*  **SCSS ViewHelper** (``ma:scss``) — Compile SCSS to CSS server-side via scssphp
+*  **SCSS ViewHelper** (``mai:scss``) — Compile SCSS to CSS server-side via scssphp
    (pure PHP, no Node.js required). Supports configurable import paths, cache
    auto-invalidation on file change (``filemtime``), and all CSS placement options.
 
 Image ViewHelpers
 ~~~~~~~~~~~~~~~~~
 
-*  **Image ViewHelper** (``ma:image``) — Render a single ``<img>`` tag from a
+*  **Image ViewHelper** (``mai:image``) — Render a single ``<img>`` tag from a
    sys_file_reference UID, FAL File/FileReference object, or EXT:/relative path string.
    Uses TYPO3's native ``ImageService`` for processing (resize, crop, WebP conversion).
    Supports lazy loading (``loading="lazy"``), JS-hook lazy-load CSS class, ``fetchpriority``
    attribute, and ``<link rel="preload" as="image">`` injection into ``<head>``.
 
-*  **Picture ViewHelper** (``ma:picture``) — Render a responsive ``<picture>`` element.
-   ``<ma:picture.source>`` children define each ``<source>`` tag inline in the template.
+*  **Picture ViewHelper** (``mai:picture``) — Render a responsive ``<picture>`` element.
+   ``<mai:picture.source>`` children define each ``<source>`` tag inline in the template.
    Falls back to a ``<img>`` element using the same image and configurable fallback dimensions.
    Lazy loading, preload, and fetchpriority are propagated to the fallback ``<img>`` and to
-   child ``<ma:picture.source>`` elements via the ViewHelper variable container.
+   child ``<mai:picture.source>`` elements via the ViewHelper variable container.
 
-*  **Picture Source ViewHelper** (``ma:picture.source``) — Define a single ``<source>`` tag
-   inside ``<ma:picture>``. Accepts a ``media`` query, processing dimensions, optional image
+*  **Picture Source ViewHelper** (``mai:picture.source``) — Define a single ``<source>`` tag
+   inside ``<mai:picture>``. Accepts a ``media`` query, processing dimensions, optional image
    override per breakpoint, and optional ``type`` MIME hint.
 
-*  **Figure ViewHelper** (``ma:figure``) — Wrap any content in a ``<figure>`` with an
-   optional ``<figcaption>``. Kept deliberately separate from ``ma:picture`` and ``ma:image``
+*  **Figure ViewHelper** (``mai:figure``) — Wrap any content in a ``<figure>`` with an
+   optional ``<figcaption>``. Kept deliberately separate from ``mai:picture`` and ``mai:image``
    for single-responsibility template composition.
 
 SVG Sprite ViewHelper
 ~~~~~~~~~~~~~~~~~~~~~
 
-*  **SVG Sprite ViewHelper** (``ma:svgSprite``) — Render an ``<svg><use href="...#id">``
+*  **SVG Sprite ViewHelper** (``mai:svgSprite``) — Render an ``<svg><use href="...#id">``
    reference to a symbol served by the built-in ``SvgSpriteMiddleware``. Symbols are
    registered declaratively via ``Configuration/SpriteIcons.php`` in any loaded extension
    (no ``ext_localconf.php`` boilerplate). The middleware serves the assembled sprite at a

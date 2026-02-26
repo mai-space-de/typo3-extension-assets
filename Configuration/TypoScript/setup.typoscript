@@ -65,7 +65,7 @@ plugin.tx_maispace_assets {
     }
 
     # =========================================================================
-    # Image settings (ma:image, ma:picture, ma:picture.source)
+    # Image settings (mai:image, mai:picture, mai:picture.source)
     # =========================================================================
     image {
         # Add loading="lazy" to all images by default.

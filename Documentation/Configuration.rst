@@ -30,7 +30,7 @@ CSS Settings
     :Default: 1
 
     Load external CSS files non-blocking by default using the ``media="print"`` onload-swap
-    technique. When ``1``, every ``<ma:css>`` call that produces a ``<link>`` tag will use:
+    technique. When ``1``, every ``<mai:css>`` call that produces a ``<link>`` tag will use:
 
     .. code-block:: html
 
@@ -124,8 +124,8 @@ Image Settings
     :type: boolean
     :Default: 1
 
-    Add ``loading="lazy"`` to all images rendered by ``<ma:image>`` and the fallback
-    ``<img>`` inside ``<ma:picture>`` by default.
+    Add ``loading="lazy"`` to all images rendered by ``<mai:image>`` and the fallback
+    ``<img>`` inside ``<mai:picture>`` by default.
 
     ``0`` disables lazy loading globally. Override per image with the ViewHelper's
     ``lazyloading`` argument.

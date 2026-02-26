@@ -10,13 +10,13 @@ A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, ima
 
 | Feature | ViewHelper / API |
 |---|---|
-| CSS from file or inline | `<ma:css>` |
-| JavaScript from file or inline | `<ma:js>` |
-| SCSS compiled server-side (no Node.js) | `<ma:scss>` |
-| Responsive `<img>` with lazy load + preload | `<ma:image>` |
-| Responsive `<picture>` with per-breakpoint sources | `<ma:picture>` + `<ma:picture.source>` |
-| Semantic `<figure>/<figcaption>` wrapper | `<ma:figure>` |
-| SVG sprite served from a cacheable URL | `<ma:svgSprite>` + `Configuration/SpriteIcons.php` |
+| CSS from file or inline | `<mai:css>` |
+| JavaScript from file or inline | `<mai:js>` |
+| SCSS compiled server-side (no Node.js) | `<mai:scss>` |
+| Responsive `<img>` with lazy load + preload | `<mai:image>` |
+| Responsive `<picture>` with per-breakpoint sources | `<mai:picture>` + `<mai:picture.source>` |
+| Semantic `<figure>/<figcaption>` wrapper | `<mai:figure>` |
+| SVG sprite served from a cacheable URL | `<mai:svgSprite>` + `Configuration/SpriteIcons.php` |
 | Web font `<link rel="preload">` in `<head>` | `Configuration/Fonts.php` |
 | Multi-site scoping for sprites and fonts | `'sites'` key in config files |
 | PSR-14 events at every processing stage | `Classes/Event/` |
@@ -45,18 +45,18 @@ Include assets inline or from a file. Assets are minified, cached in `typo3temp/
 
 ```html
 <!-- CSS from file (deferred by default via media="print" swap) -->
-<ma:css src="EXT:theme/Resources/Public/Css/app.css" />
+<mai:css src="EXT:theme/Resources/Public/Css/app.css" />
 
 <!-- Critical CSS inlined in <head> -->
-<ma:css identifier="critical" priority="true" inline="true">
+<mai:css identifier="critical" priority="true" inline="true">
     body { margin: 0; font-family: sans-serif; }
-</ma:css>
+</mai:css>
 
 <!-- JS (defer="true" by default) -->
-<ma:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
+<mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
 
 <!-- ES module -->
-<ma:js src="EXT:theme/Resources/Public/JavaScript/app.js" type="module" />
+<mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" type="module" />
 ```
 
 ---
@@ -66,10 +66,10 @@ Include assets inline or from a file. Assets are minified, cached in `typo3temp/
 Compile SCSS to CSS server-side using [scssphp](https://scssphp.github.io/scssphp/) — no Node.js required.
 
 ```html
-<ma:scss src="EXT:theme/Resources/Private/Scss/main.scss" />
+<mai:scss src="EXT:theme/Resources/Private/Scss/main.scss" />
 
 <!-- Additional @import paths -->
-<ma:scss src="EXT:theme/Resources/Private/Scss/main.scss"
+<mai:scss src="EXT:theme/Resources/Private/Scss/main.scss"
          importPaths="EXT:theme/Resources/Private/Scss/Partials" />
 ```
 
@@ -81,46 +81,46 @@ Cache is automatically invalidated when the source file changes (`filemtime`).
 
 Process images via TYPO3's native ImageService (supports WebP conversion, cropping, etc). Accept FAL UIDs, File/FileReference objects, or EXT: paths.
 
-### `<ma:image>` — single `<img>`
+### `<mai:image>` — single `<img>`
 
 ```html
 <!-- From a sys_file_reference UID -->
-<ma:image image="{file.uid}" alt="{file.alternative}" width="800" />
+<mai:image image="{file.uid}" alt="{file.alternative}" width="800" />
 
 <!-- Hero image: preloaded, high priority, no lazy -->
-<ma:image image="{hero}" alt="{heroAlt}" width="1920"
+<mai:image image="{hero}" alt="{heroAlt}" width="1920"
           lazyloading="false" preload="true" fetchPriority="high" />
 
 <!-- Lazy load with a JS-hook class (e.g. for lazysizes) -->
-<ma:image image="{img}" alt="{alt}" width="427c" height="240"
+<mai:image image="{img}" alt="{alt}" width="427c" height="240"
           lazyloadWithClass="lazyload" />
 ```
 
 Width/height notation: `800` (exact) · `800c` (centre crop) · `800m` (max, proportional)
 
-### `<ma:picture>` + `<ma:picture.source>` — responsive `<picture>`
+### `<mai:picture>` + `<mai:picture.source>` — responsive `<picture>`
 
 Sources are configured inline in the template — no central YAML file needed.
 
 ```html
-<ma:picture image="{imageRef}" alt="{alt}" width="1200" lazyloadWithClass="lazyload">
-    <ma:picture.source media="(min-width: 980px)" width="1200" height="675" />
-    <ma:picture.source media="(min-width: 768px)" width="800" height="450" />
-    <ma:picture.source media="(max-width: 767px)" width="400" height="225" />
-</ma:picture>
+<mai:picture image="{imageRef}" alt="{alt}" width="1200" lazyloadWithClass="lazyload">
+    <mai:picture.source media="(min-width: 980px)" width="1200" height="675" />
+    <mai:picture.source media="(min-width: 768px)" width="800" height="450" />
+    <mai:picture.source media="(max-width: 767px)" width="400" height="225" />
+</mai:picture>
 ```
 
-Each `<ma:picture.source>` processes the image independently to the specified dimensions. Override the image for a specific breakpoint with the `image` argument.
+Each `<mai:picture.source>` processes the image independently to the specified dimensions. Override the image for a specific breakpoint with the `image` argument.
 
-### `<ma:figure>` — semantic figure wrapper
+### `<mai:figure>` — semantic figure wrapper
 
 ```html
-<ma:figure caption="{file.description}" class="article-figure">
-    <ma:picture image="{file}" alt="{file.alternative}" width="1200">
-        <ma:picture.source media="(min-width: 768px)" width="1200" />
-        <ma:picture.source media="(max-width: 767px)" width="600" />
-    </ma:picture>
-</ma:figure>
+<mai:figure caption="{file.description}" class="article-figure">
+    <mai:picture image="{file}" alt="{file.alternative}" width="1200">
+        <mai:picture.source media="(min-width: 768px)" width="1200" />
+        <mai:picture.source media="(max-width: 767px)" width="600" />
+    </mai:picture>
+</mai:figure>
 ```
 
 ---
@@ -139,10 +139,10 @@ return [
 
 ```html
 <!-- Decorative icon (aria-hidden="true" by default) -->
-<ma:svgSprite use="icon-arrow" width="24" height="24" class="icon" />
+<mai:svgSprite use="icon-arrow" width="24" height="24" class="icon" />
 
 <!-- Meaningful icon -->
-<ma:svgSprite use="icon-close" aria-label="Close dialog" width="20" height="20" />
+<mai:svgSprite use="icon-close" aria-label="Close dialog" width="20" height="20" />
 ```
 
 The sprite endpoint (`/maispace/sprite.svg` by default) is cached by the browser for one year (`Cache-Control: public, max-age=31536000, immutable`) and supports conditional GET via ETag.

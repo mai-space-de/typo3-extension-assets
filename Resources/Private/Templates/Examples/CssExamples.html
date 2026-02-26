@@ -5,7 +5,7 @@
 <!--
     Example Template: CssExamples.html
     =====================================
-    Demonstrates every argument and usage pattern of <ma:css>.
+    Demonstrates every argument and usage pattern of <mai:css>.
 
     The global "ma" namespace is pre-registered — no {namespace} declaration needed.
 
@@ -30,7 +30,7 @@
        - Register a deferred <link media="print" onload="this.media='all'">
        - Append a <noscript><link> fallback
 -->
-<ma:css src="EXT:my_sitepackage/Resources/Public/Css/layout.css" />
+<mai:css src="EXT:my_sitepackage/Resources/Public/Css/layout.css" />
 
 
 <!-- =========================================================================
@@ -40,7 +40,7 @@
      is included multiple times or from different partials.
      With the same identifier, only the first registration wins.
 -->
-<ma:css
+<mai:css
     identifier="sitepackage-layout"
     src="EXT:my_sitepackage/Resources/Public/Css/layout.css"
 />
@@ -56,7 +56,7 @@
      priority="true"  → registered in <head>
      deferred="false" → standard <link>, no media="print" trick
 -->
-<ma:css
+<mai:css
     src="EXT:my_sitepackage/Resources/Public/Css/critical-layout.css"
     priority="true"
     deferred="false"
@@ -70,7 +70,7 @@
      Note: deferred="false" to keep the media attribute clean (deferred mode
      temporarily overrides media to "print" for the loading trick).
 -->
-<ma:css
+<mai:css
     identifier="print-styles"
     src="EXT:my_sitepackage/Resources/Public/Css/print.css"
     media="print"
@@ -88,7 +88,7 @@
      Use for: component-scoped styles, template-specific tweaks that don't
      justify a separate file.
 -->
-<ma:css identifier="hero-component">
+<mai:css identifier="hero-component">
     .hero {
         position: relative;
         min-height: 60vh;
@@ -109,7 +109,7 @@
         opacity: 0.9;
         max-width: 60ch;
     }
-</ma:css>
+</mai:css>
 
 
 <!-- =========================================================================
@@ -124,7 +124,7 @@
      Result in rendered HTML:
        <style>.above-fold { ... }</style>
 -->
-<ma:css identifier="above-fold-critical" priority="true" inline="true" minify="true">
+<mai:css identifier="above-fold-critical" priority="true" inline="true" minify="true">
     :root {
         --color-primary:   #e63946;
         --color-secondary: #457b9d;
@@ -149,7 +149,7 @@
         z-index: 9999;
     }
     .skip-link:focus { top: 0; }
-</ma:css>
+</mai:css>
 
 
 <!-- =========================================================================
@@ -159,12 +159,12 @@
      The content hash auto-identifier will change when the variable value changes,
      so each unique colour gets its own cache entry.
 -->
-<ma:css identifier="brand-color-{settings.brandColor}">
+<mai:css identifier="brand-color-{settings.brandColor}">
     :root {
         --color-brand: {settings.brandColor};
         --color-brand-dark: color-mix(in srgb, {settings.brandColor} 80%, black);
     }
-</ma:css>
+</mai:css>
 
 
 <!-- =========================================================================
@@ -174,7 +174,7 @@
      Useful for third-party CSS that is already minified and would be corrupted
      by an additional minification pass.
 -->
-<ma:css
+<mai:css
     identifier="vendor-already-minified"
     src="EXT:my_sitepackage/Resources/Public/Css/vendor.min.css"
     minify="false"
@@ -188,9 +188,9 @@
      Each gets its own cache entry and AssetCollector registration.
      TYPO3's AssetCollector concatenates them if concatenation is enabled.
 -->
-<ma:css src="EXT:my_sitepackage/Resources/Public/Css/base.css" />
-<ma:css src="EXT:my_sitepackage/Resources/Public/Css/components.css" />
-<ma:css src="EXT:my_sitepackage/Resources/Public/Css/utilities.css" />
+<mai:css src="EXT:my_sitepackage/Resources/Public/Css/base.css" />
+<mai:css src="EXT:my_sitepackage/Resources/Public/Css/components.css" />
+<mai:css src="EXT:my_sitepackage/Resources/Public/Css/utilities.css" />
 
 
 <!-- =========================================================================
@@ -200,25 +200,25 @@
      Only the rendered branch registers the asset.
 -->
 <f:if condition="{page.tx_myext_has_slider}">
-    <ma:css src="EXT:my_sitepackage/Resources/Public/Css/slider.css" />
+    <mai:css src="EXT:my_sitepackage/Resources/Public/Css/slider.css" />
 </f:if>
 
 <f:if condition="{settings.enableDarkMode}">
-    <ma:css identifier="dark-mode-overrides" priority="true" inline="true">
+    <mai:css identifier="dark-mode-overrides" priority="true" inline="true">
         @media (prefers-color-scheme: dark) {
             :root {
                 --color-bg:   #1d1d1d;
                 --color-text: #f0f0f0;
             }
         }
-    </ma:css>
+    </mai:css>
 </f:if>
 
 
 <!-- =========================================================================
      WHAT GETS RENDERED IN THE FINAL HTML
      =========================================================================
-     Given the defaults (minify=1, deferred=1), a file-based <ma:css> produces:
+     Given the defaults (minify=1, deferred=1), a file-based <mai:css> produces:
 
        <!-- In <head> or footer, depending on priority: -->
        <link rel="stylesheet"

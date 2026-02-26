@@ -14,28 +14,28 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  *
  * Intended as a standalone semantic wrapper for images, videos, or any
  * content that benefits from a figure/caption structure. Deliberately kept
- * separate from `ma:picture` and `ma:image` so each ViewHelper has a single,
+ * separate from `mai:picture` and `mai:image` so each ViewHelper has a single,
  * focused responsibility.
  *
- * Global namespace: declared as "ma" in ext_localconf.php.
+ * Global namespace: declared as "mai" in ext_localconf.php.
  *
  * Usage examples:
  *
  *   <!-- Minimal wrapper, no caption -->
- *   <ma:figure>
- *       <ma:picture image="{file}" alt="{alt}" width="800" />
- *   </ma:figure>
+ *   <mai:figure>
+ *       <mai:picture image="{file}" alt="{alt}" width="800" />
+ *   </mai:figure>
  *
  *   <!-- With caption and custom classes -->
- *   <ma:figure class="article-figure" classFigcaption="caption">
- *       <ma:image image="{img}" alt="{alt}" width="600" />
+ *   <mai:figure class="article-figure" classFigcaption="caption">
+ *       <mai:image image="{img}" alt="{alt}" width="600" />
  *       Photo: {photographer}
- *   </ma:figure>
+ *   </mai:figure>
  *
  *   <!-- Caption from a variable -->
- *   <ma:figure caption="{file.description}" class="content-figure">
- *       <ma:picture image="{file}" alt="{file.alternative}" width="1200" />
- *   </ma:figure>
+ *   <mai:figure caption="{file.description}" class="content-figure">
+ *       <mai:picture image="{file}" alt="{file.alternative}" width="1200" />
+ *   </mai:figure>
  *
  * Note: When using the `caption` argument, the value is rendered as text (HTML-escaped).
  * For a caption containing markup, omit the `caption` argument and place a

@@ -18,28 +18,28 @@ use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
  * loaded with defer (following the TypoScript default js.defer = 1). This keeps
  * JavaScript non-render-blocking without any extra configuration.
  *
- * Global namespace: declared as "ma" in ext_localconf.php.
+ * Global namespace: declared as "mai" in ext_localconf.php.
  *
  * Usage examples:
  *
  *   <!-- Inline JS written directly in the template (auto-identifier from content hash) -->
- *   <ma:js identifier="page-init">
+ *   <mai:js identifier="page-init">
  *       document.addEventListener('DOMContentLoaded', function() {
  *           console.log('page ready');
  *       });
- *   </ma:js>
+ *   </mai:js>
  *
  *   <!-- External JS file with defer (default when TypoScript js.defer = 1) -->
- *   <ma:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
+ *   <mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
  *
  *   <!-- ES module (type="module" implies defer automatically) -->
- *   <ma:js src="EXT:theme/Resources/Public/JavaScript/app.js" type="module" />
+ *   <mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" type="module" />
  *
  *   <!-- External JS forced to load async -->
- *   <ma:js src="EXT:theme/Resources/Public/JavaScript/analytics.js" async="true" />
+ *   <mai:js src="EXT:theme/Resources/Public/JavaScript/analytics.js" async="true" />
  *
  *   <!-- Critical JS in <head>, no defer -->
- *   <ma:js src="EXT:theme/Resources/Public/JavaScript/polyfills.js"
+ *   <mai:js src="EXT:theme/Resources/Public/JavaScript/polyfills.js"
  *          priority="true" defer="false" />
  *
  * @see \Maispace\MaispaceAssets\Service\AssetProcessingService::handleJs()

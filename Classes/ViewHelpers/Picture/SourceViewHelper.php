@@ -13,32 +13,32 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
- * Render a single `<source>` tag inside a `<ma:picture>` element.
+ * Render a single `<source>` tag inside a `<mai:picture>` element.
  *
- * Must be used as a direct child of `<ma:picture>`. The parent ViewHelper shares
+ * Must be used as a direct child of `<mai:picture>`. The parent ViewHelper shares
  * the resolved image via `ViewHelperVariableContainer`; the source ViewHelper
  * inherits it unless an explicit `image` override is provided.
  *
  * The image is processed to the specified dimensions independently from the
  * parent's fallback `<img>` — each breakpoint gets its own optimised file.
  *
- * Global namespace: declared as "ma" in ext_localconf.php.
+ * Global namespace: declared as "mai" in ext_localconf.php.
  *
  * Usage examples:
  *
- *   <ma:picture image="{imageRef}" alt="{alt}" width="1200">
+ *   <mai:picture image="{imageRef}" alt="{alt}" width="1200">
  *       <!-- large viewport: process to 1200px wide -->
- *       <ma:picture.source media="(min-width: 980px)" width="1200" height="675" />
+ *       <mai:picture.source media="(min-width: 980px)" width="1200" height="675" />
  *
  *       <!-- medium viewport: process to 800px wide -->
- *       <ma:picture.source media="(min-width: 768px)" width="800" height="450" />
+ *       <mai:picture.source media="(min-width: 768px)" width="800" height="450" />
  *
  *       <!-- small viewport: override with a different (portrait) image -->
- *       <ma:picture.source image="{portraitRef}" media="(max-width: 767px)" width="400" height="600" />
- *   </ma:picture>
+ *       <mai:picture.source image="{portraitRef}" media="(max-width: 767px)" width="400" height="600" />
+ *   </mai:picture>
  *
  *   <!-- Explicit MIME type (e.g. to force WebP) -->
- *   <ma:picture.source media="(min-width: 768px)" width="1200" type="image/webp" />
+ *   <mai:picture.source media="(min-width: 768px)" width="1200" type="image/webp" />
  *
  * @see \Maispace\MaispaceAssets\ViewHelpers\PictureViewHelper
  * @see \Maispace\MaispaceAssets\Service\ImageRenderingService
@@ -79,7 +79,7 @@ final class SourceViewHelper extends AbstractViewHelper
         $this->registerArgument(
             'image',
             'mixed',
-            'Override the image for this breakpoint. Inherits the parent <ma:picture> image when not set.',
+            'Override the image for this breakpoint. Inherits the parent <mai:picture> image when not set.',
             false,
             null,
         );

@@ -66,9 +66,9 @@ You can use the ViewHelpers immediately:
 
 .. code-block:: html
 
-    <ma:css src="EXT:my_ext/Resources/Public/Css/app.css" />
-    <ma:js src="EXT:my_ext/Resources/Public/JavaScript/app.js" />
-    <ma:scss src="EXT:my_ext/Resources/Private/Scss/main.scss" />
+    <mai:css src="EXT:my_ext/Resources/Public/Css/app.css" />
+    <mai:js src="EXT:my_ext/Resources/Public/JavaScript/app.js" />
+    <mai:scss src="EXT:my_ext/Resources/Private/Scss/main.scss" />
 
 Output Directory
 ================

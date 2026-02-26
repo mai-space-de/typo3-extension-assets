@@ -59,7 +59,7 @@ final class BeforeSpriteSymbolRegisteredEventListener
 
         // -----------------------------------------------------------------
         // Example B: Rename an icon from a vendor convention to your own.
-        //            Update all <ma:svgSprite use="..."> calls accordingly.
+        //            Update all <mai:svgSprite use="..."> calls accordingly.
         //
         // $renames = [
         //     'vendor-arrow-right' => 'icon-arrow',

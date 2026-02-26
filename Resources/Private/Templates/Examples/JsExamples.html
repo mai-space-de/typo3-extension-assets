@@ -5,7 +5,7 @@
 <!--
     Example Template: JsExamples.html
     ====================================
-    Demonstrates every argument and usage pattern of <ma:js>.
+    Demonstrates every argument and usage pattern of <mai:js>.
 
     The global "ma" namespace is pre-registered — no {namespace} declaration needed.
 
@@ -31,7 +31,7 @@
        - TYPO3 AssetCollector renders: <script src="..." defer></script>
        - Placed before </body> (footer, non-priority)
 -->
-<ma:js src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js" />
+<mai:js src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js" />
 
 
 <!-- =========================================================================
@@ -40,7 +40,7 @@
      Prevents duplicate registration when the same ViewHelper call appears
      in multiple templates or partials included on the same page.
 -->
-<ma:js
+<mai:js
     identifier="sitepackage-app"
     src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js"
 />
@@ -55,7 +55,7 @@
 
      Result: <script type="module" src="..."></script>
 -->
-<ma:js
+<mai:js
     src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js"
     type="module"
     defer="false"
@@ -76,7 +76,7 @@
      Note: async and defer together is technically valid but defer is ignored
      by modern browsers when async is present. Use one or the other.
 -->
-<ma:js
+<mai:js
     identifier="analytics-script"
     src="EXT:my_sitepackage/Resources/Public/JavaScript/analytics.js"
     async="true"
@@ -95,7 +95,7 @@
      priority="true"  → placed in <head>
      defer="false"    → executes synchronously (blocking), use sparingly!
 -->
-<ma:js
+<mai:js
     src="EXT:my_sitepackage/Resources/Public/JavaScript/polyfills.js"
     priority="true"
     defer="false"
@@ -111,7 +111,7 @@
 
      Use for: small page-specific init scripts, passing server data to JS.
 -->
-<ma:js identifier="page-ready-init">
+<mai:js identifier="page-ready-init">
     document.addEventListener('DOMContentLoaded', function () {
         // Reveal content after fonts and layout are ready.
         document.body.classList.add('is-ready');
@@ -126,7 +126,7 @@
             });
         });
     });
-</ma:js>
+</mai:js>
 
 
 <!-- =========================================================================
@@ -138,13 +138,13 @@
      Note: Fluid variable interpolation works inside the JS block.
      Always sanitize values passed into JS to prevent XSS.
 -->
-<ma:js identifier="site-config" priority="true">
+<mai:js identifier="site-config" priority="true">
     window.__SITE_CONFIG__ = {
         lang:    '{site.language.twoLetterIsoCode}',
         baseUrl: '{site.baseUrl}',
         debug:   {f:if(condition: '{settings.debug}', then: 'true', else: 'false')}
     };
-</ma:js>
+</mai:js>
 
 
 <!-- =========================================================================
@@ -152,7 +152,7 @@
      =========================================================================
      Skip minification for pre-minified vendor bundles.
 -->
-<ma:js
+<mai:js
     identifier="vendor-bundle"
     src="EXT:my_sitepackage/Resources/Public/JavaScript/vendor.min.js"
     minify="false"
@@ -167,13 +167,13 @@
 
      This pattern: polyfill first (head), then main bundle (footer, deferred).
 -->
-<ma:js
+<mai:js
     src="EXT:my_sitepackage/Resources/Public/JavaScript/polyfill.js"
     priority="true"
     defer="false"
 />
-<ma:js src="EXT:my_sitepackage/Resources/Public/JavaScript/vendor.js" />
-<ma:js src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js" />
+<mai:js src="EXT:my_sitepackage/Resources/Public/JavaScript/vendor.js" />
+<mai:js src="EXT:my_sitepackage/Resources/Public/JavaScript/app.js" />
 
 
 <!-- =========================================================================
@@ -181,7 +181,7 @@
      =========================================================================
 -->
 <f:if condition="{page.tx_myext_has_map}">
-    <ma:js
+    <mai:js
         identifier="leaflet-maps"
         src="EXT:my_sitepackage/Resources/Public/JavaScript/maps.js"
         defer="true"
@@ -189,14 +189,14 @@
 </f:if>
 
 <f:if condition="{settings.enableCookieBanner}">
-    <ma:js identifier="cookie-banner-init">
+    <mai:js identifier="cookie-banner-init">
         // Inline init runs after DOM ready, shows the banner if consent not given.
         document.addEventListener('DOMContentLoaded', function () {
             if (!localStorage.getItem('cookieConsent')) {
                 document.getElementById('cookie-banner').removeAttribute('hidden');
             }
         });
-    </ma:js>
+    </mai:js>
 </f:if>
 
 
@@ -206,14 +206,14 @@
      Use f:format.json (TYPO3 13+) or json_encode in a custom ViewHelper
      to safely encode server-side data for use in JavaScript.
 -->
-<ma:js identifier="menu-data">
+<mai:js identifier="menu-data">
     window.__MENU__ = <f:format.json>{navigationItems}</f:format.json>;
     window.__BREAKPOINTS__ = {
         md: 768,
         lg: 1024,
         xl: 1280
     };
-</ma:js>
+</mai:js>
 
 
 <!-- =========================================================================

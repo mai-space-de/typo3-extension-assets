@@ -38,7 +38,7 @@ declare(strict_types=1);
  * ============================
  * Use the prefix "icon-" (the default TypoScript svgSprite.symbolIdPrefix) for
  * consistency with the ViewHelper convention:
- *   <ma:svgSprite use="icon-arrow" ... />
+ *   <mai:svgSprite use="icon-arrow" ... />
  *
  * OVERRIDE BEHAVIOUR
  * ==================
@@ -50,7 +50,7 @@ declare(strict_types=1);
  * =====================================
  * Once registered, reference any icon via:
  *
- *   <ma:svgSprite use="icon-arrow" width="24" height="24" class="icon" />
+ *   <mai:svgSprite use="icon-arrow" width="24" height="24" class="icon" />
  *
  * No register/render calls needed — the sprite is served automatically from the API.
  *
