@@ -53,8 +53,8 @@
             "@check:phpstan",
             "@check:typoscript"
         ],
-        "check:editorconfig": "ec -unv -e vendor/ -e inspiration/",
-        "fix:editorconfig": "ec -unvf -e vendor/ -e inspiration/",
+        "check:editorconfig": "ec -unv -e vendor/ -e inspiration/ -e public/",
+        "fix:editorconfig": "ec -unvf -e vendor/ -e inspiration/ -e public/",
         "check:phpcs": "PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer check --config .php-cs-fixer.php --ansi --verbose --diff",
         "fix:phpcs": "PHP_CS_FIXER_IGNORE_ENV=1 php-cs-fixer fix --config .php-cs-fixer.php --ansi",
         "check:phpstan": "phpstan analyse --no-progress",

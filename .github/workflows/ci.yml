@@ -53,6 +53,7 @@ jobs:
 
       - name: Install dependencies
         run: >
+          composer require "typo3/cms-core:${{ matrix.typo3 }}" --no-update &&
           composer install
           --prefer-dist
           --no-progress
@@ -122,9 +123,6 @@ jobs:
 
       - name: Check code style
         run: composer check:phpcs
-        # Allow the job to fail without blocking the overall CI status until
-        # the codebase is CS-clean. Remove `continue-on-error` once passing.
-        continue-on-error: true
 
   # ---------------------------------------------------------------------------
   # TypoScript lint
