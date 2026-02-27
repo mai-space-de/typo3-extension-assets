@@ -1,2 +1,5 @@
 inspiration
 .claude
+composer.lock
+vendor/
+public/

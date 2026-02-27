@@ -6,6 +6,121 @@
 Changelog
 =========
 
+1.4.0 (2026-02-27)
+==================
+
+New Features
+------------
+
+Image ViewHelpers
+~~~~~~~~~~~~~~~~~
+
+*  **``decoding`` and ``crossorigin`` on ``<mai:image>``** —
+   Two new HTML attribute arguments on the fallback ``<img>`` tag:
+
+   * ``decoding="async|sync|auto"`` — controls whether the browser decodes the image
+     synchronously (blocks rendering) or asynchronously. ``async`` is recommended for
+     below-the-fold images; ``auto`` lets the browser decide.
+   * ``crossorigin="anonymous|use-credentials"`` — required when pixel data from a
+     cross-origin image will be read via canvas or WebGL.
+
+   .. code-block:: html
+
+       <!-- Non-blocking decode for below-the-fold content -->
+       <mai:image image="{img}" alt="{alt}" width="800" decoding="async" />
+
+       <!-- Canvas-safe cross-origin image -->
+       <mai:image image="{img}" alt="{alt}" width="800" crossorigin="anonymous" />
+
+*  **``imgDecoding`` and ``imgCrossorigin`` on ``<mai:picture>``** —
+   The same ``decoding`` and ``crossorigin`` attributes, scoped to the fallback ``<img>``
+   inside ``<picture>`` (the ``img*`` prefix convention keeps them separate from the
+   ``<picture>``-level attributes):
+
+   .. code-block:: html
+
+       <mai:picture image="{hero}" alt="{alt}" width="1920"
+                   imgDecoding="async" imgCrossorigin="anonymous">
+           <mai:picture.source media="(min-width: 768px)" width="1920" />
+       </mai:picture>
+
+*  **Responsive ``srcset`` on ``<mai:picture.source>``** —
+   A new ``srcset`` argument accepts a comma-separated list of target widths (e.g.
+   ``"400, 800, 1200"``). Each width is processed independently and produces one
+   ``url Nw`` descriptor, giving browsers the full picture for responsive resolution
+   switching within an art-directed ``<picture>`` element. An optional ``sizes`` argument
+   completes the hint:
+
+   .. code-block:: html
+
+       <mai:picture image="{imageRef}" alt="{alt}" width="1200">
+           <mai:picture.source media="(min-width: 768px)"
+                               srcset="800, 1200, 1600"
+                               sizes="(min-width: 1200px) 1200px, 100vw" />
+           <mai:picture.source media="(max-width: 767px)"
+                               srcset="400, 600, 800"
+                               sizes="100vw" />
+       </mai:picture>
+
+*  **Richer ``<link rel="preload" as="image">``** — The preload ``<link>`` emitted when
+   ``preload="true"`` is set on ``<mai:image>`` or ``<mai:picture>`` now carries:
+
+   * ``fetchpriority`` — threaded from the ViewHelper's ``fetchPriority`` argument.
+   * ``type`` — the MIME type of the processed image (auto-detected from the output format).
+   * ``imagesrcset`` / ``imagesizes`` — populated from the ``srcset``/``sizes`` arguments
+     on ``<mai:image>``, enabling spec-compliant responsive preloading.
+
+   This makes the preload hint match what the browser actually needs to prioritise the
+   correct resource for the current viewport.
+
+Bug Fixes
+---------
+
+*  **Silent no-ops now emit logger warnings** — Combinations of ViewHelper arguments that
+   are silently ignored were previously undetectable. The service now logs a warning when:
+
+   * ``integrity="true"`` is combined with ``inline="true"`` on ``<mai:css>`` or ``<mai:scss>``
+     (SRI integrity only applies to ``<link>`` file references, not inline ``<style>`` tags).
+   * A custom ``media`` value is combined with ``inline="true"`` (the ``media`` attribute
+     is only placed on ``<link>`` tags).
+   * ``deferred="true"`` is combined with ``inline="true"`` (deferred loading requires a
+     file reference to swap).
+
+   Warnings are written to the TYPO3 log at level ``WARNING`` under the
+   ``Maispace.MaispaceAssets.Service.AssetProcessingService`` channel.
+
+Code Quality
+------------
+
+*  **``TypoScriptSettingTrait``** — The identical private static ``getTypoScriptSetting()``
+   method that was duplicated in ``ImageViewHelper``, ``PictureViewHelper``, and
+   ``Picture\SourceViewHelper`` has been extracted into a shared trait
+   (``Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait``). The three
+   ViewHelpers now use the trait instead of carrying their own copy.
+
+*  **``ImageRenderingService`` testability** — The constructor now accepts an optional
+   ``?PageRenderer $pageRenderer = null`` parameter. When provided (e.g. in tests), it is
+   used instead of ``GeneralUtility::makeInstance(PageRenderer::class)`` for header
+   injection. The DI container injects PageRenderer automatically in production.
+
+*  **``detectMimeType()`` is now public** — The method is useful to callers (e.g.
+   ViewHelpers building the preload ``type`` attribute) and is now part of the public API.
+
+Testing
+-------
+
+*  **PHPUnit test suite introduced** — Three unit test classes covering pure, isolated logic:
+
+   * ``AssetCacheManagerTest`` — verifies all four key-building methods (CSS, JS, SCSS, SVG).
+   * ``AssetProcessingServiceTest`` — verifies ``isExternalUrl()`` and ``buildIdentifier()``
+     via Reflection.
+   * ``ImageRenderingServiceTest`` — verifies ``detectMimeType()``, ``renderSourceTag()``,
+     ``renderImgTag()``, and ``addImagePreloadHeader()`` using mocked dependencies.
+
+   Run the suite with ``composer test`` or ``vendor/bin/phpunit``.
+
+----
+
 1.3.0 (2026-02-27)
 ==================
 

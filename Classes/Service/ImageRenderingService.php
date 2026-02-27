@@ -77,6 +77,7 @@ final class ImageRenderingService implements SingletonInterface
         private readonly ImageService $imageService,
         private readonly LoggerInterface $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly ?PageRenderer $pageRenderer = null,
     ) {}
 
     // -------------------------------------------------------------------------
@@ -297,6 +298,8 @@ final class ImageRenderingService implements SingletonInterface
      *   lazyloading?: bool|null,
      *   lazyloadWithClass?: string|null,
      *   fetchPriority?: string|null,
+     *   decoding?: string|null,
+     *   crossorigin?: string|null,
      *   srcset?: string|null,
      *   sizes?: string|null,
      *   additionalAttributes?: array<string,string>,
@@ -349,6 +352,16 @@ final class ImageRenderingService implements SingletonInterface
             $attrs['fetchpriority'] = $fetchPriority;
         }
 
+        $decoding = $options['decoding'] ?? null;
+        if ($decoding !== null && in_array($decoding, ['async', 'sync', 'auto'], true)) {
+            $attrs['decoding'] = $decoding;
+        }
+
+        $crossorigin = $options['crossorigin'] ?? null;
+        if ($crossorigin !== null && in_array($crossorigin, ['anonymous', 'use-credentials'], true)) {
+            $attrs['crossorigin'] = $crossorigin;
+        }
+
         // srcset / sizes — for responsive images without <picture>
         $srcset = $options['srcset'] ?? null;
         if ($srcset !== null && $srcset !== '') {
@@ -370,18 +383,32 @@ final class ImageRenderingService implements SingletonInterface
     /**
      * Build a `<source>` tag string for use inside a `<picture>` element.
      *
-     * @param string|null $media  Media query, e.g. `(min-width: 768px)`
-     * @param string|null $type   MIME type override; auto-detected from processed file when null
+     * @param string|null $media       Media query, e.g. `(min-width: 768px)`
+     * @param string|null $type        MIME type override; auto-detected from processed file when null
+     * @param string|null $srcsetString Pre-built srcset string (e.g. from buildSrcsetString()).
+     *                                 When provided, used as the srcset attribute value instead of the
+     *                                 single processed file URL.
+     * @param string|null $sizes       Optional sizes attribute value, e.g. "(min-width: 768px) 1200px, 100vw".
+     *                                 Only rendered when $srcsetString is also provided.
      */
-    public function renderSourceTag(ProcessedFile $processed, ?string $media, ?string $type = null): string
-    {
+    public function renderSourceTag(
+        ProcessedFile $processed,
+        ?string $media,
+        ?string $type = null,
+        ?string $srcsetString = null,
+        ?string $sizes = null,
+    ): string {
         $url = $this->imageService->getImageUri($processed, true);
 
         $attrs = [];
-        $attrs['srcset'] = $url;
+        $attrs['srcset'] = ($srcsetString !== null && $srcsetString !== '') ? $srcsetString : $url;
 
         if ($media !== null && $media !== '') {
             $attrs['media'] = $media;
+        }
+
+        if ($sizes !== null && $sizes !== '' && $srcsetString !== null && $srcsetString !== '') {
+            $attrs['sizes'] = $sizes;
         }
 
         $mimeType = $type ?? $this->detectMimeType($processed);
@@ -399,10 +426,20 @@ final class ImageRenderingService implements SingletonInterface
     /**
      * Add `<link rel="preload" as="image">` to the page `<head>`.
      *
-     * @param string|null $media Optional media query to scope the preload hint
+     * @param string|null $media        Optional media query to scope the preload hint, e.g. "(min-width: 768px)"
+     * @param string|null $fetchPriority fetchpriority attribute value — "high", "low", or "auto"
+     * @param string|null $mimeType     MIME type of the image, e.g. "image/webp". Omit for JPEG/PNG fallbacks.
+     * @param string|null $imageSrcset  imagesrcset attribute for responsive preloading (matches <source> srcset)
+     * @param string|null $imageSizes   imagesizes attribute for responsive preloading (matches <source> sizes)
      */
-    public function addImagePreloadHeader(string $url, ?string $media = null): void
-    {
+    public function addImagePreloadHeader(
+        string $url,
+        ?string $media = null,
+        ?string $fetchPriority = null,
+        ?string $mimeType = null,
+        ?string $imageSrcset = null,
+        ?string $imageSizes = null,
+    ): void {
         $attrs = [
             'rel'  => 'preload',
             'href' => $url,
@@ -413,9 +450,26 @@ final class ImageRenderingService implements SingletonInterface
             $attrs['media'] = $media;
         }
 
+        if ($fetchPriority !== null && in_array($fetchPriority, ['high', 'low', 'auto'], true)) {
+            $attrs['fetchpriority'] = $fetchPriority;
+        }
+
+        if ($mimeType !== null && $mimeType !== '') {
+            $attrs['type'] = $mimeType;
+        }
+
+        if ($imageSrcset !== null && $imageSrcset !== '') {
+            $attrs['imagesrcset'] = $imageSrcset;
+        }
+
+        // imagesizes is only meaningful when imagesrcset is present.
+        if ($imageSizes !== null && $imageSizes !== '' && $imageSrcset !== null && $imageSrcset !== '') {
+            $attrs['imagesizes'] = $imageSizes;
+        }
+
         $tag = $this->buildTag('link', $attrs, selfClosing: true);
 
-        GeneralUtility::makeInstance(PageRenderer::class)->addHeaderData($tag);
+        ($this->pageRenderer ?? GeneralUtility::makeInstance(PageRenderer::class))->addHeaderData($tag);
     }
 
     // -------------------------------------------------------------------------
@@ -438,8 +492,10 @@ final class ImageRenderingService implements SingletonInterface
 
     /**
      * Detect the MIME type of a processed file from its file extension.
+     *
+     * Returns an empty string when the extension is unknown or not mappable to a MIME type.
      */
-    private function detectMimeType(ProcessedFile $processed): string
+    public function detectMimeType(ProcessedFile $processed): string
     {
         $ext = strtolower(pathinfo($processed->getIdentifier(), PATHINFO_EXTENSION));
         return match ($ext) {

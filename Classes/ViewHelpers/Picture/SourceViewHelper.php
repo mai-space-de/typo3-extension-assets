@@ -7,6 +7,7 @@ namespace Maispace\MaispaceAssets\ViewHelpers\Picture;
 use Closure;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\PictureViewHelper;
+use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -79,6 +80,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 final class SourceViewHelper extends AbstractViewHelper
 {
     use CompileWithRenderStatic;
+    use TypoScriptSettingTrait;
 
     /** Disable output escaping — this ViewHelper returns raw HTML. */
     protected $escapeOutput = false;
@@ -161,6 +163,26 @@ final class SourceViewHelper extends AbstractViewHelper
             false,
             0,
         );
+
+        $this->registerArgument(
+            'srcset',
+            'string',
+            'Comma-separated list of additional widths to generate for the srcset attribute, e.g. "400, 800, 1200". '
+            . 'Each width is processed independently and produces one "url Nw" descriptor. '
+            . 'When set, the main width/height are used for the src fallback only; the srcset carries the responsive set. '
+            . 'Accepts the same TYPO3 width notation as the width argument.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'sizes',
+            'string',
+            'Value for the HTML sizes attribute on the <source> tag, e.g. "(min-width: 768px) 1200px, 100vw". '
+            . 'Only rendered when srcset is also set.',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(
@@ -194,25 +216,45 @@ final class SourceViewHelper extends AbstractViewHelper
         // Resolve alternative formats: argument → TypoScript default.
         $formats = self::resolveAlternativeFormats($arguments['formats'] ?? null);
 
+        // Build optional srcset string (multi-width responsive descriptor).
+        $srcsetWidths = $arguments['srcset'] ?? null;
+        $sizes        = is_string($arguments['sizes'] ?? null) && ($arguments['sizes'] ?? '') !== ''
+            ? $arguments['sizes']
+            : null;
+
         // No format alternatives: render a single <source> tag (classic behaviour).
         if ($formats === []) {
             $fileExtension = self::resolveFileExtension($arguments);
-            $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
-            return $service->renderSourceTag($processed, $media, $arguments['type'] ?? null);
+            $processed     = $service->processImage($file, $width, $height, $fileExtension, $quality);
+
+            $srcsetString = null;
+            if (is_string($srcsetWidths) && $srcsetWidths !== '') {
+                $srcsetString = $service->buildSrcsetString($file, $srcsetWidths, $height, $fileExtension, $quality);
+            }
+
+            return $service->renderSourceTag($processed, $media, $arguments['type'] ?? null, $srcsetString, $sizes);
         }
 
         // Format alternatives: render one <source> per alternative format, then the fallback.
         $html = '';
 
         $alternatives = $service->processImageAlternatives($file, $width, $height, $formats, $quality);
-        foreach ($alternatives as $processed) {
-            $html .= $service->renderSourceTag($processed, $media);
+        foreach ($alternatives as $fmt => $processed) {
+            $srcsetString = null;
+            if (is_string($srcsetWidths) && $srcsetWidths !== '') {
+                $srcsetString = $service->buildSrcsetString($file, $srcsetWidths, $height, $fmt, $quality);
+            }
+            $html .= $service->renderSourceTag($processed, $media, null, $srcsetString, $sizes);
         }
 
         // Fallback <source> in the original/default format (no fileExtension override).
         if ((bool)($arguments['fallback'] ?? true)) {
             $fallbackProcessed = $service->processImage($file, $width, $height, '', $quality);
-            $html .= $service->renderSourceTag($fallbackProcessed, $media, $arguments['type'] ?? null);
+            $fallbackSrcset    = null;
+            if (is_string($srcsetWidths) && $srcsetWidths !== '') {
+                $fallbackSrcset = $service->buildSrcsetString($file, $srcsetWidths, $height, '', $quality);
+            }
+            $html .= $service->renderSourceTag($fallbackProcessed, $media, $arguments['type'] ?? null, $fallbackSrcset, $sizes);
         }
 
         return $html;
@@ -262,34 +304,4 @@ final class SourceViewHelper extends AbstractViewHelper
         return array_values(array_map('strtolower', $formats));
     }
 
-    /**
-     * Read a TypoScript setting from plugin.tx_maispace_assets.{dotPath}.
-     */
-    private static function getTypoScriptSetting(string $dotPath, mixed $default): mixed
-    {
-        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        if ($request === null) {
-            return $default;
-        }
-        $fts = $request->getAttribute('frontend.typoscript');
-        if ($fts === null) {
-            return $default;
-        }
-        $setup = $fts->getSetupArray();
-        $root  = $setup['plugin.']['tx_maispace_assets.'] ?? [];
-
-        $parts = explode('.', $dotPath);
-        $node  = $root;
-        foreach ($parts as $i => $part) {
-            $isLast = ($i === count($parts) - 1);
-            if ($isLast) {
-                return $node[$part] ?? $default;
-            }
-            $node = $node[$part . '.'] ?? [];
-            if (!is_array($node)) {
-                return $default;
-            }
-        }
-        return $default;
-    }
 }

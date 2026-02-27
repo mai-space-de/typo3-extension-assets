@@ -1,5 +1,10 @@
 # maispace/assets — TYPO3 Asset ViewHelpers
 
+[![CI](https://github.com/mai-space-de/typo3-extension-assets/actions/workflows/ci.yml/badge.svg)](https://github.com/mai-space-de/typo3-extension-assets/actions/workflows/ci.yml)
+[![PHP](https://img.shields.io/badge/PHP-8.1%2B-blue)](https://www.php.net/)
+[![TYPO3](https://img.shields.io/badge/TYPO3-12.4%20%7C%2013.x-orange)](https://typo3.org/)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+
 A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, images, SVG sprites, Lottie animations, and web font preloading — all from Fluid templates, with performance-first defaults.
 
 **Requires:** TYPO3 12.4 LTS or 13.x LTS · PHP 8.1+
@@ -16,8 +21,8 @@ A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, ima
 | Import maps (JSON unmangled, always synchronous) | `<mai:js type="importmap">` |
 | Legacy bundle differential loading | `<mai:js nomodule="true">` |
 | Resource hints (preconnect, dns-prefetch, modulepreload, preload…) | `<mai:hint>` |
-| Responsive `<img>` with lazy load, preload, srcset, quality | `<mai:image>` |
-| Responsive `<picture>` with per-breakpoint sources and quality | `<mai:picture>` + `<mai:picture.source>` |
+| Responsive `<img>` with lazy load, preload, srcset, decoding, crossorigin | `<mai:image>` |
+| Responsive `<picture>` with per-breakpoint sources, srcset, quality | `<mai:picture>` + `<mai:picture.source>` |
 | Automatic WebP/AVIF `<source>` sets in `<picture>` | `formats="avif, webp"` or `image.alternativeFormats` |
 | Global image format conversion (WebP/AVIF) | `image.forceFormat` TypoScript / `fileExtension` argument |
 | Lottie animations via `<lottie-player>` web component | `<mai:lottie>` |
@@ -182,9 +187,23 @@ Process images via TYPO3's native ImageService (supports WebP conversion, croppi
 
 <!-- Force WebP output -->
 <mai:image image="{img}" alt="{alt}" width="800" fileExtension="webp" />
+
+<!-- Non-blocking decode (ideal for below-the-fold images) -->
+<mai:image image="{img}" alt="{alt}" width="800" decoding="async" />
+
+<!-- CORS-enabled image (needed for canvas/WebGL pixel access) -->
+<mai:image image="{img}" alt="{alt}" width="800" crossorigin="anonymous" />
+
+<!-- Hero: preload with full metadata so the browser fetches the right variant -->
+<mai:image image="{hero}" alt="{heroAlt}" width="1920"
+          preload="true" fetchPriority="high" lazyloading="false"
+          srcset="800, 1200, 1920"
+          sizes="(max-width: 768px) 100vw, 1920px" />
 ```
 
 Width/height notation: `800` (exact) · `800c` (centre crop) · `800m` (max, proportional)
+
+**Available arguments:** `image`, `alt`, `width`, `height`, `quality`, `lazyloading`, `lazyloadWithClass`, `fetchPriority`, `decoding`, `crossorigin`, `preload`, `preloadMedia`, `srcset`, `sizes`, `fileExtension`, `class`, `id`, `title`, `additionalAttributes`.
 
 ### `<mai:picture>` + `<mai:picture.source>` — responsive `<picture>`
 
@@ -205,15 +224,26 @@ Sources are configured inline in the template — no central YAML file needed.
 
 <!-- Hero picture: preload scoped to desktop viewports -->
 <mai:picture image="{hero}" alt="{alt}" width="1920" lazyloading="false"
-             preload="true" preloadMedia="(min-width: 768px)" fetchPriority="high">
+             preload="true" preloadMedia="(min-width: 768px)" fetchPriority="high"
+             imgDecoding="async">
     <mai:picture.source media="(min-width: 768px)" width="1920" />
     <mai:picture.source media="(max-width: 767px)" width="600" />
+</mai:picture>
+
+<!-- Responsive srcset per source breakpoint -->
+<mai:picture image="{imageRef}" alt="{alt}" width="1200">
+    <mai:picture.source media="(min-width: 768px)"
+                        srcset="800, 1200, 1600"
+                        sizes="(min-width: 1200px) 1200px, 100vw" />
+    <mai:picture.source media="(max-width: 767px)"
+                        srcset="400, 600"
+                        sizes="100vw" />
 </mai:picture>
 ```
 
 Each `<mai:picture.source>` processes the image independently to the specified dimensions. Override the image for a specific breakpoint with the `image` argument.
 
-**`<picture>` vs `<img>` attributes:** `class` and `additionalAttributes` apply to the outer `<picture>` element. Use `imgClass`, `imgId`, `imgTitle`, and `imgAdditionalAttributes` to target the fallback `<img>` independently.
+**`<picture>` vs `<img>` attributes:** `class` and `additionalAttributes` apply to the outer `<picture>` element. Use `imgClass`, `imgId`, `imgTitle`, `imgAdditionalAttributes`, `imgDecoding`, and `imgCrossorigin` to target the fallback `<img>` independently.
 
 ### Automatic WebP/AVIF source sets
 
@@ -480,6 +510,46 @@ Both registries use the same auto-discovery pattern — no `ext_localconf.php` r
 | `EXT:my_ext/Configuration/Fonts.php` | Register fonts for `<link rel="preload">` |
 
 The registries scan all loaded TYPO3 extensions for these files on first use. Later-loaded extensions win on key conflicts, so site packages can override vendor icons/fonts.
+
+---
+
+## Development
+
+### Running tests
+
+Install dev dependencies, then run the PHPUnit test suite:
+
+```bash
+composer install
+composer test
+```
+
+Or with the long form (verbose testdox output):
+
+```bash
+vendor/bin/phpunit --configuration phpunit.xml.dist --testdox
+```
+
+**Test structure:**
+
+| File | What it tests |
+|---|---|
+| `Tests/Unit/Cache/AssetCacheManagerTest.php` | Key-building methods, cache delegation |
+| `Tests/Unit/Service/AssetProcessingServiceTest.php` | `isExternalUrl`, `buildIdentifier`, `buildIntegrityAttrs`, `resolveFlag` |
+| `Tests/Unit/Service/ImageRenderingServiceTest.php` | `detectMimeType`, `renderSourceTag`, `renderImgTag`, `addImagePreloadHeader` |
+
+All tests are pure unit tests — no database, no TYPO3 installation required. PHPUnit mocks are used for all TYPO3 service dependencies.
+
+### CI
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and pull request:
+
+| Job | What it checks |
+|---|---|
+| `composer-validate` | `composer.json` is valid and well-formed |
+| `unit-tests` | PHPUnit suite across PHP 8.1 / 8.2 / 8.3 × TYPO3 12.4 / 13.4 |
+| `static-analysis` | PHPStan level 8 |
+| `code-style` | PHP-CS-Fixer |
 
 ---
 

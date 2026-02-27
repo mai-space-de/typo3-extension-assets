@@ -59,6 +59,35 @@ final class AssetProcessingService
         $isPriority = (bool)($arguments['priority'] ?? false);
         $media      = $arguments['media'] ?? 'all';
 
+        // Warn about option combinations that are silently ignored when inline=true.
+        if ($isInline) {
+            $id = $arguments['identifier'] ?? $srcArg ?? 'unknown';
+            if (!empty($arguments['integrity'])) {
+                $logger->warning(
+                    'maispace_assets: integrity="true" has no effect on inline CSS'
+                    . ' (identifier: ' . $id . ').'
+                    . ' SRI integrity is only supported for file-based <link> output.'
+                    . ' Remove inline="true" to use integrity.',
+                );
+            }
+            if (is_string($media) && $media !== '' && $media !== 'all') {
+                $logger->warning(
+                    'maispace_assets: media="' . $media . '" has no effect on inline CSS'
+                    . ' (identifier: ' . $id . ').'
+                    . ' The media attribute is only applied to <link> tags.'
+                    . ' Remove inline="true" to use media.',
+                );
+            }
+            if ($isDeferred) {
+                $logger->warning(
+                    'maispace_assets: deferred="true" has no effect on inline CSS'
+                    . ' (identifier: ' . $id . ').'
+                    . ' Deferred loading only applies to file-based <link> output.'
+                    . ' Remove inline="true" to use deferred loading.',
+                );
+            }
+        }
+
         // 1. External URL — bypass all local file processing entirely.
         if ($srcArg !== null && self::isExternalUrl($srcArg)) {
             $identifier     = self::buildIdentifier($arguments['identifier'] ?? null, $srcArg, $srcArg, 'css');
@@ -436,6 +465,34 @@ final class AssetProcessingService
         $media      = $arguments['media'] ?? 'all';
         $collector  = self::collector();
         $logger     = self::logger();
+
+        // Warn about option combinations that are silently ignored when inline=true.
+        if ($isInline) {
+            if (!empty($arguments['integrity'])) {
+                $logger->warning(
+                    'maispace_assets: integrity="true" has no effect on inline SCSS'
+                    . ' (identifier: ' . $identifier . ').'
+                    . ' SRI integrity is only supported for file-based <link> output.'
+                    . ' Remove inline="true" to use integrity.',
+                );
+            }
+            if (is_string($media) && $media !== '' && $media !== 'all') {
+                $logger->warning(
+                    'maispace_assets: media="' . $media . '" has no effect on inline SCSS'
+                    . ' (identifier: ' . $identifier . ').'
+                    . ' The media attribute is only applied to <link> tags.'
+                    . ' Remove inline="true" to use media.',
+                );
+            }
+            if ($isDeferred) {
+                $logger->warning(
+                    'maispace_assets: deferred="true" has no effect on inline SCSS'
+                    . ' (identifier: ' . $identifier . ').'
+                    . ' Deferred loading only applies to file-based <link> output.'
+                    . ' Remove inline="true" to use deferred loading.',
+                );
+            }
+        }
 
         $nonce = self::resolveNonce($arguments);
 

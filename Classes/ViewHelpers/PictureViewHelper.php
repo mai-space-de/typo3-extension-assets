@@ -6,6 +6,7 @@ namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Closure;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
+use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -78,6 +79,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 final class PictureViewHelper extends AbstractViewHelper
 {
     use CompileWithRenderStatic;
+    use TypoScriptSettingTrait;
 
     /** Variable container keys used to share state with child SourceViewHelper. */
     public const VAR_FILE            = 'ma_picture_file';
@@ -247,6 +249,23 @@ final class PictureViewHelper extends AbstractViewHelper
             false,
             0,
         );
+
+        $this->registerArgument(
+            'imgDecoding',
+            'string',
+            'decoding attribute on the fallback <img> tag. Allowed: "async" (non-blocking), "sync" (blocking), "auto".',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'imgCrossorigin',
+            'string',
+            'crossorigin attribute on the fallback <img> tag. Required when pixel data from a cross-origin image is needed. '
+            . 'Allowed: "anonymous", "use-credentials".',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(
@@ -314,6 +333,8 @@ final class PictureViewHelper extends AbstractViewHelper
             'lazyloading'       => $lazyloading,
             'lazyloadWithClass' => $lazyloadWithClass,
             'fetchPriority'     => $arguments['fetchPriority'] ?? null,
+            'decoding'          => $arguments['imgDecoding'] ?? null,
+            'crossorigin'       => $arguments['imgCrossorigin'] ?? null,
             'additionalAttributes' => (array)($arguments['imgAdditionalAttributes'] ?? []),
         ]);
 
@@ -324,7 +345,17 @@ final class PictureViewHelper extends AbstractViewHelper
             $preloadMedia = is_string($arguments['preloadMedia'] ?? null) && $arguments['preloadMedia'] !== ''
                 ? $arguments['preloadMedia']
                 : null;
-            $service->addImagePreloadHeader($url, $preloadMedia);
+            $fetchPriorityVal = $arguments['fetchPriority'] ?? null;
+            $fetchPriorityAttr = (is_string($fetchPriorityVal) && in_array($fetchPriorityVal, ['high', 'low', 'auto'], true))
+                ? $fetchPriorityVal
+                : null;
+            $mimeType = $service->detectMimeType($processed) ?: null;
+            $service->addImagePreloadHeader(
+                $url,
+                $preloadMedia,
+                $fetchPriorityAttr,
+                $mimeType,
+            );
         }
 
         // Build <picture> element.
@@ -412,31 +443,4 @@ final class PictureViewHelper extends AbstractViewHelper
         return $attrs;
     }
 
-    private static function getTypoScriptSetting(string $dotPath, mixed $default): mixed
-    {
-        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        if ($request === null) {
-            return $default;
-        }
-        $fts = $request->getAttribute('frontend.typoscript');
-        if ($fts === null) {
-            return $default;
-        }
-        $setup = $fts->getSetupArray();
-        $root  = $setup['plugin.']['tx_maispace_assets.'] ?? [];
-
-        $parts = explode('.', $dotPath);
-        $node  = $root;
-        foreach ($parts as $i => $part) {
-            $isLast = ($i === count($parts) - 1);
-            if ($isLast) {
-                return $node[$part] ?? $default;
-            }
-            $node = $node[$part . '.'] ?? [];
-            if (!is_array($node)) {
-                return $default;
-            }
-        }
-        return $default;
-    }
 }
