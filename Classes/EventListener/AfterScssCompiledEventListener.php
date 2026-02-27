@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\EventListener;
 
@@ -41,7 +41,7 @@ use Maispace\MaispaceAssets\Event\AfterScssCompiledEvent;
  * - Validate that the compiled output does not exceed a size budget
  * - Log SCSS compilation metrics (input size, output size, identifier)
  *
- * @see \Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
+ * @see AfterScssCompiledEvent
  * @see \Maispace\MaispaceAssets\Service\ScssCompilerService
  */
 final class AfterScssCompiledEventListener

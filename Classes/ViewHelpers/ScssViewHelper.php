@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use Closure;
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 
@@ -51,7 +50,7 @@ use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
  *   <!-- SCSS loaded deferred as external CSS file -->
  *   <mai:scss src="EXT:theme/Resources/Private/Scss/non-critical.scss" deferred="true" />
  *
- * @see \Maispace\MaispaceAssets\Service\AssetProcessingService::handleScss()
+ * @see AssetProcessingService::handleScss()
  * @see \Maispace\MaispaceAssets\Service\ScssCompilerService
  */
 final class ScssViewHelper extends AbstractAssetViewHelper
@@ -123,7 +122,7 @@ final class ScssViewHelper extends AbstractAssetViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): void {
         AssetProcessingService::handleScss($arguments, $renderChildrenClosure());

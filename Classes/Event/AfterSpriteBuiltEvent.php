@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Event;
 
@@ -30,12 +30,13 @@ final class AfterSpriteBuiltEvent
 {
     /**
      * @param string   $spriteXml           The assembled SVG sprite XML document
-     * @param string[] $registeredSymbolIds  All symbol IDs included in the sprite
+     * @param string[] $registeredSymbolIds All symbol IDs included in the sprite
      */
     public function __construct(
         private string $spriteXml,
         private readonly array $registeredSymbolIds,
-    ) {}
+    ) {
+    }
 
     /**
      * The full SVG sprite XML document, e.g.:

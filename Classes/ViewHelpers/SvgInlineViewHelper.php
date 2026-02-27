@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use Closure;
 use Maispace\MaispaceAssets\Cache\AssetCacheManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
@@ -125,7 +124,7 @@ final class SvgInlineViewHelper extends AbstractViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
         $src = (string)($arguments['src'] ?? '');
@@ -172,6 +171,7 @@ final class SvgInlineViewHelper extends AbstractViewHelper
             GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class)
                 ->getLogger(__CLASS__)
                 ->warning('maispace_assets: SVG file not found: ' . $src);
+
             return '';
         }
 
@@ -185,7 +185,7 @@ final class SvgInlineViewHelper extends AbstractViewHelper
         $dom->formatOutput = false;
         // Suppress warnings from malformed SVGs; errors are still caught below.
         $previous = libxml_use_internal_errors(true);
-        $loaded   = $dom->loadXML($rawSvg);
+        $loaded = $dom->loadXML($rawSvg);
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
@@ -193,6 +193,7 @@ final class SvgInlineViewHelper extends AbstractViewHelper
             GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class)
                 ->getLogger(__CLASS__)
                 ->warning('maispace_assets: Could not parse SVG file: ' . $src);
+
             return '';
         }
 

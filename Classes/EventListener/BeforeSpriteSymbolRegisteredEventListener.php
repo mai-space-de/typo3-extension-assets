@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\EventListener;
 
@@ -40,7 +40,7 @@ use Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent;
  * - Redirect an icon's src to an overriding SVG in your site package
  * - Log all registrations during development for auditing
  *
- * @see \Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
+ * @see BeforeSpriteSymbolRegisteredEvent
  * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
  */
 final class BeforeSpriteSymbolRegisteredEventListener

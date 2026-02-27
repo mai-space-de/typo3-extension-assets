@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use Closure;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -193,7 +192,7 @@ final class LottieViewHelper extends AbstractViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
         $rawSrc = (string)($arguments['src'] ?? '');
@@ -235,6 +234,7 @@ final class LottieViewHelper extends AbstractViewHelper
             GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class)
                 ->getLogger(__CLASS__)
                 ->warning('maispace_assets: Lottie animation file not found: ' . $src);
+
             return '';
         }
 
@@ -288,7 +288,7 @@ final class LottieViewHelper extends AbstractViewHelper
         $collector->addJavaScript(
             $identifier,
             $playerSrc,
-            ['type' => 'module'],
+            ['type'     => 'module'],
             ['priority' => false],
         );
     }
@@ -390,10 +390,10 @@ final class LottieViewHelper extends AbstractViewHelper
         }
 
         $setup = $fts->getSetupArray();
-        $root  = $setup['plugin.']['tx_maispace_assets.'] ?? [];
+        $root = $setup['plugin.']['tx_maispace_assets.'] ?? [];
 
         $parts = explode('.', $dotPath);
-        $node  = $root;
+        $node = $root;
         foreach ($parts as $i => $part) {
             $isLast = ($i === count($parts) - 1);
             if ($isLast) {

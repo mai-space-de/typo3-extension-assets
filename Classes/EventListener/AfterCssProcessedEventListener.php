@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\EventListener;
 
@@ -41,7 +41,7 @@ use Maispace\MaispaceAssets\Event\AfterCssProcessedEvent;
  * - Log asset processing for debugging or auditing
  * - Apply additional transformations (e.g., vendor prefixing) via a post-processor
  *
- * @see \Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
+ * @see AfterCssProcessedEvent
  */
 final class AfterCssProcessedEventListener
 {

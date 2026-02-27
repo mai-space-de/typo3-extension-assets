@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Service;
 
@@ -78,7 +78,8 @@ final class ImageRenderingService implements SingletonInterface
         private readonly LoggerInterface $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly ?PageRenderer $pageRenderer = null,
-    ) {}
+    ) {
+    }
 
     // -------------------------------------------------------------------------
     // Image resolution
@@ -88,6 +89,7 @@ final class ImageRenderingService implements SingletonInterface
      * Resolve any supported image input to a FAL File or FileReference.
      *
      * @param mixed $image int UID, File, FileReference, or string path
+     *
      * @return File|FileReference|null Returns null and logs a warning on failure
      */
     public function resolveImage(mixed $image): File|FileReference|null
@@ -107,6 +109,7 @@ final class ImageRenderingService implements SingletonInterface
                 $this->logger->warning(
                     'maispace_assets: Could not resolve FileReference with UID ' . $image . ': ' . $e->getMessage(),
                 );
+
                 return null;
             }
         }
@@ -116,6 +119,7 @@ final class ImageRenderingService implements SingletonInterface
             $absolutePath = GeneralUtility::getFileAbsFileName($image);
             if ($absolutePath === '' || !is_file($absolutePath)) {
                 $this->logger->warning('maispace_assets: Image file not found: ' . $image);
+
                 return null;
             }
 
@@ -125,11 +129,13 @@ final class ImageRenderingService implements SingletonInterface
                 $this->logger->warning(
                     'maispace_assets: Could not retrieve FAL object for "' . $image . '": ' . $e->getMessage(),
                 );
+
                 return null;
             }
         }
 
         $this->logger->warning('maispace_assets: Unsupported image input type: ' . gettype($image));
+
         return null;
     }
 
@@ -218,11 +224,12 @@ final class ImageRenderingService implements SingletonInterface
      * format is unsupported, the ImageService will silently fall back to the source
      * format — the returned ProcessedFile will have the original extension.
      *
-     * @param File|FileReference   $file       The source image to process
-     * @param string               $width      Width in TYPO3 notation (e.g. "800", "800c")
-     * @param string               $height     Height in TYPO3 notation
-     * @param list<string>         $formats    Target formats in preference order, e.g. ["avif", "webp"]
-     * @return array<string, ProcessedFile>    Keyed by format string, in the order given
+     * @param File|FileReference $file    The source image to process
+     * @param string             $width   Width in TYPO3 notation (e.g. "800", "800c")
+     * @param string             $height  Height in TYPO3 notation
+     * @param list<string>       $formats Target formats in preference order, e.g. ["avif", "webp"]
+     *
+     * @return array<string, ProcessedFile> Keyed by format string, in the order given
      */
     public function processImageAlternatives(
         File|FileReference $file,
@@ -258,9 +265,10 @@ final class ImageRenderingService implements SingletonInterface
      * Width entries follow TYPO3 notation (e.g. `"400"`, `"800c"`, `"1200m"`).
      *
      * @param string $widths        Comma-separated width values, e.g. `"400, 800, 1200"`
-     * @param string $height        Height constraint shared across all widths (empty = proportional).
+     * @param string $height        height constraint shared across all widths (empty = proportional)
      * @param string $fileExtension Target format override, e.g. `"webp"` or `""` for source format.
-     * @return string               Srcset string, e.g. `"/img_400.jpg 400w, /img_800.jpg 800w"`
+     *
+     * @return string Srcset string, e.g. `"/img_400.jpg 400w, /img_800.jpg 800w"`
      */
     public function buildSrcsetString(
         File|FileReference $file,
@@ -276,8 +284,8 @@ final class ImageRenderingService implements SingletonInterface
             if ($w === '') {
                 continue;
             }
-            $processed   = $this->processImage($file, $w, $height, $fileExtension, $quality);
-            $url         = $this->imageService->getImageUri($processed, true);
+            $processed = $this->processImage($file, $w, $height, $fileExtension, $quality);
+            $url = $this->imageService->getImageUri($processed, true);
             $actualWidth = (int)($processed->getProperty('width') ?: (int)preg_replace('/\D+/', '', $w));
             if ($url !== '' && $actualWidth > 0) {
                 $parts[] = $url . ' ' . $actualWidth . 'w';
@@ -307,15 +315,15 @@ final class ImageRenderingService implements SingletonInterface
      */
     public function renderImgTag(ProcessedFile $processed, array $options): string
     {
-        $url    = $this->imageService->getImageUri($processed, true);
-        $width  = $processed->getProperty('width');
+        $url = $this->imageService->getImageUri($processed, true);
+        $width = $processed->getProperty('width');
         $height = $processed->getProperty('height');
 
         $attrs = [];
-        $attrs['src']    = $url;
-        $attrs['width']  = (string)($width ?: '');
+        $attrs['src'] = $url;
+        $attrs['width'] = (string)($width ?: '');
         $attrs['height'] = (string)($height ?: '');
-        $attrs['alt']    = $options['alt'] ?? '';
+        $attrs['alt'] = $options['alt'] ?? '';
 
         // Lazy loading
         $isLazy = (bool)($options['lazyloading'] ?? false);
@@ -383,13 +391,13 @@ final class ImageRenderingService implements SingletonInterface
     /**
      * Build a `<source>` tag string for use inside a `<picture>` element.
      *
-     * @param string|null $media       Media query, e.g. `(min-width: 768px)`
-     * @param string|null $type        MIME type override; auto-detected from processed file when null
+     * @param string|null $media        Media query, e.g. `(min-width: 768px)`
+     * @param string|null $type         MIME type override; auto-detected from processed file when null
      * @param string|null $srcsetString Pre-built srcset string (e.g. from buildSrcsetString()).
-     *                                 When provided, used as the srcset attribute value instead of the
-     *                                 single processed file URL.
-     * @param string|null $sizes       Optional sizes attribute value, e.g. "(min-width: 768px) 1200px, 100vw".
-     *                                 Only rendered when $srcsetString is also provided.
+     *                                  When provided, used as the srcset attribute value instead of the
+     *                                  single processed file URL.
+     * @param string|null $sizes        Optional sizes attribute value, e.g. "(min-width: 768px) 1200px, 100vw".
+     *                                  Only rendered when $srcsetString is also provided.
      */
     public function renderSourceTag(
         ProcessedFile $processed,
@@ -426,11 +434,11 @@ final class ImageRenderingService implements SingletonInterface
     /**
      * Add `<link rel="preload" as="image">` to the page `<head>`.
      *
-     * @param string|null $media        Optional media query to scope the preload hint, e.g. "(min-width: 768px)"
+     * @param string|null $media         Optional media query to scope the preload hint, e.g. "(min-width: 768px)"
      * @param string|null $fetchPriority fetchpriority attribute value — "high", "low", or "auto"
-     * @param string|null $mimeType     MIME type of the image, e.g. "image/webp". Omit for JPEG/PNG fallbacks.
-     * @param string|null $imageSrcset  imagesrcset attribute for responsive preloading (matches <source> srcset)
-     * @param string|null $imageSizes   imagesizes attribute for responsive preloading (matches <source> sizes)
+     * @param string|null $mimeType      MIME type of the image, e.g. "image/webp". Omit for JPEG/PNG fallbacks.
+     * @param string|null $imageSrcset   imagesrcset attribute for responsive preloading (matches <source> srcset)
+     * @param string|null $imageSizes    imagesizes attribute for responsive preloading (matches <source> sizes)
      */
     public function addImagePreloadHeader(
         string $url,
@@ -487,6 +495,7 @@ final class ImageRenderingService implements SingletonInterface
         int $quality = 0,
     ): string {
         $fileUid = $file instanceof FileReference ? $file->getOriginalFile()->getUid() : $file->getUid();
+
         return $fileUid . '_' . md5($width . 'x' . $height . ':' . $fileExtension . ':q' . $quality);
     }
 
@@ -498,6 +507,7 @@ final class ImageRenderingService implements SingletonInterface
     public function detectMimeType(ProcessedFile $processed): string
     {
         $ext = strtolower(pathinfo($processed->getIdentifier(), PATHINFO_EXTENSION));
+
         return match ($ext) {
             'jpg', 'jpeg' => 'image/jpeg',
             'png'         => 'image/png',

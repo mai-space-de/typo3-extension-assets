@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\EventListener;
 
@@ -41,7 +41,7 @@ use Maispace\MaispaceAssets\Event\AfterJsProcessedEvent;
  * - Log JS asset processing for performance auditing
  * - Apply source map injection or CSP nonce patterns
  *
- * @see \Maispace\MaispaceAssets\Event\AfterJsProcessedEvent
+ * @see AfterJsProcessedEvent
  */
 final class AfterJsProcessedEventListener
 {

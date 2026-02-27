@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use Closure;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -45,7 +44,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  *   800c   → crop to exact width (centre crop)
  *   800m   → maximum width (proportional, never upscale)
  *
- * @see \Maispace\MaispaceAssets\Service\ImageRenderingService
+ * @see ImageRenderingService
  */
 final class ImageViewHelper extends AbstractViewHelper
 {
@@ -220,7 +219,7 @@ final class ImageViewHelper extends AbstractViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
         /** @var ImageRenderingService $service */
@@ -261,17 +260,17 @@ final class ImageViewHelper extends AbstractViewHelper
         }
 
         $imgHtml = $service->renderImgTag($processed, [
-            'alt'               => (string)($arguments['alt'] ?? ''),
-            'class'             => $arguments['class'] ?? null,
-            'id'                => $arguments['id'] ?? null,
-            'title'             => $arguments['title'] ?? null,
-            'lazyloading'       => $lazyloading,
-            'lazyloadWithClass' => $lazyloadWithClass,
-            'fetchPriority'     => $arguments['fetchPriority'] ?? null,
-            'decoding'          => $arguments['decoding'] ?? null,
-            'crossorigin'       => $arguments['crossorigin'] ?? null,
-            'srcset'            => $srcsetString,
-            'sizes'             => $arguments['sizes'] ?? null,
+            'alt'                  => (string)($arguments['alt'] ?? ''),
+            'class'                => $arguments['class'] ?? null,
+            'id'                   => $arguments['id'] ?? null,
+            'title'                => $arguments['title'] ?? null,
+            'lazyloading'          => $lazyloading,
+            'lazyloadWithClass'    => $lazyloadWithClass,
+            'fetchPriority'        => $arguments['fetchPriority'] ?? null,
+            'decoding'             => $arguments['decoding'] ?? null,
+            'crossorigin'          => $arguments['crossorigin'] ?? null,
+            'srcset'               => $srcsetString,
+            'sizes'                => $arguments['sizes'] ?? null,
             'additionalAttributes' => (array)($arguments['additionalAttributes'] ?? []),
         ]);
 
@@ -319,6 +318,7 @@ final class ImageViewHelper extends AbstractViewHelper
         }
 
         $ts = self::getTypoScriptSetting('image.forceFormat', '');
+
         return is_string($ts) ? $ts : '';
     }
 
@@ -329,19 +329,19 @@ final class ImageViewHelper extends AbstractViewHelper
      *  1. Explicit ViewHelper argument
      *  2. TypoScript default (plugin.tx_maispace_assets.image.lazyloading / .lazyloadWithClass)
      *
-     * @return array{0: bool, 1: string|null}  [isLazy, lazyClass|null]
+     * @return array{0: bool, 1: string|null} [isLazy, lazyClass|null]
      */
     private static function resolveLazyArguments(array $arguments): array
     {
-        $lazyloading      = $arguments['lazyloading'] ?? null;
+        $lazyloading = $arguments['lazyloading'] ?? null;
         $lazyloadWithClass = $arguments['lazyloadWithClass'] ?? null;
 
         // If neither is explicitly set, check TypoScript defaults.
         if ($lazyloading === null && $lazyloadWithClass === null) {
-            $tsLazy      = self::getTypoScriptSetting('image.lazyloading', null);
+            $tsLazy = self::getTypoScriptSetting('image.lazyloading', null);
             $tsLazyClass = self::getTypoScriptSetting('image.lazyloadWithClass', null);
 
-            $lazyloading       = $tsLazy !== null ? (bool)$tsLazy : false;
+            $lazyloading = $tsLazy !== null ? (bool)$tsLazy : false;
             $lazyloadWithClass = is_string($tsLazyClass) && $tsLazyClass !== '' ? $tsLazyClass : null;
         }
 

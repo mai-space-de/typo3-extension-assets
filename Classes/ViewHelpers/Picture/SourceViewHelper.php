@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers\Picture;
 
-use Closure;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\PictureViewHelper;
 use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
@@ -74,8 +73,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  *   <!-- Different (portrait) image for small viewports -->
  *   <mai:picture.source image="{portraitRef}" media="(max-width: 767px)" width="400" height="600" />
  *
- * @see \Maispace\MaispaceAssets\ViewHelpers\PictureViewHelper
- * @see \Maispace\MaispaceAssets\Service\ImageRenderingService
+ * @see PictureViewHelper
+ * @see ImageRenderingService
  */
 final class SourceViewHelper extends AbstractViewHelper
 {
@@ -187,11 +186,11 @@ final class SourceViewHelper extends AbstractViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
         /** @var ImageRenderingService $service */
-        $service      = GeneralUtility::makeInstance(ImageRenderingService::class);
+        $service = GeneralUtility::makeInstance(ImageRenderingService::class);
         $varContainer = $renderingContext->getViewHelperVariableContainer();
 
         // Resolve the image: explicit override or inherited from parent PictureViewHelper.
@@ -207,9 +206,9 @@ final class SourceViewHelper extends AbstractViewHelper
             return '';
         }
 
-        $width  = (string)$arguments['width'];
+        $width = (string)$arguments['width'];
         $height = (string)$arguments['height'];
-        $media  = $arguments['media'] ?? null;
+        $media = $arguments['media'] ?? null;
 
         $quality = (int)($arguments['quality'] ?? 0);
 
@@ -218,14 +217,14 @@ final class SourceViewHelper extends AbstractViewHelper
 
         // Build optional srcset string (multi-width responsive descriptor).
         $srcsetWidths = $arguments['srcset'] ?? null;
-        $sizes        = is_string($arguments['sizes'] ?? null) && ($arguments['sizes'] ?? '') !== ''
+        $sizes = is_string($arguments['sizes'] ?? null) && ($arguments['sizes'] ?? '') !== ''
             ? $arguments['sizes']
             : null;
 
         // No format alternatives: render a single <source> tag (classic behaviour).
         if ($formats === []) {
             $fileExtension = self::resolveFileExtension($arguments);
-            $processed     = $service->processImage($file, $width, $height, $fileExtension, $quality);
+            $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
 
             $srcsetString = null;
             if (is_string($srcsetWidths) && $srcsetWidths !== '') {
@@ -250,7 +249,7 @@ final class SourceViewHelper extends AbstractViewHelper
         // Fallback <source> in the original/default format (no fileExtension override).
         if ((bool)($arguments['fallback'] ?? true)) {
             $fallbackProcessed = $service->processImage($file, $width, $height, '', $quality);
-            $fallbackSrcset    = null;
+            $fallbackSrcset = null;
             if (is_string($srcsetWidths) && $srcsetWidths !== '') {
                 $fallbackSrcset = $service->buildSrcsetString($file, $srcsetWidths, $height, '', $quality);
             }
@@ -277,6 +276,7 @@ final class SourceViewHelper extends AbstractViewHelper
         }
 
         $ts = self::getTypoScriptSetting('image.forceFormat', '');
+
         return is_string($ts) ? $ts : '';
     }
 
@@ -301,6 +301,7 @@ final class SourceViewHelper extends AbstractViewHelper
         }
 
         $formats = array_filter(array_map('trim', explode(',', $raw)));
+
         return array_values(array_map('strtolower', $formats));
     }
 

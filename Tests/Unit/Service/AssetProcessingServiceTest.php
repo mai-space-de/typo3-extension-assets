@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Tests\Unit\Service;
 
@@ -96,7 +96,7 @@ final class AssetProcessingServiceTest extends TestCase
     public function testBuildIdentifierUsesContentHashWhenSrcIsNull(): void
     {
         $content = 'body { color: red; }';
-        $result  = $this->callBuildIdentifier(null, null, $content, 'css');
+        $result = $this->callBuildIdentifier(null, null, $content, 'css');
         // Expect the hash portion to match md5 of the content
         self::assertStringEndsWith(md5($content), $result);
     }
@@ -105,7 +105,7 @@ final class AssetProcessingServiceTest extends TestCase
     {
         $src = 'EXT:test/asset';
         $css = $this->callBuildIdentifier(null, $src, '', 'css');
-        $js  = $this->callBuildIdentifier(null, $src, '', 'js');
+        $js = $this->callBuildIdentifier(null, $src, '', 'js');
         self::assertNotSame($css, $js);
     }
 
@@ -127,8 +127,8 @@ final class AssetProcessingServiceTest extends TestCase
 
     public function testBuildIntegrityAttrsReturnsSha384Hash(): void
     {
-        $content  = 'body { color: red; }';
-        $result   = $this->callBuildIntegrityAttrs(['integrity' => true], $content);
+        $content = 'body { color: red; }';
+        $result = $this->callBuildIntegrityAttrs(['integrity' => true], $content);
         $expected = 'sha384-' . base64_encode(hash('sha384', $content, true));
 
         self::assertArrayHasKey('integrity', $result);
@@ -186,6 +186,7 @@ final class AssetProcessingServiceTest extends TestCase
     {
         $method = new \ReflectionMethod(AssetProcessingService::class, 'isExternalUrl');
         $method->setAccessible(true);
+
         return $method->invoke(null, $src);
     }
 
@@ -197,6 +198,7 @@ final class AssetProcessingServiceTest extends TestCase
     ): string {
         $method = new \ReflectionMethod(AssetProcessingService::class, 'buildIdentifier');
         $method->setAccessible(true);
+
         return $method->invoke(null, $explicit, $src, $content, $type);
     }
 
@@ -204,6 +206,7 @@ final class AssetProcessingServiceTest extends TestCase
     {
         $method = new \ReflectionMethod(AssetProcessingService::class, 'buildIntegrityAttrs');
         $method->setAccessible(true);
+
         return $method->invoke(null, $arguments, $content);
     }
 
@@ -211,6 +214,7 @@ final class AssetProcessingServiceTest extends TestCase
     {
         $method = new \ReflectionMethod(AssetProcessingService::class, 'resolveFlag');
         $method->setAccessible(true);
+
         return $method->invoke(null, $setting, $argumentValue, $section);
     }
 }

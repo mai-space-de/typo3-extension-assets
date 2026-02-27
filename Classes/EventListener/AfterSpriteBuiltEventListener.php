@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\EventListener;
 
@@ -37,7 +37,7 @@ use Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent;
  * - Log the sprite contents for debugging or bundle-size auditing
  * - Prettify or minify the sprite XML based on environment
  *
- * @see \Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
+ * @see AfterSpriteBuiltEvent
  * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
  */
 final class AfterSpriteBuiltEventListener

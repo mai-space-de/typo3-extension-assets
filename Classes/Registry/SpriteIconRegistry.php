@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Registry;
 
@@ -48,13 +48,13 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * cache also invalidates the sprite.
  *
  * @see \Maispace\MaispaceAssets\Middleware\SvgSpriteMiddleware
- * @see \Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
- * @see \Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
+ * @see BeforeSpriteSymbolRegisteredEvent
+ * @see AfterSpriteBuiltEvent
  */
 final class SpriteIconRegistry implements SingletonInterface
 {
     private const CACHE_KEY_PREFIX = 'svg_sprite_';
-    private const CACHE_TAG        = 'maispace_assets_svg';
+    private const CACHE_TAG = 'maispace_assets_svg';
 
     /** @var array<string, array{src: string, absoluteSrc: string}> symbolId => resolved config */
     private array $symbols = [];
@@ -65,7 +65,8 @@ final class SpriteIconRegistry implements SingletonInterface
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly AssetCacheManager $cache,
         private readonly LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     // -------------------------------------------------------------------------
     // Public API
@@ -123,6 +124,7 @@ final class SpriteIconRegistry implements SingletonInterface
     public function getRegisteredSymbolIds(?string $siteIdentifier = null): array
     {
         $this->discover();
+
         return array_keys($this->filterSymbolsForSite($siteIdentifier));
     }
 
@@ -182,7 +184,7 @@ final class SpriteIconRegistry implements SingletonInterface
                 }
 
                 $resolvedSymbolId = $event->getSymbolId();
-                $resolvedConfig   = $event->getConfig();
+                $resolvedConfig = $event->getConfig();
 
                 $absoluteSrc = GeneralUtility::getFileAbsFileName($resolvedConfig['src']);
                 if ($absoluteSrc === '' || !is_file($absoluteSrc)) {
@@ -226,6 +228,7 @@ final class SpriteIconRegistry implements SingletonInterface
                 $result[$symbolId] = $config;
             }
         }
+
         return $result;
     }
 
@@ -296,6 +299,7 @@ final class SpriteIconRegistry implements SingletonInterface
         // Extract the inner content between <svg ...> and </svg>.
         if (!preg_match('/<svg[^>]*>(.*)<\/svg>/is', $svgContent, $m)) {
             $this->logger->warning('maispace_assets: Could not parse SVG structure for symbol "' . $symbolId . '".');
+
             return '';
         }
 
@@ -331,7 +335,7 @@ final class SpriteIconRegistry implements SingletonInterface
     {
         $parts = [];
         foreach ($symbols as $symbolId => $config) {
-            $mtime   = @filemtime($config['absoluteSrc']) ?: 0;
+            $mtime = @filemtime($config['absoluteSrc']) ?: 0;
             $parts[] = $symbolId . '|' . $config['absoluteSrc'] . '|' . $mtime;
         }
         sort($parts);

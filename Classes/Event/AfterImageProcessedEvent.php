@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Event;
 
@@ -30,20 +30,21 @@ use TYPO3\CMS\Core\Resource\ProcessedFile;
  *               event: Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
  *
  * @see \Maispace\MaispaceAssets\Service\ImageRenderingService::processImage()
- * @see \Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
+ * @see BeforeImageProcessingEvent
  */
 final class AfterImageProcessedEvent
 {
     /**
-     * @param File|FileReference   $sourceFile    The original source image
-     * @param ProcessedFile        $processedFile The result from ImageService
-     * @param array<string,mixed>  $instructions  The processing instructions that were applied
+     * @param File|FileReference  $sourceFile    The original source image
+     * @param ProcessedFile       $processedFile The result from ImageService
+     * @param array<string,mixed> $instructions  The processing instructions that were applied
      */
     public function __construct(
         private readonly File|FileReference $sourceFile,
         private ProcessedFile $processedFile,
         private readonly array $instructions,
-    ) {}
+    ) {
+    }
 
     /**
      * The original source image file or file reference.

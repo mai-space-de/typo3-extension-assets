@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers\Traits;
 
@@ -23,9 +23,8 @@ trait TypoScriptSettingTrait
      *  - the frontend TypoScript attribute is not set (e.g. backend context)
      *  - the requested path does not exist in the setup array
      *
-     * @param string $dotPath  Dot-separated path, e.g. "image.lazyloading" or "css.minify"
-     * @param mixed  $default  Fallback when the setting is absent
-     * @return mixed
+     * @param string $dotPath Dot-separated path, e.g. "image.lazyloading" or "css.minify"
+     * @param mixed  $default Fallback when the setting is absent
      */
     private static function getTypoScriptSetting(string $dotPath, mixed $default): mixed
     {
@@ -40,10 +39,10 @@ trait TypoScriptSettingTrait
         }
 
         $setup = $fts->getSetupArray();
-        $root  = $setup['plugin.']['tx_maispace_assets.'] ?? [];
+        $root = $setup['plugin.']['tx_maispace_assets.'] ?? [];
 
         $parts = explode('.', $dotPath);
-        $node  = $root;
+        $node = $root;
         foreach ($parts as $i => $part) {
             $isLast = ($i === count($parts) - 1);
             if ($isLast) {

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Event;
 
@@ -30,21 +30,22 @@ use TYPO3\CMS\Core\Resource\FileReference;
  *               event: Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
  *
  * @see \Maispace\MaispaceAssets\Service\ImageRenderingService::processImage()
- * @see \Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
+ * @see AfterImageProcessedEvent
  */
 final class BeforeImageProcessingEvent
 {
     private bool $skipped = false;
 
     /**
-     * @param File|FileReference $file            The source image file
-     * @param array<string,mixed> $instructions   Processing instructions array passed to ImageService
-     *                                            (keys: 'width', 'height', 'fileExtension', etc.)
+     * @param File|FileReference  $file         The source image file
+     * @param array<string,mixed> $instructions Processing instructions array passed to ImageService
+     *                                          (keys: 'width', 'height', 'fileExtension', etc.)
      */
     public function __construct(
         private readonly File|FileReference $file,
         private array $instructions,
-    ) {}
+    ) {
+    }
 
     /**
      * The source image file or file reference being processed.
@@ -83,6 +84,7 @@ final class BeforeImageProcessingEvent
     public function getTargetFileExtension(): ?string
     {
         $ext = $this->instructions['fileExtension'] ?? null;
+
         return is_string($ext) && $ext !== '' ? $ext : null;
     }
 

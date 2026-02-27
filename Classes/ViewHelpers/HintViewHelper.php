@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use Closure;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
@@ -117,18 +116,18 @@ final class HintViewHelper extends AbstractViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
         $href = trim((string)($arguments['href'] ?? ''));
-        $rel  = trim((string)($arguments['rel'] ?? ''));
+        $rel = trim((string)($arguments['rel'] ?? ''));
 
         if ($href === '' || $rel === '') {
             return '';
         }
 
         $attrs = [];
-        $attrs['rel']  = $rel;
+        $attrs['rel'] = $rel;
         $attrs['href'] = $href;
 
         $as = $arguments['as'] ?? null;

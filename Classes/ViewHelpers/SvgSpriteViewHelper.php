@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use Closure;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
@@ -122,7 +121,7 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
         $symbolId = (string)$arguments['use'];
@@ -131,7 +130,7 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         }
 
         $spriteUrl = self::resolveSpriteSrc($arguments['src'] ?? null);
-        $href      = $spriteUrl . '#' . htmlspecialchars($symbolId, ENT_XML1);
+        $href = $spriteUrl . '#' . htmlspecialchars($symbolId, ENT_XML1);
 
         $attrs = self::buildSvgAttributes($arguments);
 
@@ -167,7 +166,7 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
             /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $fts */
             $fts = $request->getAttribute('frontend.typoscript');
             if ($fts !== null) {
-                $setup     = $fts->getSetupArray();
+                $setup = $fts->getSetupArray();
                 $routePath = $setup['plugin.']['tx_maispace_assets.']['svgSprite.']['routePath'] ?? '';
                 if (is_string($routePath) && $routePath !== '') {
                     return '/' . ltrim(rtrim($routePath, '/'), '/');
@@ -200,7 +199,7 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
             $attrs[] = 'height="' . htmlspecialchars((string)$arguments['height']) . '"';
         }
 
-        $ariaLabel  = $arguments['aria-label'] ?? null;
+        $ariaLabel = $arguments['aria-label'] ?? null;
         $ariaHidden = $arguments['aria-hidden'] ?? null;
 
         if ($ariaLabel !== null && $ariaLabel !== '') {

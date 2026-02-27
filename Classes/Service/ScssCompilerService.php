@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Service;
 
@@ -33,9 +33,9 @@ final class ScssCompilerService
     /**
      * Compile a raw SCSS string to CSS.
      *
-     * @param string   $scssContent     Raw SCSS source
-     * @param string[] $importPaths     Additional import paths (EXT: notation or absolute)
-     * @param bool     $compressed      Use OutputStyle::COMPRESSED (minified output)
+     * @param string      $scssContent    Raw SCSS source
+     * @param string[]    $importPaths    Additional import paths (EXT: notation or absolute)
+     * @param bool        $compressed     Use OutputStyle::COMPRESSED (minified output)
      * @param string|null $sourceFilePath Absolute path of the source file (for relative @import resolution)
      *
      * @throws \ScssPhp\ScssPhp\Exception\SassException on invalid SCSS syntax
@@ -77,7 +77,7 @@ final class ScssCompilerService
      * @param string[] $importPaths      Additional EXT: or absolute import paths
      * @param bool     $compressed       Use OutputStyle::COMPRESSED
      *
-     * @throws \RuntimeException if the file cannot be read
+     * @throws \RuntimeException                        if the file cannot be read
      * @throws \ScssPhp\ScssPhp\Exception\SassException on invalid SCSS syntax
      */
     public function compileFile(
@@ -87,10 +87,7 @@ final class ScssCompilerService
     ): string {
         $scssContent = @file_get_contents($absoluteFilePath);
         if ($scssContent === false) {
-            throw new \RuntimeException(
-                'SCSS file is not readable: ' . $absoluteFilePath,
-                1_700_000_001,
-            );
+            throw new \RuntimeException('SCSS file is not readable: ' . $absoluteFilePath, 1_700_000_001);
         }
 
         return $this->compile($scssContent, $importPaths, $compressed, $absoluteFilePath);
@@ -101,6 +98,7 @@ final class ScssCompilerService
      * Non-existent or non-directory paths are silently skipped.
      *
      * @param string[] $importPaths
+     *
      * @return string[]
      */
     private function resolveImportPaths(array $importPaths): array
@@ -112,6 +110,7 @@ final class ScssCompilerService
                 $resolved[] = $absolute;
             }
         }
+
         return $resolved;
     }
 }

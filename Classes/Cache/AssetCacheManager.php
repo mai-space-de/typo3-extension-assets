@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Cache;
 
@@ -83,6 +83,7 @@ final class AssetCacheManager
     public function buildScssKey(string $identifier, ?int $fileMtime = null): string
     {
         $suffix = $fileMtime !== null ? '_file_' . $fileMtime : '_inline';
+
         return 'scss_' . sha1($identifier . $suffix);
     }
 
@@ -94,6 +95,7 @@ final class AssetCacheManager
     {
         $sorted = $symbolIds;
         sort($sorted);
+
         return 'svg_sprite_' . sha1(implode('|', $sorted));
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\EventListener;
 
@@ -25,13 +25,14 @@ use TYPO3\CMS\Core\Page\Event\BeforeStylesheetsRenderingEvent;
  * Setting `plugin.tx_maispace_assets.fonts.preload = 0` in TypoScript suppresses all
  * font preload output globally. Useful for debugging or when fonts are handled elsewhere.
  *
- * @see \Maispace\MaispaceAssets\Registry\FontRegistry
+ * @see FontRegistry
  */
 final class FontPreloadEventListener
 {
     public function __construct(
         private readonly FontRegistry $fontRegistry,
-    ) {}
+    ) {
+    }
 
     public function __invoke(BeforeStylesheetsRenderingEvent $event): void
     {
@@ -67,7 +68,7 @@ final class FontPreloadEventListener
             return true;
         }
 
-        $setup   = $fts->getSetupArray();
+        $setup = $fts->getSetupArray();
         $setting = $setup['plugin.']['tx_maispace_assets.']['fonts.']['preload'] ?? null;
 
         // TypoScript values arrive as strings; treat '0' as disabled, anything else as enabled.

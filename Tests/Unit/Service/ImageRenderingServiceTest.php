@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Tests\Unit\Service;
 
@@ -114,7 +114,7 @@ final class ImageRenderingServiceTest extends TestCase
         $processed = $this->makeProcessedFile('/img/photo.jpg');
 
         $srcset = '/img/photo_400.jpg 400w, /img/photo_800.jpg 800w';
-        $html   = $this->subject->renderSourceTag($processed, null, null, $srcset);
+        $html = $this->subject->renderSourceTag($processed, null, null, $srcset);
 
         self::assertStringContainsString('srcset="' . htmlspecialchars($srcset, ENT_QUOTES | ENT_XML1) . '"', $html);
     }
@@ -125,8 +125,8 @@ final class ImageRenderingServiceTest extends TestCase
         $processed = $this->makeProcessedFile('/img/photo.jpg');
 
         $srcset = '/img/photo_400.jpg 400w, /img/photo_800.jpg 800w';
-        $sizes  = '(min-width: 768px) 800px, 100vw';
-        $html   = $this->subject->renderSourceTag($processed, null, null, $srcset, $sizes);
+        $sizes = '(min-width: 768px) 800px, 100vw';
+        $html = $this->subject->renderSourceTag($processed, null, null, $srcset, $sizes);
 
         self::assertStringContainsString('sizes="', $html);
     }
@@ -479,6 +479,7 @@ final class ImageRenderingServiceTest extends TestCase
             ['width',  $width],
             ['height', $height],
         ]);
+
         return $mock;
     }
 }

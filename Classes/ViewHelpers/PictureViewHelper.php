@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use Closure;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -73,8 +72,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  * TypoScript global default for all images:
  *   plugin.tx_maispace_assets.image.alternativeFormats = avif, webp
  *
- * @see \Maispace\MaispaceAssets\ViewHelpers\Picture\SourceViewHelper
- * @see \Maispace\MaispaceAssets\Service\ImageRenderingService
+ * @see Picture\SourceViewHelper
+ * @see ImageRenderingService
  */
 final class PictureViewHelper extends AbstractViewHelper
 {
@@ -82,9 +81,9 @@ final class PictureViewHelper extends AbstractViewHelper
     use TypoScriptSettingTrait;
 
     /** Variable container keys used to share state with child SourceViewHelper. */
-    public const VAR_FILE            = 'ma_picture_file';
-    public const VAR_LAZYLOADING     = 'ma_picture_lazyloading';
-    public const VAR_LAZYLOAD_CLASS  = 'ma_picture_lazyload_class';
+    public const VAR_FILE = 'ma_picture_file';
+    public const VAR_LAZYLOADING = 'ma_picture_lazyloading';
+    public const VAR_LAZYLOAD_CLASS = 'ma_picture_lazyload_class';
 
     /** Disable output escaping — this ViewHelper returns raw HTML. */
     protected $escapeOutput = false;
@@ -270,7 +269,7 @@ final class PictureViewHelper extends AbstractViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
         /** @var ImageRenderingService $service */
@@ -297,7 +296,7 @@ final class PictureViewHelper extends AbstractViewHelper
         $varContainer->remove(self::class, self::VAR_LAZYLOADING);
         $varContainer->remove(self::class, self::VAR_LAZYLOAD_CLASS);
 
-        $width  = (string)$arguments['width'];
+        $width = (string)$arguments['width'];
         $height = (string)$arguments['height'];
 
         $quality = (int)($arguments['quality'] ?? 0);
@@ -315,7 +314,7 @@ final class PictureViewHelper extends AbstractViewHelper
 
             // Original-format catch-all <source> (browser fallback within <picture>).
             if ((bool)($arguments['fallback'] ?? true)) {
-                $originalProcessed    = $service->processImage($file, $width, $height, '', $quality);
+                $originalProcessed = $service->processImage($file, $width, $height, '', $quality);
                 $fallbackSourcesHtml .= $service->renderSourceTag($originalProcessed, null);
             }
         }
@@ -325,16 +324,16 @@ final class PictureViewHelper extends AbstractViewHelper
 
         // Build fallback <img>.
         $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
-        $imgHtml   = $service->renderImgTag($processed, [
-            'alt'               => (string)($arguments['alt'] ?? ''),
-            'class'             => $arguments['imgClass'] ?? null,
-            'id'                => $arguments['imgId'] ?? null,
-            'title'             => $arguments['imgTitle'] ?? null,
-            'lazyloading'       => $lazyloading,
-            'lazyloadWithClass' => $lazyloadWithClass,
-            'fetchPriority'     => $arguments['fetchPriority'] ?? null,
-            'decoding'          => $arguments['imgDecoding'] ?? null,
-            'crossorigin'       => $arguments['imgCrossorigin'] ?? null,
+        $imgHtml = $service->renderImgTag($processed, [
+            'alt'                  => (string)($arguments['alt'] ?? ''),
+            'class'                => $arguments['imgClass'] ?? null,
+            'id'                   => $arguments['imgId'] ?? null,
+            'title'                => $arguments['imgTitle'] ?? null,
+            'lazyloading'          => $lazyloading,
+            'lazyloadWithClass'    => $lazyloadWithClass,
+            'fetchPriority'        => $arguments['fetchPriority'] ?? null,
+            'decoding'             => $arguments['imgDecoding'] ?? null,
+            'crossorigin'          => $arguments['imgCrossorigin'] ?? null,
             'additionalAttributes' => (array)($arguments['imgAdditionalAttributes'] ?? []),
         ]);
 
@@ -385,22 +384,23 @@ final class PictureViewHelper extends AbstractViewHelper
         }
 
         $ts = self::getTypoScriptSetting('image.forceFormat', '');
+
         return is_string($ts) ? $ts : '';
     }
 
     /**
-     * @return array{0: bool, 1: string|null}  [isLazy, lazyClass|null]
+     * @return array{0: bool, 1: string|null} [isLazy, lazyClass|null]
      */
     private static function resolveLazyArguments(array $arguments): array
     {
-        $lazyloading      = $arguments['lazyloading'] ?? null;
+        $lazyloading = $arguments['lazyloading'] ?? null;
         $lazyloadWithClass = $arguments['lazyloadWithClass'] ?? null;
 
         if ($lazyloading === null && $lazyloadWithClass === null) {
-            $tsLazy      = self::getTypoScriptSetting('image.lazyloading', null);
+            $tsLazy = self::getTypoScriptSetting('image.lazyloading', null);
             $tsLazyClass = self::getTypoScriptSetting('image.lazyloadWithClass', null);
 
-            $lazyloading       = $tsLazy !== null ? (bool)$tsLazy : false;
+            $lazyloading = $tsLazy !== null ? (bool)$tsLazy : false;
             $lazyloadWithClass = is_string($tsLazyClass) && $tsLazyClass !== '' ? $tsLazyClass : null;
         }
 
@@ -427,6 +427,7 @@ final class PictureViewHelper extends AbstractViewHelper
         }
 
         $formats = array_filter(array_map('trim', explode(',', $raw)));
+
         return array_values(array_map('strtolower', $formats));
     }
 
@@ -440,6 +441,7 @@ final class PictureViewHelper extends AbstractViewHelper
             $attrs .= ' ' . htmlspecialchars($name, ENT_QUOTES | ENT_XML1)
                 . '="' . htmlspecialchars((string)$value, ENT_QUOTES | ENT_XML1) . '"';
         }
+
         return $attrs;
     }
 

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Command;
 
@@ -35,8 +35,8 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  * The command is safe to run repeatedly — both registries are idempotent and the cache
  * stores results keyed by content hash, so unchanged sprites are not rebuilt.
  *
- * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
- * @see \Maispace\MaispaceAssets\Registry\FontRegistry
+ * @see SpriteIconRegistry
+ * @see FontRegistry
  */
 #[AsCommand(
     name: 'maispace:assets:warmup',
@@ -89,6 +89,7 @@ final class WarmupCommand extends Command
 
         if ($sites === []) {
             $io->warning('No TYPO3 sites found — skipping sprite build. Configure at least one site in the TYPO3 backend.');
+
             return Command::SUCCESS;
         }
 
@@ -100,7 +101,7 @@ final class WarmupCommand extends Command
             $siteIdentifier = $site->getIdentifier();
 
             try {
-                $sprite      = $this->spriteIconRegistry->buildSprite($siteIdentifier);
+                $sprite = $this->spriteIconRegistry->buildSprite($siteIdentifier);
                 $symbolCount = $sprite !== '' ? substr_count($sprite, '<symbol') : 0;
 
                 $io->writeln(sprintf(
@@ -122,6 +123,7 @@ final class WarmupCommand extends Command
 
         if ($errors > 0) {
             $io->warning(sprintf('%d site(s) failed during sprite build. Check TYPO3 logs for details.', $errors));
+
             return Command::FAILURE;
         }
 

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\EventListener;
 
@@ -39,7 +39,7 @@ use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
  * - Replace the ProcessedFile with one produced by an external image API (e.g., Cloudinary)
  * - Collect statistics for a performance monitoring dashboard
  *
- * @see \Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
+ * @see AfterImageProcessedEvent
  * @see \Maispace\MaispaceAssets\Service\ImageRenderingService::processImage()
  */
 final class AfterImageProcessedEventListener

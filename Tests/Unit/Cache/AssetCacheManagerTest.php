@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Tests\Unit\Cache;
 
@@ -152,7 +152,7 @@ final class AssetCacheManagerTest extends TestCase
 
     public function testBuildScssKeyWithMtimeDiffersFromInline(): void
     {
-        $file   = $this->subject->buildScssKey('id', 1234567890);
+        $file = $this->subject->buildScssKey('id', 1234567890);
         $inline = $this->subject->buildScssKey('id', null);
         self::assertNotSame($file, $inline);
     }
@@ -166,7 +166,7 @@ final class AssetCacheManagerTest extends TestCase
 
     public function testBuildScssKeyFileVariantMatchesExpectedHash(): void
     {
-        $mtime    = 1700000000;
+        $mtime = 1700000000;
         $expected = 'scss_' . sha1('my-id_file_' . $mtime);
         self::assertSame($expected, $this->subject->buildScssKey('my-id', $mtime));
     }

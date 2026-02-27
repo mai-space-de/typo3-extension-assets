@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use Closure;
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 
@@ -37,7 +36,7 @@ use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
  *   <!-- Override minification for a single asset -->
  *   <mai:css src="EXT:theme/Resources/Public/Css/vendor.css" minify="false" />
  *
- * @see \Maispace\MaispaceAssets\Service\AssetProcessingService::handleCss()
+ * @see AssetProcessingService::handleCss()
  */
 final class CssViewHelper extends AbstractAssetViewHelper
 {
@@ -113,7 +112,7 @@ final class CssViewHelper extends AbstractAssetViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): void {
         AssetProcessingService::handleCss($arguments, $renderChildrenClosure());

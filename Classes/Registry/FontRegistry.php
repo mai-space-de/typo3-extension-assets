@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Registry;
 
@@ -67,7 +67,8 @@ final class FontRegistry implements SingletonInterface
 
     public function __construct(
         private readonly LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     // -------------------------------------------------------------------------
     // Public API
@@ -126,6 +127,7 @@ final class FontRegistry implements SingletonInterface
                 $keys[] = $key;
             }
         }
+
         return $keys;
     }
 
@@ -184,7 +186,7 @@ final class FontRegistry implements SingletonInterface
                 }
 
                 $publicUrl = PathUtility::getAbsoluteWebPath($absolutePath);
-                $type      = $config['type'] ?? $this->detectMimeType($absolutePath);
+                $type = $config['type'] ?? $this->detectMimeType($absolutePath);
 
                 if ($type === '') {
                     $this->logger->warning(
@@ -238,6 +240,7 @@ final class FontRegistry implements SingletonInterface
     private function detectMimeType(string $absolutePath): string
     {
         $ext = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
+
         return self::MIME_MAP[$ext] ?? '';
     }
 }

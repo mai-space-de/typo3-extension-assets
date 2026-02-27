@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\EventListener;
 
@@ -42,7 +42,7 @@ use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
  * - Skip processing for SVG files that should be served as-is
  * - Apply environment-specific instructions (e.g., sharper crops in production)
  *
- * @see \Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
+ * @see BeforeImageProcessingEvent
  * @see \Maispace\MaispaceAssets\Service\ImageRenderingService::processImage()
  */
 final class BeforeImageProcessingEventListener

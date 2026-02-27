@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Event;
 
@@ -31,7 +31,8 @@ final class AfterScssCompiledEvent
         private readonly string $originalScss,
         private string $compiledCss,
         private readonly array $viewHelperArguments,
-    ) {}
+    ) {
+    }
 
     public function getIdentifier(): string
     {

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Event;
 
@@ -33,15 +33,16 @@ final class BeforeSpriteSymbolRegisteredEvent
     private bool $skipped = false;
 
     /**
-     * @param string $symbolId         The array key from SpriteIcons.php (used as symbol ID)
-     * @param array  $config           The registration config, e.g. ['src' => 'EXT:...']
-     * @param string $sourceExtensionKey  The extension key whose SpriteIcons.php declared this symbol
+     * @param string $symbolId           The array key from SpriteIcons.php (used as symbol ID)
+     * @param array  $config             The registration config, e.g. ['src' => 'EXT:...']
+     * @param string $sourceExtensionKey The extension key whose SpriteIcons.php declared this symbol
      */
     public function __construct(
         private string $symbolId,
         private array $config,
         private readonly string $sourceExtensionKey,
-    ) {}
+    ) {
+    }
 
     /**
      * The symbol ID as declared in SpriteIcons.php (the array key).
@@ -65,7 +66,7 @@ final class BeforeSpriteSymbolRegisteredEvent
     /**
      * The raw configuration array for this symbol.
      * Currently supports:
-     *   'src' (string, required) — EXT: path or absolute path to the .svg file
+     *   'src' (string, required) — EXT: path or absolute path to the .svg file.
      */
     public function getConfig(): array
     {

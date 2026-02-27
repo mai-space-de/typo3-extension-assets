@@ -1,10 +1,9 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use Closure;
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 
@@ -42,7 +41,7 @@ use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
  *   <mai:js src="EXT:theme/Resources/Public/JavaScript/polyfills.js"
  *          priority="true" defer="false" />
  *
- * @see \Maispace\MaispaceAssets\Service\AssetProcessingService::handleJs()
+ * @see AssetProcessingService::handleJs()
  */
 final class JsViewHelper extends AbstractAssetViewHelper
 {
@@ -129,7 +128,7 @@ final class JsViewHelper extends AbstractAssetViewHelper
 
     public static function renderStatic(
         array $arguments,
-        Closure $renderChildrenClosure,
+        \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): void {
         AssetProcessingService::handleJs($arguments, $renderChildrenClosure());

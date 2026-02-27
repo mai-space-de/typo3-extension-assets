@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Middleware;
 
@@ -45,17 +45,18 @@ use Psr\Http\Server\RequestHandlerInterface;
  * stack after `site-resolver` (so the site context is available for TypoScript reading)
  * and before `page-resolver` (so we short-circuit before any page lookup).
  *
- * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
+ * @see SpriteIconRegistry
  */
 final class SvgSpriteMiddleware implements MiddlewareInterface
 {
     private const DEFAULT_ROUTE_PATH = '/maispace/sprite.svg';
-    private const CONTENT_TYPE       = 'image/svg+xml; charset=utf-8';
+    private const CONTENT_TYPE = 'image/svg+xml; charset=utf-8';
 
     public function __construct(
         private readonly SpriteIconRegistry $registry,
         private readonly ResponseFactoryInterface $responseFactory,
-    ) {}
+    ) {
+    }
 
     public function process(
         ServerRequestInterface $request,
@@ -68,7 +69,7 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
         }
 
         $siteIdentifier = $request->getAttribute('site')?->getIdentifier();
-        $spriteXml      = $this->registry->buildSprite($siteIdentifier);
+        $spriteXml = $this->registry->buildSprite($siteIdentifier);
 
         if ($spriteXml === '') {
             // No symbols registered — return a valid empty SVG rather than a 404.
@@ -113,8 +114,8 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
             return self::DEFAULT_ROUTE_PATH;
         }
 
-        $setup      = $frontendTypoScript->getSetupArray();
-        $routePath  = $setup['plugin.']['tx_maispace_assets.']['svgSprite.']['routePath'] ?? '';
+        $setup = $frontendTypoScript->getSetupArray();
+        $routePath = $setup['plugin.']['tx_maispace_assets.']['svgSprite.']['routePath'] ?? '';
 
         if (!is_string($routePath) || $routePath === '') {
             return self::DEFAULT_ROUTE_PATH;
