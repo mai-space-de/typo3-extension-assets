@@ -109,6 +109,20 @@ plugin.tx_maispace_assets {
     }
 
     # =========================================================================
+    # Lottie animation settings (mai:lottie)
+    # =========================================================================
+    lottie {
+        # URL or EXT: path to the lottie-player web component JavaScript.
+        # This script is registered once via AssetCollector (type="module", footer).
+        # Leave empty to skip auto-registration — useful when you already bundle
+        # lottie-player in your site package's own JS build.
+        # Use a pinned version in production to avoid unexpected breaking changes.
+        # Example (CDN): playerSrc = https://unpkg.com/@lottiefiles/lottie-player@2.0.8/dist/lottie-player.js
+        # Example (local): playerSrc = EXT:theme/Resources/Public/Vendor/lottie-player.js
+        playerSrc =
+    }
+
+    # =========================================================================
     # SVG Sprite settings
     # =========================================================================
     svgSprite {

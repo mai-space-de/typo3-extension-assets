@@ -105,6 +105,26 @@ final class JsViewHelper extends AbstractAssetViewHelper
             false,
             null,
         );
+
+        $this->registerArgument(
+            'integrityValue',
+            'string',
+            'Pre-computed SRI hash for external scripts (e.g. "sha384-..."). '
+            . 'Only used when src is an external URL, because the hash cannot be computed remotely at render time. '
+            . 'Example: integrityValue="sha384-Fo3rlrZj/k7ujTeHg/9LZlB9xHqgSjQKtFXpgzH/vX8AAIM5B4YX7d3/9g=="',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'nomodule',
+            'bool',
+            'Add the nomodule attribute to the <script> tag. '
+            . 'Use for legacy (non-module) fallback bundles that should be ignored by browsers supporting ES modules. '
+            . 'When true, defer and async are automatically suppressed (legacy parsers execute nomodule scripts immediately).',
+            false,
+            false,
+        );
     }
 
     public static function renderStatic(

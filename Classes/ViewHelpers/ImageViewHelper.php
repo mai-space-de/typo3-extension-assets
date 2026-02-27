@@ -178,6 +178,15 @@ final class ImageViewHelper extends AbstractViewHelper
             false,
             null,
         );
+
+        $this->registerArgument(
+            'quality',
+            'int',
+            'Image compression quality (1–100). Only meaningful for lossy formats (JPEG, WebP, AVIF). '
+            . '0 (default) uses the ImageMagick/GraphicsMagick default configured in the Install Tool.',
+            false,
+            0,
+        );
     }
 
     public static function renderStatic(
@@ -196,11 +205,14 @@ final class ImageViewHelper extends AbstractViewHelper
         // Resolve the output format: explicit argument → TypoScript forceFormat → source format.
         $fileExtension = self::resolveFileExtension($arguments);
 
+        $quality = (int)($arguments['quality'] ?? 0);
+
         $processed = $service->processImage(
             $file,
             (string)$arguments['width'],
             (string)$arguments['height'],
             $fileExtension,
+            $quality,
         );
 
         // Resolve lazy loading from arguments, then TypoScript fallback.
@@ -215,6 +227,7 @@ final class ImageViewHelper extends AbstractViewHelper
                 $srcsetArg,
                 (string)$arguments['height'],
                 $fileExtension,
+                $quality,
             );
         }
 

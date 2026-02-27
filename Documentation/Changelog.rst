@@ -6,6 +6,72 @@
 Changelog
 =========
 
+1.2.0 (2026-02-27)
+==================
+
+New Features
+------------
+
+New ViewHelpers
+~~~~~~~~~~~~~~~
+
+*  **``<mai:hint>``** — Emit resource hint ``<link>`` tags into ``<head>`` from Fluid templates.
+   Supports ``preconnect``, ``dns-prefetch``, ``modulepreload``, ``prefetch``, and ``preload``.
+   Full attribute support: ``as``, ``type``, ``crossorigin``, ``media``.
+   ``modulepreload`` defaults to ``as="script"`` per spec. Injected via
+   ``PageRenderer::addHeaderData()``.
+
+*  **``<mai:svgInline>``** — Embed an SVG file directly as inline ``<svg>`` markup.
+   Unlike ``<mai:svgSprite>``, the full SVG element is read from disk and injected into the
+   HTML response — enabling CSS ``fill: currentColor`` styling and JavaScript-driven animations.
+   Supports overriding ``class``, ``width``, ``height``, ``aria-hidden``, ``aria-label``,
+   ``role``, and ``<title>`` injection. Results are cached in the TYPO3 caching framework.
+
+*  **``<mai:lottie>``** — Render a Lottie JSON animation via the ``<lottie-player>`` web
+   component. Accepts ``EXT:`` paths, public-relative paths, or external CDN URLs for the
+   animation JSON. Optionally registers the ``@lottiefiles/lottie-player`` player script via
+   ``AssetCollector`` as a ``type="module"`` script. Arguments: ``autoplay``, ``loop``,
+   ``controls``, ``speed``, ``direction``, ``mode`` (``bounce``), ``renderer``
+   (``svg``/``canvas``/``html``), ``background``, ``width``, ``height``, ``class``,
+   ``playerSrc``, ``playerIdentifier``, ``additionalAttributes``. Player URL configurable
+   globally via TypoScript: ``plugin.tx_maispace_assets.lottie.playerSrc``.
+
+Asset ViewHelpers
+~~~~~~~~~~~~~~~~~
+
+*  **External CDN passthrough** on ``<mai:css>`` and ``<mai:js>`` — ``src="https://..."``
+   is now supported. External URLs are registered directly with AssetCollector without file
+   read, minification, cache write, or PSR-14 event dispatch. All existing placement
+   arguments (``priority``, ``media``, ``defer``, ``async``) work as normal.
+
+*  **``integrityValue`` argument** on ``<mai:css>`` and ``<mai:js>`` — Pass a pre-computed
+   SRI hash string (e.g. ``sha384-abc123...``) to emit an ``integrity`` attribute on external
+   CDN assets where the hash cannot be computed at render time.
+
+*  **``nomodule`` argument** on ``<mai:js>`` — Emit the ``nomodule`` attribute for legacy
+   differential loading. Automatically suppresses ``defer`` and ``async`` (which are
+   incompatible with ``nomodule`` scripts).
+
+Bug Fixes
+---------
+
+*  **``type="importmap"`` correctness** — Import maps in ``<mai:js type="importmap">`` are
+   now handled per spec: the JSON content is never minified (the minifier was mangling the
+   JSON), never given a ``defer`` or ``async`` attribute (importmaps must parse synchronously),
+   and always placed in ``<head>`` (``priority=true`` forced). Previously this combination
+   produced broken output.
+
+Image ViewHelpers
+~~~~~~~~~~~~~~~~~
+
+*  **``quality`` argument** on ``<mai:image>``, ``<mai:picture>``, and ``<mai:picture.source>``
+   — Pass an integer (1–100) to control the lossy output quality (JPEG, WebP, AVIF) passed
+   to ImageMagick/GraphicsMagick via TYPO3's ``ImageService``. ``0`` (default) uses the
+   processor default (~75–85). Quality is included in the image processing cache key to
+   prevent stale results across quality changes.
+
+----
+
 1.1.0 (2026-02-26)
 ==================
 

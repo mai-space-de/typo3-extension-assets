@@ -1,6 +1,6 @@
 # maispace/assets — TYPO3 Asset ViewHelpers
 
-A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, images, SVG sprites, and web font preloading — all from Fluid templates, with performance-first defaults.
+A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, images, SVG sprites, Lottie animations, and web font preloading — all from Fluid templates, with performance-first defaults.
 
 **Requires:** TYPO3 12.4 LTS or 13.x LTS · PHP 8.1+
 
@@ -10,18 +10,24 @@ A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, ima
 
 | Feature | ViewHelper / API |
 |---|---|
-| CSS from file or inline | `<mai:css>` |
-| JavaScript from file or inline | `<mai:js>` |
+| CSS from file, inline, or external URL | `<mai:css>` |
+| JavaScript from file, inline, or external URL | `<mai:js>` |
 | SCSS compiled server-side (no Node.js) | `<mai:scss>` |
-| Responsive `<img>` with lazy load, preload, srcset | `<mai:image>` |
-| Responsive `<picture>` with per-breakpoint sources | `<mai:picture>` + `<mai:picture.source>` |
+| Import maps (JSON unmangled, always synchronous) | `<mai:js type="importmap">` |
+| Legacy bundle differential loading | `<mai:js nomodule="true">` |
+| Resource hints (preconnect, dns-prefetch, modulepreload, preload…) | `<mai:hint>` |
+| Responsive `<img>` with lazy load, preload, srcset, quality | `<mai:image>` |
+| Responsive `<picture>` with per-breakpoint sources and quality | `<mai:picture>` + `<mai:picture.source>` |
 | Automatic WebP/AVIF `<source>` sets in `<picture>` | `formats="avif, webp"` or `image.alternativeFormats` |
 | Global image format conversion (WebP/AVIF) | `image.forceFormat` TypoScript / `fileExtension` argument |
-| CSP nonce on inline `<style>` / `<script>` | `nonce` argument on `<mai:css>` / `<mai:js>` |
-| SRI integrity hash on `<link>` / `<script>` | `integrity="true"` argument |
-| Semantic `<figure>/<figcaption>` wrapper | `<mai:figure>` |
+| Lottie animations via `<lottie-player>` web component | `<mai:lottie>` |
+| Inline SVG embedding from file (CSS/JS accessible) | `<mai:svgInline>` |
 | SVG sprite served from a cacheable URL | `<mai:svgSprite>` + `Configuration/SpriteIcons.php` |
 | Web font `<link rel="preload">` in `<head>` | `Configuration/Fonts.php` |
+| CSP nonce on inline `<style>` / `<script>` | `nonce` argument (auto-detected from TYPO3 request) |
+| SRI integrity on local assets | `integrity="true"` argument |
+| SRI integrity on external assets | `integrityValue="sha384-..."` argument |
+| Semantic `<figure>/<figcaption>` wrapper | `<mai:figure>` |
 | Multi-site scoping for sprites and fonts | `'sites'` key in config files |
 | Deploy-time cache warm-up | `php vendor/bin/typo3 maispace:assets:warmup` |
 | PSR-14 events at every processing stage | `Classes/Event/` |
@@ -46,7 +52,7 @@ No extension manager configuration, no ext_tables.php boilerplate.
 
 ## CSS & JavaScript
 
-Include assets inline or from a file. Assets are minified, cached in `typo3temp/`, and registered with TYPO3's AssetCollector.
+Include assets inline or from a file. Local assets are minified, cached in `typo3temp/`, and registered with TYPO3's AssetCollector. External URLs are passed through directly — no local copy is made.
 
 ```html
 <!-- CSS from file (deferred by default via media="print" swap) -->
@@ -57,11 +63,40 @@ Include assets inline or from a file. Assets are minified, cached in `typo3temp/
     body { margin: 0; font-family: sans-serif; }
 </mai:css>
 
+<!-- External CSS (e.g. Google Fonts) — passed through, not processed locally -->
+<mai:css src="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap"
+         deferred="false" />
+
+<!-- External CSS with pre-computed SRI hash -->
+<mai:css src="https://cdn.example.com/vendor.css"
+         integrityValue="sha384-Fo3rlrZj/k7ujTeHg/9LZlB9xHqgSjQKtFXpgzH/vX8AAIM5B4YX7d3/9g==" />
+
 <!-- JS (defer="true" by default) -->
 <mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" />
 
 <!-- ES module -->
 <mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" type="module" />
+
+<!-- External analytics snippet -->
+<mai:js src="https://cdn.example.com/analytics.js" async="true" />
+
+<!-- Legacy bundle for browsers without ES module support -->
+<mai:js src="EXT:theme/Resources/Public/JavaScript/legacy.js" nomodule="true" />
+```
+
+### Import maps
+
+Import maps must be inline JSON and must load synchronously before any `type="module"` script. The ViewHelper enforces this automatically: no minification, no `defer`, always placed in `<head>`.
+
+```html
+<mai:js type="importmap">
+{
+    "imports": {
+        "lodash": "/node_modules/lodash-es/lodash.js",
+        "app": "/assets/app.js"
+    }
+}
+</mai:js>
 ```
 
 ---
@@ -82,6 +117,34 @@ Cache is automatically invalidated when the source file changes (`filemtime`).
 
 ---
 
+## Resource Hints
+
+Emit `<link>` resource hints into `<head>` to warm up connections and pre-fetch critical resources. All hints are injected via PageRenderer and always land in `<head>`.
+
+```html
+<!-- Warm up TCP+TLS to a CDN origin (cheapest way to speed up cross-origin assets) -->
+<mai:hint rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+
+<!-- DNS-only warm-up (no TLS — even cheaper, use for less-critical origins) -->
+<mai:hint rel="dns-prefetch" href="https://cdn.example.com" />
+
+<!-- Preload an ES module and all its static imports in parallel -->
+<mai:hint rel="modulepreload" href="/assets/app.js" />
+
+<!-- Preload a web font (crossorigin is required for fonts) -->
+<mai:hint rel="preload" href="/fonts/Inter.woff2"
+         as="font" type="font/woff2" crossorigin="anonymous" />
+
+<!-- Conditional image preload scoped to a viewport size -->
+<mai:hint rel="preload" href="/images/hero-mobile.webp"
+         as="image" media="(max-width: 767px)" />
+
+<!-- Prefetch a resource likely needed on the next navigation -->
+<mai:hint rel="prefetch" href="/next-page.html" />
+```
+
+---
+
 ## Images
 
 Process images via TYPO3's native ImageService (supports WebP conversion, cropping, etc). Accept FAL UIDs, File/FileReference objects, or EXT: paths.
@@ -99,6 +162,12 @@ Process images via TYPO3's native ImageService (supports WebP conversion, croppi
 <!-- Lazy load with a JS-hook class (e.g. for lazysizes) -->
 <mai:image image="{img}" alt="{alt}" width="427c" height="240"
           lazyloadWithClass="lazyload" />
+
+<!-- Explicit JPEG quality (1–100); 0 = ImageMagick/GM default -->
+<mai:image image="{img}" alt="{alt}" width="800" quality="75" />
+
+<!-- Force WebP output -->
+<mai:image image="{img}" alt="{alt}" width="800" fileExtension="webp" />
 ```
 
 Width/height notation: `800` (exact) · `800c` (centre crop) · `800m` (max, proportional)
@@ -117,6 +186,46 @@ Sources are configured inline in the template — no central YAML file needed.
 
 Each `<mai:picture.source>` processes the image independently to the specified dimensions. Override the image for a specific breakpoint with the `image` argument.
 
+### Automatic WebP/AVIF source sets
+
+The `formats` argument renders one `<source>` per format (most capable first), then the fallback `<img>`. No template duplication needed.
+
+```html
+<mai:picture image="{img}" alt="{alt}" width="1200" formats="avif, webp">
+    <mai:picture.source media="(min-width: 768px)" width="1200" formats="avif, webp" />
+    <mai:picture.source media="(max-width: 767px)" width="400" formats="avif, webp" />
+</mai:picture>
+```
+
+Output:
+```html
+<picture>
+  <source srcset="…1200.avif" media="(min-width: 768px)" type="image/avif">
+  <source srcset="…1200.webp" media="(min-width: 768px)" type="image/webp">
+  <source srcset="…1200.jpg"  media="(min-width: 768px)" type="image/jpeg">
+  <source srcset="…400.avif"  media="(max-width: 767px)" type="image/avif">
+  <source srcset="…400.webp"  media="(max-width: 767px)" type="image/webp">
+  <source srcset="…400.jpg"   media="(max-width: 767px)" type="image/jpeg">
+  <img src="…1200.jpg" …>
+</picture>
+```
+
+Enable globally via TypoScript so all `<picture>` elements get format sources without per-template changes:
+
+```typoscript
+plugin.tx_maispace_assets.image.alternativeFormats = avif, webp
+```
+
+### Image quality
+
+The `quality` argument is available on `<mai:image>`, `<mai:picture>`, and `<mai:picture.source>`. It applies to all processed variants (including format alternatives).
+
+```html
+<mai:picture image="{img}" alt="{alt}" width="1200" quality="80" formats="avif, webp">
+    <mai:picture.source media="(min-width: 768px)" width="1200" quality="80" />
+</mai:picture>
+```
+
 ### `<mai:figure>` — semantic figure wrapper
 
 ```html
@@ -127,6 +236,73 @@ Each `<mai:picture.source>` processes the image independently to the specified d
     </mai:picture>
 </mai:figure>
 ```
+
+---
+
+## Lottie Animations
+
+Render Lottie JSON animations using the `<lottie-player>` web component. The player script is registered once via AssetCollector as a `type="module"` script (non-blocking).
+
+```html
+<!-- Basic looping animation -->
+<mai:lottie src="EXT:theme/Resources/Public/Animations/hero.json"
+           width="400px" height="400px" />
+
+<!-- One-shot (no loop), explicit size -->
+<mai:lottie src="EXT:theme/Resources/Public/Animations/checkmark.json"
+           loop="false" autoplay="true" width="80px" height="80px" />
+
+<!-- Bounce mode with player controls -->
+<mai:lottie src="/animations/wave.json"
+           mode="bounce" controls="true" width="300px" />
+
+<!-- External animation JSON from a CDN -->
+<mai:lottie src="https://assets.example.com/animations/hero.json"
+           width="100%" height="500px" />
+
+<!-- Skip player registration (you include the script separately) -->
+<mai:lottie src="/animations/icon.json" playerSrc="" width="48px" height="48px" />
+```
+
+Configure the player script URL globally via TypoScript (pin a version in production):
+
+```typoscript
+plugin.tx_maispace_assets.lottie.playerSrc = https://unpkg.com/@lottiefiles/lottie-player@2.0.8/dist/lottie-player.js
+```
+
+Or set it per element:
+
+```html
+<mai:lottie src="/animations/hero.json"
+           playerSrc="EXT:theme/Resources/Public/Vendor/lottie-player.js"
+           width="600px" />
+```
+
+Pass `playerSrc=""` to skip auto-registration entirely when you include the player via another mechanism.
+
+**Available arguments:** `src`, `autoplay`, `loop`, `controls`, `speed`, `direction`, `mode` (`"normal"` / `"bounce"`), `renderer` (`"svg"` / `"canvas"` / `"html"`), `background`, `width`, `height`, `class`, `playerSrc`, `playerIdentifier`, `additionalAttributes`.
+
+---
+
+## Inline SVG
+
+Embed an SVG file directly as inline markup — required when the SVG needs CSS styling (`fill: currentColor`), JavaScript interaction, or must render without a separate network request.
+
+```html
+<!-- Decorative (aria-hidden="true" by default) -->
+<mai:svgInline src="EXT:theme/Resources/Public/Icons/logo.svg"
+              class="logo" width="120" height="40" />
+
+<!-- Meaningful SVG with accessible label -->
+<mai:svgInline src="EXT:theme/Resources/Public/Icons/checkmark.svg"
+              aria-label="Success" width="24" height="24" />
+
+<!-- Custom title element for screen readers -->
+<mai:svgInline src="EXT:theme/Resources/Public/Icons/logo.svg"
+              title="Company Logo" aria-label="Company Logo" />
+```
+
+The processed markup is cached in the `maispace_assets` cache. The source file must be a trusted filesystem path (EXT: notation or site-relative) — user-supplied SVG is not safe to embed inline without sanitization.
 
 ---
 
@@ -225,10 +401,15 @@ plugin.tx_maispace_assets {
     }
     image {
         lazyloading = 1
-        lazyloadWithClass =  # e.g. "lazyload" for lazysizes
+        lazyloadWithClass =        # e.g. "lazyload" for lazysizes
+        forceFormat =              # e.g. "webp" to convert all images globally
+        alternativeFormats =       # e.g. "avif, webp" for automatic <source> sets
     }
     fonts {
-        preload = 1  # 0 to suppress all font preload tags globally
+        preload = 1                # 0 to suppress all font preload tags globally
+    }
+    lottie {
+        playerSrc =                # URL or EXT: path to lottie-player.js (empty = skip)
     }
     svgSprite {
         routePath = /maispace/sprite.svg

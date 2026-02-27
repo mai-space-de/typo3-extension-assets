@@ -53,51 +53,81 @@ final class AssetProcessingService
         $logger      = self::logger();
         $collector   = self::collector();
 
-        // 1. Resolve source content and determine whether it is file-based.
-        [$content, $absoluteSrc, $isFileBased] = self::resolveSource(
-            $arguments['src'] ?? null,
-            $inlineContent,
-        );
+        $srcArg  = $arguments['src'] ?? null;
+        $isDeferred = self::resolveFlag('deferred', $arguments['deferred'] ?? null, 'css');
+        $isInline   = (bool)($arguments['inline'] ?? false);
+        $isPriority = (bool)($arguments['priority'] ?? false);
+        $media      = $arguments['media'] ?? 'all';
+
+        // 1. External URL — bypass all local file processing entirely.
+        if ($srcArg !== null && self::isExternalUrl($srcArg)) {
+            $identifier     = self::buildIdentifier($arguments['identifier'] ?? null, $srcArg, $srcArg, 'css');
+            $integrityAttrs = self::buildIntegrityAttrsForExternal($arguments);
+            if ($isDeferred) {
+                $collector->addStyleSheet(
+                    $identifier,
+                    $srcArg,
+                    array_filter([
+                        'media'  => 'print',
+                        'onload' => "this.media='" . addslashes($media) . "'",
+                    ] + $integrityAttrs),
+                    ['priority' => false],
+                );
+                $collector->addInlineStyleSheet(
+                    $identifier . '_noscript',
+                    '<noscript><link rel="stylesheet" href="' . htmlspecialchars($srcArg) . '"></noscript>',
+                    [],
+                    ['priority' => false],
+                );
+            } else {
+                $collector->addStyleSheet(
+                    $identifier,
+                    $srcArg,
+                    array_filter(['media' => $media] + $integrityAttrs),
+                    ['priority' => $isPriority],
+                );
+            }
+            return;
+        }
+
+        // 2. Resolve source content and determine whether it is file-based.
+        [$content, $absoluteSrc, $isFileBased] = self::resolveSource($srcArg, $inlineContent);
 
         if ($content === null) {
             return; // No content, nothing to do.
         }
 
-        // 2. Build a stable identifier.
+        // 3. Build a stable identifier.
         $identifier = self::buildIdentifier(
             $arguments['identifier'] ?? null,
-            $arguments['src'] ?? null,
+            $srcArg,
             $content,
             'css',
         );
 
-        // 3. Determine effective settings (argument overrides TypoScript).
+        // 4. Determine minification setting.
         $shouldMinify = self::resolveFlag('minify', $arguments['minify'] ?? null, 'css');
-        $isDeferred   = self::resolveFlag('deferred', $arguments['deferred'] ?? null, 'css');
-        $isInline     = (bool)($arguments['inline'] ?? false);
-        $isPriority   = (bool)($arguments['priority'] ?? false);
-        $media        = $arguments['media'] ?? 'all';
 
-        // 4. Check cache.
+        // 5. Check cache.
         $cacheKey = $cache->buildCssKey($identifier, $shouldMinify);
         if ($cache->has($cacheKey)) {
             $processed = $cache->get($cacheKey);
         } else {
-            // 5. Minify if requested.
+            // 6. Minify if requested.
             $processed = $shouldMinify ? self::minifyCss($content, $absoluteSrc) : $content;
 
-            // 6. Dispatch event (listeners may modify $processed).
+            // 7. Dispatch event (listeners may modify $processed).
             /** @var AfterCssProcessedEvent $event */
             $event = $dispatcher->dispatch(
                 new AfterCssProcessedEvent($identifier, $processed, $arguments),
             );
             $processed = $event->getProcessedCss();
 
-            // 7. Store in cache.
+            // 8. Store in cache.
             $cache->set($cacheKey, $processed, ['maispace_assets_css']);
         }
 
-        // 8. Register with AssetCollector.
+        // 9. Register with AssetCollector.
         $nonce = self::resolveNonce($arguments);
 
         if ($isInline) {
@@ -165,27 +195,75 @@ final class AssetProcessingService
         $logger     = self::logger();
         $collector  = self::collector();
 
-        [$content, $absoluteSrc, $isFileBased] = self::resolveSource(
-            $arguments['src'] ?? null,
-            $inlineContent,
-        );
+        $type         = $arguments['type'] ?? null;
+        $isImportMap  = ($type === 'importmap');
+
+        // importmap: always inline JSON — src is meaningless per spec.
+        // Resolve content from inline children only; skip minification and defer.
+        if ($isImportMap) {
+            $content = trim((string)$inlineContent);
+            if ($content === '') {
+                return;
+            }
+            $identifier = self::buildIdentifier(
+                $arguments['identifier'] ?? null,
+                null,
+                $content,
+                'js',
+            );
+            $nonce = self::resolveNonce($arguments);
+            $inlineAttrs = array_filter([
+                'type'  => 'importmap',
+                'nonce' => $nonce,
+            ]);
+            $collector->addInlineJavaScript(
+                $identifier,
+                $content,
+                $inlineAttrs,
+                ['priority' => true], // importmaps must be in <head>, before any module scripts
+            );
+            return;
+        }
+
+        $srcArg      = $arguments['src'] ?? null;
+        $useDefer    = self::resolveFlag('defer', $arguments['defer'] ?? null, 'js');
+        $useAsync    = (bool)($arguments['async'] ?? false);
+        $useNoModule = (bool)($arguments['nomodule'] ?? false);
+        $isPriority  = (bool)($arguments['priority'] ?? false);
+
+        // nomodule scripts must NOT be deferred (legacy parsers execute them immediately).
+        if ($useNoModule) {
+            $useDefer = false;
+            $useAsync = false;
+        }
+
+        // External URL — bypass all local file processing entirely.
+        if ($srcArg !== null && self::isExternalUrl($srcArg)) {
+            $identifier     = self::buildIdentifier($arguments['identifier'] ?? null, $srcArg, $srcArg, 'js');
+            $integrityAttrs = self::buildIntegrityAttrsForExternal($arguments);
+            $attributes = array_filter([
+                'defer'    => $useDefer ? 'defer' : null,
+                'async'    => $useAsync ? 'async' : null,
+                'nomodule' => $useNoModule ? 'nomodule' : null,
+                'type'     => $type,
+            ] + $integrityAttrs);
+            $collector->addJavaScript(
+                $identifier,
+                $srcArg,
+                $attributes,
+                ['priority' => $isPriority],
+            );
+            return;
+        }
+
+        [$content, $absoluteSrc, $isFileBased] = self::resolveSource($srcArg, $inlineContent);
 
         if ($content === null) {
             return;
         }
 
-        $identifier = self::buildIdentifier(
-            $arguments['identifier'] ?? null,
-            $arguments['src'] ?? null,
-            $content,
-            'js',
-        );
-
+        $identifier   = self::buildIdentifier($arguments['identifier'] ?? null, $srcArg, $content, 'js');
         $shouldMinify = self::resolveFlag('minify', $arguments['minify'] ?? null, 'js');
-        $useDefer     = self::resolveFlag('defer', $arguments['defer'] ?? null, 'js');
-        $useAsync     = (bool)($arguments['async'] ?? false);
-        $isPriority   = (bool)($arguments['priority'] ?? false);
-        $type         = $arguments['type'] ?? null;
 
         $cacheKey = $cache->buildJsKey($identifier, $shouldMinify);
         if ($cache->has($cacheKey)) {
@@ -205,7 +283,7 @@ final class AssetProcessingService
         $nonce = self::resolveNonce($arguments);
 
         // Inline JS.
-        if (empty($arguments['src'])) {
+        if ($srcArg === null) {
             $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
             $collector->addInlineJavaScript(
                 $identifier,
@@ -226,21 +304,17 @@ final class AssetProcessingService
         // Build SRI integrity attributes when requested.
         $integrityAttrs = self::buildIntegrityAttrs($arguments, $processed);
 
-        $attributes = [];
-        if ($useDefer) {
-            $attributes['defer'] = 'defer';
-        }
-        if ($useAsync) {
-            $attributes['async'] = 'async';
-        }
-        if ($type !== null) {
-            $attributes['type'] = $type;
-        }
+        $attributes = array_filter([
+            'defer'    => $useDefer ? 'defer' : null,
+            'async'    => $useAsync ? 'async' : null,
+            'nomodule' => $useNoModule ? 'nomodule' : null,
+            'type'     => $type,
+        ] + $integrityAttrs);
 
         $collector->addJavaScript(
             $identifier,
             $publicPath,
-            array_filter($attributes + $integrityAttrs),
+            $attributes,
             ['priority' => $isPriority],
         );
     }
@@ -411,11 +485,19 @@ final class AssetProcessingService
      * Returns [content, absolutePath|null, isFileBased].
      * Returns [null, null, false] if the source could not be resolved.
      *
+     * External URLs (http/https/protocol-relative) are returned as [url, null, false]
+     * so callers can detect them with isExternalUrl() and bypass local file processing.
+     *
      * @return array{0: string|null, 1: string|null, 2: bool}
      */
     private static function resolveSource(?string $src, ?string $inlineContent): array
     {
         if ($src !== null) {
+            // External URLs are passed through without file resolution.
+            if (self::isExternalUrl($src)) {
+                return [$src, null, false];
+            }
+
             $absolute = GeneralUtility::getFileAbsFileName($src);
             if ($absolute === '' || !is_file($absolute)) {
                 self::logger()->warning('maispace_assets: Asset file not found: ' . $src);
@@ -431,6 +513,40 @@ final class AssetProcessingService
         }
 
         return [$content, null, false];
+    }
+
+    /**
+     * Return true when the given src is an external URL (http, https, or protocol-relative //).
+     */
+    private static function isExternalUrl(string $src): bool
+    {
+        return str_starts_with($src, 'http://') || str_starts_with($src, 'https://') || str_starts_with($src, '//');
+    }
+
+    /**
+     * Build integrity + crossorigin attrs for external assets.
+     *
+     * For external assets we cannot compute SRI hashes at render time without fetching
+     * the remote resource, which would introduce network latency and failure modes.
+     * Instead, only a pre-computed hash string passed as `integrityValue` is accepted.
+     *
+     * @return array<string, string>
+     */
+    private static function buildIntegrityAttrsForExternal(array $arguments): array
+    {
+        $integrityValue = $arguments['integrityValue'] ?? null;
+        if (!is_string($integrityValue) || $integrityValue === '') {
+            return [];
+        }
+
+        $crossorigin = is_string($arguments['crossorigin'] ?? null) && $arguments['crossorigin'] !== ''
+            ? $arguments['crossorigin']
+            : 'anonymous';
+
+        return [
+            'integrity'   => $integrityValue,
+            'crossorigin' => $crossorigin,
+        ];
     }
 
     /**

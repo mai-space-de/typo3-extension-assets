@@ -152,14 +152,16 @@ final class ImageRenderingService implements SingletonInterface
      * @param string $fileExtension Optional target format override, e.g. "webp" or "avif".
      *                              When empty, the format from BeforeImageProcessingEvent
      *                              or the source file format is used.
+     * @param int    $quality       JPEG/WebP/AVIF quality (1–100). 0 means "use ImageService default".
      */
     public function processImage(
         File|FileReference $file,
         string $width,
         string $height,
         string $fileExtension = '',
+        int $quality = 0,
     ): ProcessedFile {
-        $cacheKey = $this->buildProcessingCacheKey($file, $width, $height, $fileExtension);
+        $cacheKey = $this->buildProcessingCacheKey($file, $width, $height, $fileExtension, $quality);
 
         if (isset(self::$processedFileCache[$cacheKey])) {
             return self::$processedFileCache[$cacheKey];
@@ -174,6 +176,9 @@ final class ImageRenderingService implements SingletonInterface
         }
         if ($fileExtension !== '') {
             $instructions['fileExtension'] = $fileExtension;
+        }
+        if ($quality > 0) {
+            $instructions['quality'] = $quality;
         }
 
         // Dispatch BeforeImageProcessingEvent — listeners can modify instructions or skip.
@@ -223,6 +228,7 @@ final class ImageRenderingService implements SingletonInterface
         string $width,
         string $height,
         array $formats,
+        int $quality = 0,
     ): array {
         $results = [];
 
@@ -231,7 +237,7 @@ final class ImageRenderingService implements SingletonInterface
             if ($format === '') {
                 continue;
             }
-            $results[$format] = $this->processImage($file, $width, $height, $format);
+            $results[$format] = $this->processImage($file, $width, $height, $format, $quality);
         }
 
         return $results;
@@ -260,6 +266,7 @@ final class ImageRenderingService implements SingletonInterface
         string $widths,
         string $height = '',
         string $fileExtension = '',
+        int $quality = 0,
     ): string {
         $widthList = array_filter(array_map('trim', explode(',', $widths)));
         $parts = [];
@@ -268,7 +275,7 @@ final class ImageRenderingService implements SingletonInterface
             if ($w === '') {
                 continue;
             }
-            $processed   = $this->processImage($file, $w, $height, $fileExtension);
+            $processed   = $this->processImage($file, $w, $height, $fileExtension, $quality);
             $url         = $this->imageService->getImageUri($processed, true);
             $actualWidth = (int)($processed->getProperty('width') ?: (int)preg_replace('/\D+/', '', $w));
             if ($url !== '' && $actualWidth > 0) {
@@ -423,9 +430,10 @@ final class ImageRenderingService implements SingletonInterface
         string $width,
         string $height,
         string $fileExtension = '',
+        int $quality = 0,
     ): string {
         $fileUid = $file instanceof FileReference ? $file->getOriginalFile()->getUid() : $file->getUid();
-        return $fileUid . '_' . md5($width . 'x' . $height . ':' . $fileExtension);
+        return $fileUid . '_' . md5($width . 'x' . $height . ':' . $fileExtension . ':q' . $quality);
     }
 
     /**

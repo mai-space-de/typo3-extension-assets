@@ -197,6 +197,15 @@ final class PictureViewHelper extends AbstractViewHelper
             false,
             null,
         );
+
+        $this->registerArgument(
+            'quality',
+            'int',
+            'Image compression quality (1–100). Applies to the fallback <img> and all format-alternative <source> tags. '
+            . '0 (default) uses the ImageMagick/GraphicsMagick default configured in the Install Tool.',
+            false,
+            0,
+        );
     }
 
     public static function renderStatic(
@@ -231,20 +240,22 @@ final class PictureViewHelper extends AbstractViewHelper
         $width  = (string)$arguments['width'];
         $height = (string)$arguments['height'];
 
+        $quality = (int)($arguments['quality'] ?? 0);
+
         // Resolve alternative formats for the fallback area (catch-all sources + img).
         $formats = self::resolveAlternativeFormats($arguments['formats'] ?? null);
 
         // Render format-alternative catch-all <source> tags before the fallback <img>.
         $fallbackSourcesHtml = '';
         if ($formats !== []) {
-            $alternatives = $service->processImageAlternatives($file, $width, $height, $formats);
+            $alternatives = $service->processImageAlternatives($file, $width, $height, $formats, $quality);
             foreach ($alternatives as $altProcessed) {
                 $fallbackSourcesHtml .= $service->renderSourceTag($altProcessed, null);
             }
 
             // Original-format catch-all <source> (browser fallback within <picture>).
             if ((bool)($arguments['fallback'] ?? true)) {
-                $originalProcessed    = $service->processImage($file, $width, $height);
+                $originalProcessed    = $service->processImage($file, $width, $height, '', $quality);
                 $fallbackSourcesHtml .= $service->renderSourceTag($originalProcessed, null);
             }
         }
@@ -253,7 +264,7 @@ final class PictureViewHelper extends AbstractViewHelper
         $fileExtension = self::resolveFileExtension($arguments);
 
         // Build fallback <img>.
-        $processed = $service->processImage($file, $width, $height, $fileExtension);
+        $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
         $imgHtml   = $service->renderImgTag($processed, [
             'alt'               => (string)($arguments['alt'] ?? ''),
             'lazyloading'       => $lazyloading,

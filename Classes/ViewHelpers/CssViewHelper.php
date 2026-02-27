@@ -99,6 +99,16 @@ final class CssViewHelper extends AbstractAssetViewHelper
             false,
             null,
         );
+
+        $this->registerArgument(
+            'integrityValue',
+            'string',
+            'Pre-computed SRI hash for external stylesheets (e.g. "sha384-..."). '
+            . 'Only used when src is an external URL, because the hash cannot be computed remotely at render time. '
+            . 'Example: integrityValue="sha384-Fo3rlrZj/k7ujTeHg/9LZlB9xHqgSjQKtFXpgzH/vX8AAIM5B4YX7d3/9g=="',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(

@@ -180,6 +180,31 @@ Image Settings
         # Serve AVIF to browsers that support it, WebP as second choice, original as fallback
         plugin.tx_maispace_assets.image.alternativeFormats = avif, webp
 
+Lottie Settings
+===============
+
+.. confval:: plugin.tx_maispace_assets.lottie.playerSrc
+    :type: string
+    :Default: *(empty)*
+
+    URL or ``EXT:`` path to the ``@lottiefiles/lottie-player`` JavaScript library. When set,
+    ``<mai:lottie>`` automatically registers this script via TYPO3's ``AssetCollector`` as a
+    ``type="module"`` script (non-blocking) the first time a Lottie ViewHelper is rendered on
+    a page.
+
+    Accepts an external CDN URL or a local path using ``EXT:`` notation.
+
+    When empty (default), no player script is registered automatically. Either configure this
+    setting or pass ``playerSrc`` directly on each ``<mai:lottie>`` call. Pass ``playerSrc=""``
+    on a ViewHelper to skip registration even when this setting is configured.
+
+    .. code-block:: typoscript
+
+        plugin.tx_maispace_assets.lottie.playerSrc = https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js
+
+        # Or a locally bundled copy:
+        # plugin.tx_maispace_assets.lottie.playerSrc = EXT:theme/Resources/Public/Vendor/lottie-player.js
+
 Font Settings
 =============
 
@@ -339,6 +364,9 @@ Full Example Configuration
         }
         fonts {
             preload = 1
+        }
+        lottie {
+            playerSrc = https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js
         }
         svgSprite {
             routePath = /maispace/sprite.svg

@@ -152,6 +152,15 @@ final class SourceViewHelper extends AbstractViewHelper
             false,
             null,
         );
+
+        $this->registerArgument(
+            'quality',
+            'int',
+            'Image compression quality (1–100). Only meaningful for lossy formats (JPEG, WebP, AVIF). '
+            . '0 (default) uses the ImageMagick/GraphicsMagick default configured in the Install Tool.',
+            false,
+            0,
+        );
     }
 
     public static function renderStatic(
@@ -180,27 +189,29 @@ final class SourceViewHelper extends AbstractViewHelper
         $height = (string)$arguments['height'];
         $media  = $arguments['media'] ?? null;
 
+        $quality = (int)($arguments['quality'] ?? 0);
+
         // Resolve alternative formats: argument → TypoScript default.
         $formats = self::resolveAlternativeFormats($arguments['formats'] ?? null);
 
         // No format alternatives: render a single <source> tag (classic behaviour).
         if ($formats === []) {
             $fileExtension = self::resolveFileExtension($arguments);
-            $processed = $service->processImage($file, $width, $height, $fileExtension);
+            $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
             return $service->renderSourceTag($processed, $media, $arguments['type'] ?? null);
         }
 
         // Format alternatives: render one <source> per alternative format, then the fallback.
         $html = '';
 
-        $alternatives = $service->processImageAlternatives($file, $width, $height, $formats);
+        $alternatives = $service->processImageAlternatives($file, $width, $height, $formats, $quality);
         foreach ($alternatives as $processed) {
             $html .= $service->renderSourceTag($processed, $media);
         }
 
         // Fallback <source> in the original/default format (no fileExtension override).
         if ((bool)($arguments['fallback'] ?? true)) {
-            $fallbackProcessed = $service->processImage($file, $width, $height);
+            $fallbackProcessed = $service->processImage($file, $width, $height, '', $quality);
             $html .= $service->renderSourceTag($fallbackProcessed, $media, $arguments['type'] ?? null);
         }
 

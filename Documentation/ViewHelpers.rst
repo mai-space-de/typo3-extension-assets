@@ -21,6 +21,13 @@ Include a CSS asset from a file or inline Fluid content.
     <!-- From a file -->
     <mai:css src="EXT:my_ext/Resources/Public/Css/app.css" />
 
+    <!-- From an external CDN (passed through directly, no minification) -->
+    <mai:css src="https://fonts.googleapis.com/css2?family=Inter:wght@400;700" />
+
+    <!-- External CDN with pre-computed SRI hash -->
+    <mai:css src="https://cdn.example.com/styles.css"
+             integrityValue="sha384-abc123..." crossorigin="anonymous" />
+
     <!-- Inline CSS (auto-identifier from content hash) -->
     <mai:css identifier="hero-styles">
         .hero { background: #e63946; color: #fff; padding: 4rem; }
@@ -61,8 +68,10 @@ Arguments
       - string
       - No
       - null
-      - EXT: path (e.g. ``EXT:my_ext/Resources/Public/Css/app.css``) or absolute
-        path to a CSS file. When provided, inline child node content is ignored.
+      - EXT: path (e.g. ``EXT:my_ext/Resources/Public/Css/app.css``), absolute
+        path, or external URL (``https://...``). When an external URL is provided
+        it is registered directly with AssetCollector — no file read, minification,
+        or cache write occurs. When ``src`` is provided, inline child content is ignored.
     * - ``priority``
       - bool
       - No
@@ -73,7 +82,7 @@ Arguments
       - No
       - null
       - Override the TypoScript ``css.minify`` setting for this single asset.
-        ``null`` inherits the global setting.
+        ``null`` inherits the global setting. Has no effect on external URLs.
     * - ``inline``
       - bool
       - No
@@ -86,6 +95,7 @@ Arguments
       - null
       - Load the CSS non-blocking via ``media="print"`` onload swap. A ``<noscript>``
         fallback is appended automatically. ``null`` inherits ``css.deferred`` from TypoScript.
+        Has no effect on external URLs (registered as-is).
     * - ``media``
       - string
       - No
@@ -105,14 +115,21 @@ Arguments
       - null
       - When ``true``, automatically compute a SHA-384 SRI hash of the processed CSS
         and add an ``integrity`` attribute to the generated ``<link>`` tag.
-        Only applied for external file assets (not inline). Browsers refuse to load
-        the file if the hash does not match.
+        Only applied for local file assets (not inline, not external URLs). Browsers
+        refuse to load the file if the hash does not match.
+    * - ``integrityValue``
+      - string
+      - No
+      - null
+      - Pre-computed SRI hash string (e.g. ``sha384-abc123...``) to use as the
+        ``integrity`` attribute. Intended for **external CDN assets** where a hash
+        cannot be computed at render time. Takes precedence over ``integrity="true"``.
     * - ``crossorigin``
       - string
       - No
       - null
-      - Value for the ``crossorigin`` attribute added alongside ``integrity``.
-        Defaults to ``"anonymous"`` when ``integrity`` is enabled.
+      - Value for the ``crossorigin`` attribute added alongside ``integrity`` or
+        ``integrityValue``. Defaults to ``"anonymous"`` when ``integrity`` is enabled.
 
 .. _viewhelper-js:
 
@@ -128,6 +145,21 @@ Include a JavaScript asset from a file or inline Fluid content.
 
     <!-- ES module -->
     <mai:js src="EXT:theme/Resources/Public/JavaScript/app.js" type="module" />
+
+    <!-- Legacy fallback bundle (only loaded by browsers that don't support modules) -->
+    <mai:js src="EXT:theme/Resources/Public/JavaScript/legacy.js" nomodule="true" />
+
+    <!-- External CDN script (passed through directly, no minification) -->
+    <mai:js src="https://cdn.example.com/library.js" />
+
+    <!-- External CDN with pre-computed SRI hash -->
+    <mai:js src="https://cdn.example.com/library.js"
+            integrityValue="sha384-xyz789..." crossorigin="anonymous" />
+
+    <!-- Import map (synchronous inline JSON — never minified or deferred) -->
+    <mai:js type="importmap">
+        {"imports":{"lodash":"/vendor/lodash-es/lodash.js"}}
+    </mai:js>
 
     <!-- Async (loaded in parallel, executed immediately when ready) -->
     <mai:js src="EXT:theme/Resources/Public/JavaScript/analytics.js" async="true" />
@@ -164,7 +196,9 @@ Arguments
       - string
       - No
       - null
-      - EXT: path or absolute path to a JS file.
+      - EXT: path, absolute path, or external URL (``https://...``) to a JS file.
+        External URLs are passed through to AssetCollector without file read,
+        minification, or cache write.
     * - ``priority``
       - bool
       - No
@@ -174,24 +208,38 @@ Arguments
       - bool
       - No
       - null
-      - Override the TypoScript ``js.minify`` setting.
+      - Override the TypoScript ``js.minify`` setting. Has no effect on external URLs.
     * - ``defer``
       - bool
       - No
       - null
       - Add the ``defer`` attribute. ``null`` inherits ``js.defer`` from TypoScript (default: 1).
+        Automatically disabled when ``type="importmap"`` or ``nomodule="true"``.
     * - ``async``
       - bool
       - No
       - ``false``
       - Add the ``async`` attribute. The script is fetched in parallel and executed
-        as soon as available.
+        as soon as available. Automatically disabled when ``nomodule="true"``.
     * - ``type``
       - string
       - No
       - null
-      - The ``type`` attribute (e.g. ``"module"`` for ES modules, ``"importmap"`` for
-        inline import maps). ES modules imply ``defer`` by the browser.
+      - The ``type`` attribute. Use ``"module"`` for ES modules or ``"importmap"`` for
+        inline import maps.
+
+        **``type="importmap"`` special behaviour:** the content is treated as inline JSON,
+        never minified, always placed in ``<head>`` (``priority=true`` forced), and
+        ``defer`` / ``async`` are suppressed. This matches the HTML spec requirement
+        that import maps must be parsed synchronously before any module scripts run.
+    * - ``nomodule``
+      - bool
+      - No
+      - ``false``
+      - Add the ``nomodule`` attribute. When ``true``, the script is only executed by
+        browsers that do not support ES modules — the classic differential loading
+        pattern. ``defer`` and ``async`` are suppressed automatically because
+        ``nomodule`` scripts must be loaded synchronously.
     * - ``nonce``
       - string
       - No
@@ -206,14 +254,21 @@ Arguments
       - null
       - When ``true``, automatically compute a SHA-384 SRI hash of the processed JS
         and add an ``integrity`` attribute to the ``<script>`` tag.
-        Only applied for external file assets. Browsers refuse to execute the script
+        Only applied for local file assets. Browsers refuse to execute the script
         if the hash does not match.
+    * - ``integrityValue``
+      - string
+      - No
+      - null
+      - Pre-computed SRI hash string (e.g. ``sha384-abc123...``) to use as the
+        ``integrity`` attribute. Intended for **external CDN scripts** where a hash
+        cannot be computed at render time. Takes precedence over ``integrity="true"``.
     * - ``crossorigin``
       - string
       - No
       - null
-      - Value for the ``crossorigin`` attribute added alongside ``integrity``.
-        Defaults to ``"anonymous"`` when ``integrity`` is enabled.
+      - Value for the ``crossorigin`` attribute added alongside ``integrity`` or
+        ``integrityValue``. Defaults to ``"anonymous"`` when ``integrity`` is enabled.
 
 .. _viewhelper-scss:
 
@@ -468,6 +523,352 @@ Complete Layout Example
     </body>
     </html>
 
+.. _viewhelper-svginline:
+
+mai:svgInline
+=============
+
+Embed an SVG file directly as inline ``<svg>`` markup in the HTML document.
+
+Unlike ``<mai:svgSprite>`` (which outputs an ``<svg><use>`` sprite reference),
+``<mai:svgInline>`` reads the source file and injects the full ``<svg>`` element.
+Use this when the SVG needs to be styled via CSS (e.g. ``fill: currentColor``),
+contains JS-driven animations, or must render without a separate network request.
+
+The processed result is cached in the ``maispace_assets`` TYPO3 caching framework
+cache — repeated uses in the same template incur no additional file reads or DOM parsing.
+
+.. code-block:: html
+
+    <!-- Decorative logo (aria-hidden="true" by default) -->
+    <mai:svgInline src="EXT:theme/Resources/Public/Icons/logo.svg"
+                   class="logo" width="120" height="40" />
+
+    <!-- Meaningful SVG with accessible label -->
+    <mai:svgInline src="EXT:theme/Resources/Public/Icons/checkmark.svg"
+                   aria-label="Success" width="24" height="24" />
+
+    <!-- SVG with title element for screen readers -->
+    <mai:svgInline src="EXT:theme/Resources/Public/Icons/logo.svg"
+                   title="Company Logo" aria-label="Company Logo" />
+
+Generated Output
+----------------
+
+For a typical decorative SVG call:
+
+.. code-block:: html
+
+    <svg xmlns="http://www.w3.org/2000/svg" class="logo" width="120" height="40" aria-hidden="true">
+      <!-- original SVG content -->
+    </svg>
+
+Arguments
+---------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 20 10 10 15 45
+
+    * - Argument
+      - Type
+      - Required
+      - Default
+      - Description
+    * - ``src``
+      - string
+      - **Yes**
+      - —
+      - EXT: path (e.g. ``EXT:my_ext/Resources/Public/Icons/logo.svg``) or absolute
+        filesystem path to the SVG file. Only local filesystem paths are supported —
+        external URLs are not fetched.
+    * - ``class``
+      - string
+      - No
+      - null
+      - CSS class(es) to set on the root ``<svg>`` element. Replaces any existing
+        ``class`` attribute in the source file.
+    * - ``width``
+      - string
+      - No
+      - null
+      - Override the ``width`` attribute on the root ``<svg>`` element (e.g. ``"24"``
+        or ``"1.5rem"``).
+    * - ``height``
+      - string
+      - No
+      - null
+      - Override the ``height`` attribute on the root ``<svg>`` element.
+    * - ``aria-hidden``
+      - string
+      - No
+      - ``"true"``
+      - Defaults to ``"true"`` for decorative SVGs. Set to ``"false"`` explicitly
+        together with ``aria-label`` to expose the SVG to screen readers.
+    * - ``aria-label``
+      - string
+      - No
+      - null
+      - Accessible label for the SVG. When set, ``role="img"`` is added automatically
+        and ``aria-hidden`` is omitted.
+    * - ``title``
+      - string
+      - No
+      - null
+      - Set or replace the ``<title>`` element as the first child of ``<svg>``.
+        The title is read by screen readers when no ``aria-label`` is present on
+        the element.
+    * - ``additionalAttributes``
+      - array
+      - No
+      - ``[]``
+      - Additional HTML attributes merged onto the root ``<svg>`` element.
+
+.. _viewhelper-hint:
+
+mai:hint
+========
+
+Emit a resource hint ``<link>`` tag into ``<head>``.
+
+Supports ``preconnect``, ``dns-prefetch``, ``modulepreload``, ``prefetch``, and ``preload``.
+All hints are injected via ``PageRenderer::addHeaderData()`` and always land in ``<head>`` —
+resource hints only work there.
+
+.. code-block:: html
+
+    <!-- Warm up a TCP+TLS connection to a CDN origin -->
+    <mai:hint rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+
+    <!-- Cheap DNS-only hint (no TLS handshake) -->
+    <mai:hint rel="dns-prefetch" href="https://cdn.example.com" />
+
+    <!-- Preload an ES module and its dependencies in parallel -->
+    <mai:hint rel="modulepreload" href="/assets/app.js" />
+
+    <!-- Preload a web font (crossorigin is required for fonts) -->
+    <mai:hint rel="preload" href="/fonts/Inter.woff2"
+             as="font" type="font/woff2" crossorigin="anonymous" />
+
+    <!-- Conditional preload scoped to a viewport size -->
+    <mai:hint rel="preload" href="/images/hero-mobile.webp"
+             as="image" media="(max-width: 767px)" />
+
+    <!-- Prefetch a resource likely needed on the next navigation -->
+    <mai:hint rel="prefetch" href="/next-page.html" />
+
+This ViewHelper produces no visible output — it only injects into ``<head>``.
+
+Arguments
+---------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 20 10 10 15 45
+
+    * - Argument
+      - Type
+      - Required
+      - Default
+      - Description
+    * - ``href``
+      - string
+      - **Yes**
+      - —
+      - The URL of the resource to hint. For ``preconnect`` / ``dns-prefetch`` this is
+        the origin (e.g. ``https://cdn.example.com``). For ``preload`` / ``modulepreload``
+        it is the full asset URL.
+    * - ``rel``
+      - string
+      - **Yes**
+      - —
+      - The link relationship type. Accepted values: ``preconnect``, ``dns-prefetch``,
+        ``modulepreload``, ``prefetch``, ``preload``.
+    * - ``as``
+      - string
+      - No
+      - null
+      - Destination for ``preload`` / ``modulepreload`` hints. Accepted values:
+        ``script``, ``style``, ``font``, ``image``, ``document``, ``fetch``.
+        Required for ``rel="preload"``; optional for ``modulepreload`` (defaults to
+        ``"script"`` per spec).
+    * - ``type``
+      - string
+      - No
+      - null
+      - MIME type of the resource, e.g. ``font/woff2`` or ``image/webp``. Helps
+        the browser decide whether to honour the hint based on format support.
+    * - ``crossorigin``
+      - string
+      - No
+      - null
+      - Add the ``crossorigin`` attribute. Required for font preloads (``"anonymous"``).
+        Also needed on ``preconnect`` when the connection will be used for CORS requests.
+        Accepted values: ``anonymous``, ``use-credentials``.
+    * - ``media``
+      - string
+      - No
+      - null
+      - Media query scoping the hint, e.g. ``(max-width: 767px)``. The browser only
+        acts on the hint when the media query matches.
+    * - ``additionalAttributes``
+      - array
+      - No
+      - ``[]``
+      - Additional HTML attributes merged onto the ``<link>`` tag.
+
+.. _viewhelper-lottie:
+
+mai:lottie
+==========
+
+Render a Lottie animation using the ``<lottie-player>`` web component.
+
+Lottie is a JSON-based animation format that renders vector animations exported from
+Adobe After Effects. This ViewHelper outputs a ``<lottie-player>`` custom element and
+optionally registers the player JavaScript via TYPO3's AssetCollector.
+
+The player script (``@lottiefiles/lottie-player``) is loaded as a ``type="module"``
+script so it never blocks rendering. Configure the default player URL via TypoScript:
+
+.. code-block:: typoscript
+
+    plugin.tx_maispace_assets.lottie.playerSrc = https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js
+
+.. code-block:: html
+
+    <!-- Basic looping animation from an EXT: path -->
+    <mai:lottie src="EXT:theme/Resources/Public/Animations/hero.json"
+                width="400px" height="400px" />
+
+    <!-- One-shot animation without controls, no loop -->
+    <mai:lottie src="EXT:theme/Resources/Public/Animations/checkmark.json"
+                loop="false" autoplay="true" width="80px" height="80px" />
+
+    <!-- Bouncing animation with visible player controls -->
+    <mai:lottie src="/animations/wave.json"
+                mode="bounce" controls="true" width="300px" />
+
+    <!-- Reverse playback direction -->
+    <mai:lottie src="/animations/loading.json"
+                direction="-1" loop="true" />
+
+    <!-- External Lottie JSON from a CDN -->
+    <mai:lottie src="https://assets.example.com/animations/hero.json"
+                width="100%" height="500px" />
+
+    <!-- User manages player script themselves — skip auto-registration -->
+    <mai:lottie src="/animations/icon.json" playerSrc="" width="48px" />
+
+Generated Output
+----------------
+
+For ``<mai:lottie src="..." autoplay="true" loop="true" width="400px" height="400px" />``:
+
+.. code-block:: html
+
+    <lottie-player src="/animations/hero.json" autoplay="autoplay" loop="loop"
+                   style="width:400px;height:400px;"></lottie-player>
+
+The player script is registered once in the AssetCollector regardless of how many
+``<mai:lottie>`` tags appear on the page (same identifier prevents duplication).
+
+Arguments
+---------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 22 10 10 15 43
+
+    * - Argument
+      - Type
+      - Required
+      - Default
+      - Description
+    * - ``src``
+      - string
+      - **Yes**
+      - —
+      - Path to the Lottie JSON animation file. Accepts ``EXT:`` notation, a
+        public-relative path, or an external URL (passed through unchanged).
+    * - ``autoplay``
+      - bool
+      - No
+      - ``true``
+      - Start the animation automatically when it enters the viewport.
+    * - ``loop``
+      - bool
+      - No
+      - ``true``
+      - Loop the animation continuously.
+    * - ``controls``
+      - bool
+      - No
+      - ``false``
+      - Show built-in player controls (play/pause/progress).
+    * - ``speed``
+      - float
+      - No
+      - ``1.0``
+      - Playback speed multiplier. ``1.0`` = normal, ``0.5`` = half, ``2.0`` = double.
+    * - ``direction``
+      - int
+      - No
+      - ``1``
+      - Playback direction. ``1`` = forward, ``-1`` = backward.
+    * - ``mode``
+      - string
+      - No
+      - ``"normal"``
+      - Playback mode. ``"normal"`` = play through (or loop). ``"bounce"`` = play
+        forward then reverse.
+    * - ``renderer``
+      - string
+      - No
+      - ``"svg"``
+      - Rendering engine. ``"svg"`` (best quality/scaling), ``"canvas"`` (better
+        performance), ``"html"`` (CSS-based).
+    * - ``background``
+      - string
+      - No
+      - ``"transparent"``
+      - Background colour of the animation container. Accepts any CSS colour value.
+    * - ``width``
+      - string
+      - No
+      - null
+      - Width of the animation container (e.g. ``"400px"`` or ``"100%"``). Applied
+        as an inline ``style`` attribute on the ``<lottie-player>`` element.
+    * - ``height``
+      - string
+      - No
+      - null
+      - Height of the animation container. Applied as an inline ``style`` attribute.
+    * - ``class``
+      - string
+      - No
+      - null
+      - CSS class(es) for the ``<lottie-player>`` element.
+    * - ``playerSrc``
+      - string
+      - No
+      - null
+      - URL or EXT: path to the lottie-player JavaScript library. When ``null``
+        (default), falls back to ``plugin.tx_maispace_assets.lottie.playerSrc``
+        from TypoScript. Pass an empty string ``""`` to skip auto-registration
+        entirely (useful when you include the player via another mechanism).
+    * - ``playerIdentifier``
+      - string
+      - No
+      - ``"maispace-lottie-player"``
+      - AssetCollector identifier for the player script. Override when including
+        multiple Lottie player versions on the same page.
+    * - ``additionalAttributes``
+      - array
+      - No
+      - ``[]``
+      - Additional HTML attributes merged onto the ``<lottie-player>`` element.
+
 .. _viewhelper-image:
 
 mai:image
@@ -497,6 +898,9 @@ object, ``EXT:`` path, or public-relative path string.
 
     <!-- From an EXT: path (static asset) -->
     <mai:image image="EXT:theme/Resources/Public/Images/logo.png" alt="Logo" width="200m" />
+
+    <!-- Explicit JPEG quality -->
+    <mai:image image="{img}" alt="{alt}" width="800" quality="75" />
 
 Arguments
 ---------
@@ -530,6 +934,13 @@ Arguments
       - No
       - ``''``
       - Height in TYPO3 notation. Derived proportionally from width when empty.
+    * - ``quality``
+      - int
+      - No
+      - ``0``
+      - Output quality for lossy formats (JPEG, WebP, AVIF). Range: 1–100.
+        ``0`` uses the ImageMagick/GraphicsMagick default (usually 75–85).
+        Has no effect on lossless formats (PNG, GIF).
     * - ``lazyloading``
       - bool
       - No
@@ -642,6 +1053,12 @@ and dimensions.
         <mai:picture.source media="(max-width: 767px)" width="600" />
     </mai:picture>
 
+    <!-- AVIF + WebP source sets with explicit quality -->
+    <mai:picture image="{imageRef}" alt="{alt}" width="1200" quality="80" formats="avif, webp">
+        <mai:picture.source media="(min-width: 768px)" width="1200" />
+        <mai:picture.source media="(max-width: 767px)" width="400" />
+    </mai:picture>
+
 Arguments
 ---------
 
@@ -674,6 +1091,14 @@ Arguments
       - No
       - ``''``
       - Height for the fallback ``<img>``.
+    * - ``quality``
+      - int
+      - No
+      - ``0``
+      - Output quality for lossy formats (JPEG, WebP, AVIF). Range: 1–100.
+        ``0`` uses the ImageMagick/GraphicsMagick default. Applied to all processed
+        images: fallback ``<img>``, format ``<source>`` tags, and child
+        ``<mai:picture.source>`` elements.
     * - ``lazyloading``
       - bool
       - No
@@ -775,6 +1200,12 @@ Arguments
       - No
       - null
       - Override image for this breakpoint. Inherits parent ``<mai:picture>`` image when absent.
+    * - ``quality``
+      - int
+      - No
+      - ``0``
+      - Output quality for lossy formats. ``0`` inherits the parent ``<mai:picture>``
+        ``quality`` argument, or uses the ImageMagick/GM default if neither is set.
     * - ``type``
       - string
       - No
