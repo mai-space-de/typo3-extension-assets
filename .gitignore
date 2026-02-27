@@ -3,3 +3,4 @@ inspiration
 composer.lock
 vendor/
 public/
+.phpunit.cache
