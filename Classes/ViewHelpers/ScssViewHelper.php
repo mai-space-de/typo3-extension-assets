@@ -91,6 +91,34 @@ final class ScssViewHelper extends AbstractAssetViewHelper
             false,
             null,
         );
+
+        $this->registerArgument(
+            'nonce',
+            'string',
+            'CSP nonce for the inline <style> tag. Only applied when inline="true". '
+            . 'When TYPO3\'s built-in Content Security Policy is active, the nonce is auto-detected from the request — '
+            . 'pass an explicit value only to override it.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'integrity',
+            'bool',
+            'Compute and add an SRI integrity attribute (sha384) to the generated <link> tag. '
+            . 'Only applied for file-based (non-inline) output. '
+            . 'Browsers will refuse to load the stylesheet if its hash does not match.',
+            false,
+            false,
+        );
+
+        $this->registerArgument(
+            'crossorigin',
+            'string',
+            'crossorigin attribute value when integrity is enabled. Defaults to "anonymous".',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(

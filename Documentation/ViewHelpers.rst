@@ -287,6 +287,9 @@ No Node.js or build pipeline is required.
     <mai:scss src="EXT:theme/Resources/Private/Scss/main.scss"
              importPaths="EXT:theme/Resources/Private/Scss/Partials,EXT:base/Resources/Private/Scss" />
 
+    <!-- SRI integrity hash on the compiled <link> -->
+    <mai:scss src="EXT:theme/Resources/Private/Scss/main.scss" integrity="true" />
+
     <!-- Inline SCSS (identifier derived from content hash) -->
     <mai:scss identifier="hero-theme">
         $primary: #e63946;
@@ -294,7 +297,7 @@ No Node.js or build pipeline is required.
         .hero { background: $primary; padding: $spacing; color: white; }
     </mai:scss>
 
-    <!-- Inline SCSS as <style> in <head> (critical styles) -->
+    <!-- Critical SCSS inlined in <head> with CSP nonce (auto-detected from TYPO3 request) -->
     <mai:scss identifier="critical-reset" priority="true" inline="true">
         *, *::before, *::after { box-sizing: border-box; }
         body { margin: 0; }
@@ -355,6 +358,25 @@ Arguments
       - No
       - null
       - Comma-separated list of additional import paths. Supports ``EXT:`` notation.
+    * - ``nonce``
+      - string
+      - No
+      - null
+      - CSP nonce for the inline ``<style>`` tag. Only applied when ``inline="true"``.
+        When TYPO3's built-in Content Security Policy is active, the nonce is
+        auto-detected from the request — pass an explicit value only to override it.
+    * - ``integrity``
+      - bool
+      - No
+      - ``false``
+      - Compute and add an ``integrity="sha384-..."`` SRI attribute to the generated
+        ``<link>`` tag. Only applies to file-based (non-inline) output.
+    * - ``crossorigin``
+      - string
+      - No
+      - null
+      - ``crossorigin`` attribute value when ``integrity`` is enabled.
+        Defaults to ``"anonymous"`` when omitted.
 
 .. _viewhelper-svgsprite:
 
@@ -892,6 +914,10 @@ object, ``EXT:`` path, or public-relative path string.
     <mai:image image="{hero}" alt="{heroAlt}" width="1920"
               lazyloading="false" preload="true" fetchPriority="high" />
 
+    <!-- Hero preload scoped to desktop viewports (avoids loading on mobile) -->
+    <mai:image image="{heroDesktop}" alt="{alt}" width="1920"
+              preload="true" preloadMedia="(min-width: 768px)" lazyloading="false" />
+
     <!-- Lazy load with a JS-hook class for lazysizes -->
     <mai:image image="{img}" alt="{alt}" width="427c" height="240"
               lazyloadWithClass="lazyload" />
@@ -962,6 +988,13 @@ Arguments
       - No
       - ``false``
       - Add ``<link rel="preload" as="image">`` to ``<head>``.
+    * - ``preloadMedia``
+      - string
+      - No
+      - null
+      - Media query to scope the preload hint, e.g. ``"(min-width: 768px)"``.
+        Only used when ``preload="true"``. Prevents the browser from preloading
+        an image that is irrelevant at the current viewport size.
     * - ``class``
       - string
       - No
@@ -1046,11 +1079,18 @@ and dimensions.
         <mai:picture.source media="(max-width: 767px)" width="400" height="225" />
     </mai:picture>
 
-    <!-- Hero picture: no lazy, preloaded fallback, high fetchpriority -->
+    <!-- Hero picture: no lazy, preloaded fallback scoped to desktop, high fetchpriority -->
     <mai:picture image="{hero}" alt="{heroAlt}" width="1920"
-                lazyloading="false" preload="true" fetchPriority="high">
+                lazyloading="false" preload="true" preloadMedia="(min-width: 768px)"
+                fetchPriority="high">
         <mai:picture.source media="(min-width: 768px)" width="1920" />
         <mai:picture.source media="(max-width: 767px)" width="600" />
+    </mai:picture>
+
+    <!-- CSS class on the <picture> independent of the fallback <img> -->
+    <mai:picture image="{img}" alt="{alt}" width="1200"
+                class="picture-wrapper" imgClass="content-image" imgId="hero-img">
+        <mai:picture.source media="(min-width: 768px)" width="1200" />
     </mai:picture>
 
     <!-- AVIF + WebP source sets with explicit quality -->
@@ -1119,6 +1159,12 @@ Arguments
       - No
       - ``false``
       - Emit ``<link rel="preload" as="image">`` for the fallback image URL.
+    * - ``preloadMedia``
+      - string
+      - No
+      - null
+      - Media query to scope the preload hint, e.g. ``"(min-width: 768px)"``.
+        Only used when ``preload="true"``.
     * - ``class``
       - string
       - No
@@ -1129,6 +1175,27 @@ Arguments
       - No
       - ``[]``
       - Additional HTML attributes on the ``<picture>`` tag.
+        To set attributes on the fallback ``<img>``, use ``imgAdditionalAttributes``.
+    * - ``imgClass``
+      - string
+      - No
+      - null
+      - CSS class(es) for the fallback ``<img>`` element inside ``<picture>``.
+    * - ``imgId``
+      - string
+      - No
+      - null
+      - ``id`` attribute for the fallback ``<img>`` element.
+    * - ``imgTitle``
+      - string
+      - No
+      - null
+      - ``title`` attribute for the fallback ``<img>`` element.
+    * - ``imgAdditionalAttributes``
+      - array
+      - No
+      - ``[]``
+      - Additional HTML attributes merged onto the fallback ``<img>`` tag.
     * - ``formats``
       - string
       - No

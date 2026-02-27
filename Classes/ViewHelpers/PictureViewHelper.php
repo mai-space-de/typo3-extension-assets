@@ -155,6 +155,14 @@ final class PictureViewHelper extends AbstractViewHelper
         );
 
         $this->registerArgument(
+            'preloadMedia',
+            'string',
+            'Media query to scope the preload hint, e.g. "(min-width: 768px)". Only used when preload="true".',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
             'class',
             'string',
             'CSS class(es) for the <picture> element.',
@@ -166,6 +174,39 @@ final class PictureViewHelper extends AbstractViewHelper
             'additionalAttributes',
             'array',
             'Additional HTML attributes merged onto the <picture> tag.',
+            false,
+            [],
+        );
+
+        $this->registerArgument(
+            'imgClass',
+            'string',
+            'CSS class(es) for the fallback <img> element inside <picture>.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'imgId',
+            'string',
+            'id attribute for the fallback <img> element inside <picture>.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'imgTitle',
+            'string',
+            'title attribute for the fallback <img> element inside <picture>.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'imgAdditionalAttributes',
+            'array',
+            'Additional HTML attributes merged onto the fallback <img> tag. '
+            . 'Use this instead of additionalAttributes when you need per-element control.',
             false,
             [],
         );
@@ -267,17 +308,23 @@ final class PictureViewHelper extends AbstractViewHelper
         $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
         $imgHtml   = $service->renderImgTag($processed, [
             'alt'               => (string)($arguments['alt'] ?? ''),
+            'class'             => $arguments['imgClass'] ?? null,
+            'id'                => $arguments['imgId'] ?? null,
+            'title'             => $arguments['imgTitle'] ?? null,
             'lazyloading'       => $lazyloading,
             'lazyloadWithClass' => $lazyloadWithClass,
             'fetchPriority'     => $arguments['fetchPriority'] ?? null,
-            'additionalAttributes' => (array)($arguments['additionalAttributes'] ?? []),
+            'additionalAttributes' => (array)($arguments['imgAdditionalAttributes'] ?? []),
         ]);
 
         // Optionally preload the fallback image.
         if ((bool)($arguments['preload'] ?? false)) {
             $imageService = GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Service\ImageService::class);
             $url = $imageService->getImageUri($processed, true);
-            $service->addImagePreloadHeader($url);
+            $preloadMedia = is_string($arguments['preloadMedia'] ?? null) && $arguments['preloadMedia'] !== ''
+                ? $arguments['preloadMedia']
+                : null;
+            $service->addImagePreloadHeader($url, $preloadMedia);
         }
 
         // Build <picture> element.

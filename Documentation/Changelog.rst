@@ -6,6 +6,76 @@
 Changelog
 =========
 
+1.3.0 (2026-02-27)
+==================
+
+New Features
+------------
+
+Image ViewHelpers
+~~~~~~~~~~~~~~~~~
+
+*  **``preloadMedia`` on ``<mai:image>`` and ``<mai:picture>``** —
+   ``ImageRenderingService::addImagePreloadHeader()`` already accepted an optional
+   ``$media`` parameter, but neither ViewHelper exposed it. The new ``preloadMedia``
+   argument threads this value through so the emitted ``<link rel="preload">`` carries
+   a ``media`` attribute. This lets the browser skip preloading an image that is
+   irrelevant at the current viewport size — critical for responsive hero images where
+   a 1920 px desktop variant must not be prefetched on mobile.
+
+   .. code-block:: html
+
+       <mai:image image="{heroDesktop}" alt="{alt}" width="1920"
+                 preload="true" preloadMedia="(min-width: 768px)" lazyloading="false" />
+
+       <mai:picture image="{hero}" alt="{alt}" width="1920" lazyloading="false"
+                   preload="true" preloadMedia="(min-width: 768px)" fetchPriority="high">
+           <mai:picture.source media="(min-width: 768px)" width="1920" />
+           <mai:picture.source media="(max-width: 767px)" width="600" />
+       </mai:picture>
+
+*  **``imgClass``, ``imgId``, ``imgTitle``, ``imgAdditionalAttributes`` on ``<mai:picture>``**
+   — The ``class`` and ``additionalAttributes`` arguments on ``<mai:picture>`` always
+   targeted the outer ``<picture>`` element, but there was no way to set attributes on the
+   fallback ``<img>`` independently. The four new ``img*`` arguments pass values directly
+   to ``renderImgTag()``:
+
+   .. code-block:: html
+
+       <mai:picture image="{img}" alt="{alt}" width="1200"
+                   class="picture-wrapper" imgClass="content-image" imgId="hero-img">
+           <mai:picture.source media="(min-width: 768px)" width="1200" />
+       </mai:picture>
+
+Bug Fixes
+---------
+
+*  **``additionalAttributes`` applied to both ``<picture>`` and ``<img>``** — The
+   ``additionalAttributes`` argument was documented as targeting the ``<picture>`` element,
+   but the code also passed it to ``renderImgTag()``, causing attributes to appear on both
+   elements. ``additionalAttributes`` now applies only to ``<picture>`` (matching the
+   documentation). Use the new ``imgAdditionalAttributes`` argument to target the ``<img>``.
+
+SCSS ViewHelper
+~~~~~~~~~~~~~~~
+
+*  **``nonce``, ``integrity``, ``crossorigin`` on ``<mai:scss>``** —
+   ``AssetProcessingService::registerCompiledCss()`` already called ``resolveNonce()`` and
+   ``buildIntegrityAttrs()`` on the arguments array, but ``ScssViewHelper`` never registered
+   those arguments, making them unreachable from templates. They are now exposed:
+
+   .. code-block:: html
+
+       <!-- SRI hash on the compiled stylesheet -->
+       <mai:scss src="EXT:theme/Resources/Private/Scss/main.scss" integrity="true" />
+
+       <!-- Explicit nonce override (normally auto-detected from TYPO3 request) -->
+       <mai:scss identifier="critical" priority="true" inline="true" nonce="{customNonce}">
+           body { margin: 0; }
+       </mai:scss>
+
+----
+
 1.2.0 (2026-02-27)
 ==================
 

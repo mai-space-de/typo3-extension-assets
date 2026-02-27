@@ -118,6 +118,15 @@ final class ImageViewHelper extends AbstractViewHelper
         );
 
         $this->registerArgument(
+            'preloadMedia',
+            'string',
+            'Media query to scope the preload hint, e.g. "(min-width: 768px)". Only used when preload="true". '
+            . 'Allows viewport-scoped image preloads so the browser only fetches the image when the query matches.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
             'class',
             'string',
             'CSS class(es) for the <img> element.',
@@ -247,7 +256,10 @@ final class ImageViewHelper extends AbstractViewHelper
         if ((bool)($arguments['preload'] ?? false)) {
             $imageService = GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Service\ImageService::class);
             $url = $imageService->getImageUri($processed, true);
-            $service->addImagePreloadHeader($url);
+            $preloadMedia = is_string($arguments['preloadMedia'] ?? null) && $arguments['preloadMedia'] !== ''
+                ? $arguments['preloadMedia']
+                : null;
+            $service->addImagePreloadHeader($url, $preloadMedia);
         }
 
         return $imgHtml;

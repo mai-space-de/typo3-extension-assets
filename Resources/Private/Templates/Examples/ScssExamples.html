@@ -28,6 +28,11 @@
     deferred     bool    null = TypoScript css.deferred. Deferred loading.
     media        string  media attribute for <link>. Default: "all".
     importPaths  string  Comma-separated additional @import/@use paths (EXT: supported).
+    nonce        string  CSP nonce for the inline <style> tag (inline="true" only).
+                         Auto-detected from the TYPO3 request; pass explicitly to override.
+    integrity    bool    Compute SHA-384 SRI hash and add integrity attribute to <link>.
+                         Only applies to file-based (non-inline) output.
+    crossorigin  string  crossorigin attribute when integrity is enabled. Default: "anonymous".
 -->
 
 
@@ -102,7 +107,47 @@
 
 
 <!-- =========================================================================
-     5. INLINE SCSS — Written directly in the Fluid template
+     5. SRI INTEGRITY AND CSP NONCE
+     =========================================================================
+     integrity="true" computes a SHA-384 hash of the compiled stylesheet and
+     emits it as an integrity attribute on the <link> tag. Combined with
+     crossorigin="anonymous", this enables the browser to verify the file has
+     not been tampered with (useful for assets served from a CDN or shared host).
+
+     Only applies to file-based (non-inline) output — inline <style> tags are
+     protected by the nonce mechanism instead.
+
+     nonce is only applied when inline="true". TYPO3 12.4+ auto-detects the
+     request nonce — you usually do not need to pass it explicitly.
+-->
+
+<!-- SRI integrity hash on the compiled <link> (output format verified by browser) -->
+<mai:scss
+    src="EXT:my_sitepackage/Resources/Private/Scss/main.scss"
+    integrity="true"
+/>
+
+<!-- SRI with explicit crossorigin override -->
+<mai:scss
+    src="EXT:my_sitepackage/Resources/Private/Scss/main.scss"
+    integrity="true"
+    crossorigin="use-credentials"
+/>
+
+<!-- CSP nonce on inline critical styles (auto-detected from TYPO3 request by default) -->
+<mai:scss identifier="critical-styles" priority="true" inline="true">
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; }
+</mai:scss>
+
+<!-- Explicit nonce override — only needed when TYPO3 CSP is not active -->
+<mai:scss identifier="critical-manual-nonce" priority="true" inline="true" nonce="{customNonce}">
+    body { margin: 0; }
+</mai:scss>
+
+
+<!-- =========================================================================
+     6. INLINE SCSS — Written directly in the Fluid template
      =========================================================================
      The SCSS between the tags is compiled server-side.
      The auto-identifier is derived from a hash of the raw SCSS content, so the
@@ -146,7 +191,7 @@
 
 
 <!-- =========================================================================
-     6. INLINE SCSS — Critical design tokens inlined in <head>
+     7. INLINE SCSS — Critical design tokens inlined in <head>
      =========================================================================
      Compile SCSS variables to a :root CSS custom properties block and inject
      it as an inline <style> in <head>.
@@ -186,7 +231,7 @@
 
 
 <!-- =========================================================================
-     7. INLINE SCSS with Fluid variable interpolation
+     8. INLINE SCSS with Fluid variable interpolation
      =========================================================================
      Mix SCSS variables with Fluid's {variable} syntax for dynamic design tokens
      driven by TYPO3 settings (e.g., from TypoScript or a FlexForm field).
@@ -218,7 +263,7 @@
 
 
 <!-- =========================================================================
-     8. CONDITIONAL SCSS — loaded based on page or record state
+     9. CONDITIONAL SCSS — loaded based on page or record state
      =========================================================================
 -->
 <f:if condition="{page.tx_myext_has_slider}">
@@ -239,7 +284,7 @@
 
 
 <!-- =========================================================================
-     9. SCSS from a loop — per-item component styles
+     10. SCSS from a loop — per-item component styles
      =========================================================================
      Generate unique scoped styles per content element.
      Each content element gets its own identifier derived from its UID,

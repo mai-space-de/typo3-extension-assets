@@ -111,9 +111,19 @@ Compile SCSS to CSS server-side using [scssphp](https://scssphp.github.io/scssph
 <!-- Additional @import paths -->
 <mai:scss src="EXT:theme/Resources/Private/Scss/main.scss"
          importPaths="EXT:theme/Resources/Private/Scss/Partials" />
+
+<!-- SRI integrity hash on the compiled stylesheet -->
+<mai:scss src="EXT:theme/Resources/Private/Scss/main.scss" integrity="true" />
+
+<!-- Critical SCSS inlined in <head> with CSP nonce (auto-detected from TYPO3 request) -->
+<mai:scss identifier="critical" priority="true" inline="true">
+    body { margin: 0; font-family: sans-serif; }
+</mai:scss>
 ```
 
 Cache is automatically invalidated when the source file changes (`filemtime`).
+
+**Available arguments:** `src`, `identifier`, `priority`, `minify`, `inline`, `deferred`, `media`, `importPaths`, `nonce`, `integrity`, `crossorigin`.
 
 ---
 
@@ -159,6 +169,10 @@ Process images via TYPO3's native ImageService (supports WebP conversion, croppi
 <mai:image image="{hero}" alt="{heroAlt}" width="1920"
           lazyloading="false" preload="true" fetchPriority="high" />
 
+<!-- Hero preload scoped to desktop viewports (avoids loading on mobile) -->
+<mai:image image="{heroDesktop}" alt="{alt}" width="1920"
+          preload="true" preloadMedia="(min-width: 768px)" lazyloading="false" />
+
 <!-- Lazy load with a JS-hook class (e.g. for lazysizes) -->
 <mai:image image="{img}" alt="{alt}" width="427c" height="240"
           lazyloadWithClass="lazyload" />
@@ -182,9 +196,24 @@ Sources are configured inline in the template — no central YAML file needed.
     <mai:picture.source media="(min-width: 768px)" width="800" height="450" />
     <mai:picture.source media="(max-width: 767px)" width="400" height="225" />
 </mai:picture>
+
+<!-- CSS class on the <picture> wrapper independent of the fallback <img> -->
+<mai:picture image="{img}" alt="{alt}" width="1200"
+             class="picture-wrapper" imgClass="content-image" imgId="hero-img">
+    <mai:picture.source media="(min-width: 768px)" width="1200" />
+</mai:picture>
+
+<!-- Hero picture: preload scoped to desktop viewports -->
+<mai:picture image="{hero}" alt="{alt}" width="1920" lazyloading="false"
+             preload="true" preloadMedia="(min-width: 768px)" fetchPriority="high">
+    <mai:picture.source media="(min-width: 768px)" width="1920" />
+    <mai:picture.source media="(max-width: 767px)" width="600" />
+</mai:picture>
 ```
 
 Each `<mai:picture.source>` processes the image independently to the specified dimensions. Override the image for a specific breakpoint with the `image` argument.
+
+**`<picture>` vs `<img>` attributes:** `class` and `additionalAttributes` apply to the outer `<picture>` element. Use `imgClass`, `imgId`, `imgTitle`, and `imgAdditionalAttributes` to target the fallback `<img>` independently.
 
 ### Automatic WebP/AVIF source sets
 
