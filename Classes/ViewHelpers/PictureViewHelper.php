@@ -206,6 +206,23 @@ final class PictureViewHelper extends AbstractViewHelper
             false,
             0,
         );
+
+        $this->registerArgument(
+            'decoding',
+            'string',
+            'Image decoding hint for the fallback <img>. Accepted values: "async", "sync", "auto".',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'crossorigin',
+            'string',
+            'Add the crossorigin attribute to the fallback <img>. Required when the image is used in a '
+            . '<canvas> element. Accepted values: "anonymous", "use-credentials".',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(
@@ -270,6 +287,8 @@ final class PictureViewHelper extends AbstractViewHelper
             'lazyloading'       => $lazyloading,
             'lazyloadWithClass' => $lazyloadWithClass,
             'fetchPriority'     => $arguments['fetchPriority'] ?? null,
+            'decoding'          => $arguments['decoding'] ?? null,
+            'crossorigin'       => $arguments['crossorigin'] ?? null,
             'additionalAttributes' => (array)($arguments['additionalAttributes'] ?? []),
         ]);
 

@@ -187,6 +187,26 @@ final class ImageViewHelper extends AbstractViewHelper
             false,
             0,
         );
+
+        $this->registerArgument(
+            'decoding',
+            'string',
+            'Image decoding hint for the browser. Accepted values: "async" (decode off the main thread, '
+            . 'recommended for below-the-fold images), "sync" (decode on the main thread before display), '
+            . '"auto" (browser decides). Omit to let the browser choose.',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'crossorigin',
+            'string',
+            'Add the crossorigin attribute to the <img> tag. Required when the image is used in a '
+            . '<canvas> element or fetched via XHR (taint prevention). '
+            . 'Accepted values: "anonymous", "use-credentials".',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(
@@ -241,6 +261,8 @@ final class ImageViewHelper extends AbstractViewHelper
             'fetchPriority'     => $arguments['fetchPriority'] ?? null,
             'srcset'            => $srcsetString,
             'sizes'             => $arguments['sizes'] ?? null,
+            'decoding'          => $arguments['decoding'] ?? null,
+            'crossorigin'       => $arguments['crossorigin'] ?? null,
             'additionalAttributes' => (array)($arguments['additionalAttributes'] ?? []),
         ]);
 

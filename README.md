@@ -16,11 +16,13 @@ A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, ima
 | Import maps (JSON unmangled, always synchronous) | `<mai:js type="importmap">` |
 | Legacy bundle differential loading | `<mai:js nomodule="true">` |
 | Resource hints (preconnect, dns-prefetch, modulepreload, preload…) | `<mai:hint>` |
-| Responsive `<img>` with lazy load, preload, srcset, quality | `<mai:image>` |
+| Responsive `<img>` with lazy load, preload, srcset, quality, decoding | `<mai:image>` |
 | Responsive `<picture>` with per-breakpoint sources and quality | `<mai:picture>` + `<mai:picture.source>` |
+| Multi-width srcset + sizes inside `<source>` tags | `srcset="400, 800, 1200"` + `sizes="..."` on `<mai:picture.source>` |
 | Automatic WebP/AVIF `<source>` sets in `<picture>` | `formats="avif, webp"` or `image.alternativeFormats` |
 | Global image format conversion (WebP/AVIF) | `image.forceFormat` TypoScript / `fileExtension` argument |
 | Lottie animations via `<lottie-player>` web component | `<mai:lottie>` |
+| HTML5 `<video>` with multiple sources, poster, and playback controls | `<mai:video>` |
 | Inline SVG embedding from file (CSS/JS accessible) | `<mai:svgInline>` |
 | SVG sprite served from a cacheable URL | `<mai:svgSprite>` + `Configuration/SpriteIcons.php` |
 | Web font `<link rel="preload">` in `<head>` | `Configuration/Fonts.php` |
@@ -159,6 +161,9 @@ Process images via TYPO3's native ImageService (supports WebP conversion, croppi
 <mai:image image="{hero}" alt="{heroAlt}" width="1920"
           lazyloading="false" preload="true" fetchPriority="high" />
 
+<!-- Async decoding hint (recommended for below-the-fold images) -->
+<mai:image image="{img}" alt="{alt}" width="800" decoding="async" />
+
 <!-- Lazy load with a JS-hook class (e.g. for lazysizes) -->
 <mai:image image="{img}" alt="{alt}" width="427c" height="240"
           lazyloadWithClass="lazyload" />
@@ -185,6 +190,39 @@ Sources are configured inline in the template — no central YAML file needed.
 ```
 
 Each `<mai:picture.source>` processes the image independently to the specified dimensions. Override the image for a specific breakpoint with the `image` argument.
+
+### Multi-width srcset inside `<source>` tags
+
+The `srcset` argument on `<mai:picture.source>` generates multiple image widths per breakpoint, providing HiDPI (Retina) support within `<picture>` elements. The `sizes` attribute tells the browser which rendered width to pick for a given viewport.
+
+```html
+<mai:picture image="{img}" alt="{alt}" width="1200" lazyloadWithClass="lazyload">
+    <!-- Desktop: serve 1200w and 2400w (2x retina) -->
+    <mai:picture.source media="(min-width: 768px)"
+                        width="1200" srcset="1200, 2400"
+                        sizes="(max-width: 1400px) 100vw, 1200px" />
+    <!-- Mobile: serve 400w and 800w (2x retina) -->
+    <mai:picture.source media="(max-width: 767px)"
+                        width="400" srcset="400, 800"
+                        sizes="100vw" />
+</mai:picture>
+```
+
+Output per source:
+```html
+<source srcset="…1200.jpg 1200w, …2400.jpg 2400w"
+        media="(min-width: 768px)"
+        sizes="(max-width: 1400px) 100vw, 1200px"
+        type="image/jpeg">
+```
+
+Combine with `formats` for full format + HiDPI coverage:
+
+```html
+<mai:picture.source media="(min-width: 768px)" width="1200"
+                    srcset="1200, 2400" sizes="1200px"
+                    formats="avif, webp" />
+```
 
 ### Automatic WebP/AVIF source sets
 
@@ -281,6 +319,45 @@ Or set it per element:
 Pass `playerSrc=""` to skip auto-registration entirely when you include the player via another mechanism.
 
 **Available arguments:** `src`, `autoplay`, `loop`, `controls`, `speed`, `direction`, `mode` (`"normal"` / `"bounce"`), `renderer` (`"svg"` / `"canvas"` / `"html"`), `background`, `width`, `height`, `class`, `playerSrc`, `playerIdentifier`, `additionalAttributes`.
+
+---
+
+## Video
+
+Render an HTML5 `<video>` element with multiple format sources. Sources are resolved from `EXT:` paths and served from their stable public URLs — no temp file is generated.
+
+```html
+<!-- Video with native controls -->
+<mai:video src="EXT:theme/Resources/Public/Video/intro.mp4"
+          width="1280" height="720" controls="true" />
+
+<!-- Multiple sources — browser picks the first supported format -->
+<mai:video src="EXT:theme/Resources/Public/Video/hero.webm,
+               EXT:theme/Resources/Public/Video/hero.mp4"
+          width="1920" height="1080"
+          poster="EXT:theme/Resources/Public/Video/hero-poster.jpg"
+          controls="true" />
+
+<!-- Background video: autoplay requires muted; use playsinline for iOS -->
+<mai:video src="EXT:theme/Resources/Public/Video/bg.mp4"
+          autoplay="true" muted="true" loop="true" playsinline="true"
+          class="hero-bg-video" width="1920" height="1080" />
+
+<!-- Bandwidth-friendly: do not preload until the user interacts -->
+<mai:video src="EXT:theme/Resources/Public/Video/demo.mp4"
+          preload="none" width="800" height="450" controls="true" />
+
+<!-- Accessible fallback for browsers without <video> support -->
+<mai:video src="EXT:theme/Resources/Public/Video/product.mp4"
+          poster="EXT:theme/Resources/Public/Video/product-poster.jpg"
+          width="800" controls="true">
+    Your browser does not support the video tag.
+</mai:video>
+```
+
+**Autoplay note:** Browsers block autoplay for unmuted videos. Always combine `autoplay="true"` with `muted="true"`. Add `playsinline="true"` to prevent full-screen on iOS.
+
+**Available arguments:** `src` (comma-separated), `poster`, `width`, `height`, `autoplay`, `muted`, `loop`, `controls`, `playsinline`, `preload` (`"none"` / `"metadata"` / `"auto"`), `class`, `id`, `additionalAttributes`.
 
 ---
 

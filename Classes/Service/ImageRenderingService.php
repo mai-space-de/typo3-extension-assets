@@ -299,6 +299,8 @@ final class ImageRenderingService implements SingletonInterface
      *   fetchPriority?: string|null,
      *   srcset?: string|null,
      *   sizes?: string|null,
+     *   decoding?: string|null,
+     *   crossorigin?: string|null,
      *   additionalAttributes?: array<string,string>,
      * } $options
      */
@@ -359,6 +361,18 @@ final class ImageRenderingService implements SingletonInterface
             $attrs['sizes'] = $sizes;
         }
 
+        // decoding — hint to the browser how to decode the image (async/sync/auto)
+        $decoding = $options['decoding'] ?? null;
+        if ($decoding !== null && in_array($decoding, ['async', 'sync', 'auto'], true)) {
+            $attrs['decoding'] = $decoding;
+        }
+
+        // crossorigin — required for CORS (e.g. canvas taint prevention)
+        $crossorigin = $options['crossorigin'] ?? null;
+        if ($crossorigin !== null && in_array($crossorigin, ['anonymous', 'use-credentials'], true)) {
+            $attrs['crossorigin'] = $crossorigin;
+        }
+
         // Additional attributes (caller-supplied, not escaped — trust the caller)
         foreach (($options['additionalAttributes'] ?? []) as $name => $value) {
             $attrs[$name] = $value;
@@ -372,16 +386,23 @@ final class ImageRenderingService implements SingletonInterface
      *
      * @param string|null $media  Media query, e.g. `(min-width: 768px)`
      * @param string|null $type   MIME type override; auto-detected from processed file when null
+     * @param string|null $srcset Pre-built srcset string (multiple widths); when set, the single
+     *                            processed file URL is replaced by this value
+     * @param string|null $sizes  Value for the HTML sizes attribute, e.g. `(max-width: 768px) 100vw, 50vw`
      */
-    public function renderSourceTag(ProcessedFile $processed, ?string $media, ?string $type = null): string
+    public function renderSourceTag(ProcessedFile $processed, ?string $media, ?string $type = null, ?string $srcset = null, ?string $sizes = null): string
     {
         $url = $this->imageService->getImageUri($processed, true);
 
         $attrs = [];
-        $attrs['srcset'] = $url;
+        $attrs['srcset'] = ($srcset !== null && $srcset !== '') ? $srcset : $url;
 
         if ($media !== null && $media !== '') {
             $attrs['media'] = $media;
+        }
+
+        if ($sizes !== null && $sizes !== '') {
+            $attrs['sizes'] = $sizes;
         }
 
         $mimeType = $type ?? $this->detectMimeType($processed);

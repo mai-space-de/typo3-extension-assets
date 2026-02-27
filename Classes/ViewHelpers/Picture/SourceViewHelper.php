@@ -161,6 +161,27 @@ final class SourceViewHelper extends AbstractViewHelper
             false,
             0,
         );
+
+        $this->registerArgument(
+            'srcset',
+            'string',
+            'Comma-separated list of widths to generate for the srcset attribute of this <source> tag, '
+            . 'e.g. "400, 800, 1200". Each width is processed independently; the actual rendered pixel '
+            . 'width becomes the w-descriptor (e.g. "image-800.webp 800w, image-1200.webp 1200w"). '
+            . 'When set, the width argument is still used as the primary size for the main src. '
+            . 'Accepts TYPO3 width notation (e.g. "800c", "1200m").',
+            false,
+            null,
+        );
+
+        $this->registerArgument(
+            'sizes',
+            'string',
+            'Value for the HTML sizes attribute on the <source> tag, '
+            . 'e.g. "(max-width: 768px) 100vw, 50vw". Only rendered when srcset is also set.',
+            false,
+            null,
+        );
     }
 
     public static function renderStatic(
@@ -185,11 +206,14 @@ final class SourceViewHelper extends AbstractViewHelper
             return '';
         }
 
-        $width  = (string)$arguments['width'];
-        $height = (string)$arguments['height'];
-        $media  = $arguments['media'] ?? null;
-
+        $width   = (string)$arguments['width'];
+        $height  = (string)$arguments['height'];
+        $media   = $arguments['media'] ?? null;
         $quality = (int)($arguments['quality'] ?? 0);
+
+        // Build optional multi-width srcset string.
+        $srcsetArg = $arguments['srcset'] ?? null;
+        $sizesArg  = $arguments['sizes'] ?? null;
 
         // Resolve alternative formats: argument → TypoScript default.
         $formats = self::resolveAlternativeFormats($arguments['formats'] ?? null);
@@ -197,22 +221,36 @@ final class SourceViewHelper extends AbstractViewHelper
         // No format alternatives: render a single <source> tag (classic behaviour).
         if ($formats === []) {
             $fileExtension = self::resolveFileExtension($arguments);
+            $srcsetStr     = null;
+            if (is_string($srcsetArg) && $srcsetArg !== '') {
+                $srcsetStr = $service->buildSrcsetString($file, $srcsetArg, $height, $fileExtension, $quality);
+            }
             $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
-            return $service->renderSourceTag($processed, $media, $arguments['type'] ?? null);
+            return $service->renderSourceTag($processed, $media, $arguments['type'] ?? null, $srcsetStr, $srcsetStr !== null ? $sizesArg : null);
         }
 
         // Format alternatives: render one <source> per alternative format, then the fallback.
         $html = '';
 
-        $alternatives = $service->processImageAlternatives($file, $width, $height, $formats, $quality);
-        foreach ($alternatives as $processed) {
-            $html .= $service->renderSourceTag($processed, $media);
+        foreach ($formats as $format) {
+            $altSrcset = null;
+            if (is_string($srcsetArg) && $srcsetArg !== '') {
+                $altSrcset = $service->buildSrcsetString($file, $srcsetArg, $height, $format, $quality);
+            }
+            $alternatives = $service->processImageAlternatives($file, $width, $height, [$format], $quality);
+            foreach ($alternatives as $processed) {
+                $html .= $service->renderSourceTag($processed, $media, null, $altSrcset, $altSrcset !== null ? $sizesArg : null);
+            }
         }
 
         // Fallback <source> in the original/default format (no fileExtension override).
         if ((bool)($arguments['fallback'] ?? true)) {
+            $fallbackSrcset    = null;
+            if (is_string($srcsetArg) && $srcsetArg !== '') {
+                $fallbackSrcset = $service->buildSrcsetString($file, $srcsetArg, $height, '', $quality);
+            }
             $fallbackProcessed = $service->processImage($file, $width, $height, '', $quality);
-            $html .= $service->renderSourceTag($fallbackProcessed, $media, $arguments['type'] ?? null);
+            $html .= $service->renderSourceTag($fallbackProcessed, $media, $arguments['type'] ?? null, $fallbackSrcset, $fallbackSrcset !== null ? $sizesArg : null);
         }
 
         return $html;
