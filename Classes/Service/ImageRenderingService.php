@@ -124,7 +124,12 @@ final class ImageRenderingService implements SingletonInterface
             }
 
             try {
-                return $resourceFactory->retrieveFileOrFolderObject($absolutePath);
+                $fileObject = $resourceFactory->retrieveFileOrFolderObject($absolutePath);
+                if ($fileObject instanceof File) {
+                    return $fileObject;
+                }
+
+                return null;
             } catch (\Exception $e) {
                 $this->logger->warning(
                     'maispace_assets: Could not retrieve FAL object for "' . $image . '": ' . $e->getMessage(),
@@ -281,12 +286,10 @@ final class ImageRenderingService implements SingletonInterface
         $parts = [];
 
         foreach ($widthList as $w) {
-            if ($w === '') {
-                continue;
-            }
             $processed = $this->processImage($file, $w, $height, $fileExtension, $quality);
             $url = $this->imageService->getImageUri($processed, true);
-            $actualWidth = (int)($processed->getProperty('width') ?: (int)preg_replace('/\D+/', '', $w));
+            $propertyWidth = $processed->getProperty('width');
+            $actualWidth = is_numeric($propertyWidth) ? (int)$propertyWidth : (int)preg_replace('/\D+/', '', $w);
             if ($url !== '' && $actualWidth > 0) {
                 $parts[] = $url . ' ' . $actualWidth . 'w';
             }
@@ -321,9 +324,9 @@ final class ImageRenderingService implements SingletonInterface
 
         $attrs = [];
         $attrs['src'] = $url;
-        $attrs['width'] = (string)($width ?: '');
-        $attrs['height'] = (string)($height ?: '');
-        $attrs['alt'] = $options['alt'] ?? '';
+        $attrs['width'] = is_scalar($width) ? (string)$width : '';
+        $attrs['height'] = is_scalar($height) ? (string)$height : '';
+        $attrs['alt'] = $options['alt'];
 
         // Lazy loading
         $isLazy = (bool)($options['lazyloading'] ?? false);
@@ -522,6 +525,8 @@ final class ImageRenderingService implements SingletonInterface
     /**
      * Render an HTML tag with the given attributes.
      * Attribute values are HTML-escaped. Attribute names are trusted (internal use only).
+     *
+     * @param array<string, string|null> $attrs
      */
     private function buildTag(string $tagName, array $attrs, bool $selfClosing = false): string
     {
@@ -530,7 +535,7 @@ final class ImageRenderingService implements SingletonInterface
             if ($value === '' || $value === null) {
                 continue;
             }
-            $attrString .= ' ' . $name . '="' . htmlspecialchars((string)$value, ENT_QUOTES | ENT_XML1) . '"';
+            $attrString .= ' ' . $name . '="' . htmlspecialchars($value, ENT_QUOTES | ENT_XML1) . '"';
         }
 
         if ($selfClosing) {

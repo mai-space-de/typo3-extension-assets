@@ -267,6 +267,9 @@ final class PictureViewHelper extends AbstractViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
@@ -290,19 +293,24 @@ final class PictureViewHelper extends AbstractViewHelper
         $varContainer->add(self::class, self::VAR_LAZYLOAD_CLASS, $lazyloadWithClass);
 
         // Render children — each <mai:picture.source> outputs one or more <source> tags.
-        $sourcesHtml = (string)$renderChildrenClosure();
+        $sourcesRaw = $renderChildrenClosure();
+        $sourcesHtml = is_string($sourcesRaw) ? $sourcesRaw : '';
 
         $varContainer->remove(self::class, self::VAR_FILE);
         $varContainer->remove(self::class, self::VAR_LAZYLOADING);
         $varContainer->remove(self::class, self::VAR_LAZYLOAD_CLASS);
 
-        $width = (string)$arguments['width'];
-        $height = (string)$arguments['height'];
+        $widthRaw = $arguments['width'] ?? '';
+        $width = is_string($widthRaw) ? $widthRaw : '';
+        $heightRaw = $arguments['height'] ?? '';
+        $height = is_string($heightRaw) ? $heightRaw : '';
 
-        $quality = (int)($arguments['quality'] ?? 0);
+        $qualityRaw = $arguments['quality'] ?? 0;
+        $quality = is_numeric($qualityRaw) ? (int)$qualityRaw : 0;
 
         // Resolve alternative formats for the fallback area (catch-all sources + img).
-        $formats = self::resolveAlternativeFormats($arguments['formats'] ?? null);
+        $formatsRaw = $arguments['formats'] ?? null;
+        $formats = self::resolveAlternativeFormats(is_string($formatsRaw) ? $formatsRaw : null);
 
         // Render format-alternative catch-all <source> tags before the fallback <img>.
         $fallbackSourcesHtml = '';
@@ -324,17 +332,18 @@ final class PictureViewHelper extends AbstractViewHelper
 
         // Build fallback <img>.
         $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
+        $altRaw = $arguments['alt'] ?? '';
         $imgHtml = $service->renderImgTag($processed, [
-            'alt'                  => (string)($arguments['alt'] ?? ''),
-            'class'                => $arguments['imgClass'] ?? null,
-            'id'                   => $arguments['imgId'] ?? null,
-            'title'                => $arguments['imgTitle'] ?? null,
+            'alt'                  => is_string($altRaw) ? $altRaw : '',
+            'class'                => is_string($arguments['imgClass'] ?? null) ? $arguments['imgClass'] : null,
+            'id'                   => is_string($arguments['imgId'] ?? null) ? $arguments['imgId'] : null,
+            'title'                => is_string($arguments['imgTitle'] ?? null) ? $arguments['imgTitle'] : null,
             'lazyloading'          => $lazyloading,
             'lazyloadWithClass'    => $lazyloadWithClass,
-            'fetchPriority'        => $arguments['fetchPriority'] ?? null,
-            'decoding'             => $arguments['imgDecoding'] ?? null,
-            'crossorigin'          => $arguments['imgCrossorigin'] ?? null,
-            'additionalAttributes' => (array)($arguments['imgAdditionalAttributes'] ?? []),
+            'fetchPriority'        => is_string($arguments['fetchPriority'] ?? null) ? $arguments['fetchPriority'] : null,
+            'decoding'             => is_string($arguments['imgDecoding'] ?? null) ? $arguments['imgDecoding'] : null,
+            'crossorigin'          => is_string($arguments['imgCrossorigin'] ?? null) ? $arguments['imgCrossorigin'] : null,
+            'additionalAttributes' => self::resolveStringArray($arguments['imgAdditionalAttributes'] ?? []),
         ]);
 
         // Optionally preload the fallback image.
@@ -375,6 +384,8 @@ final class PictureViewHelper extends AbstractViewHelper
      * Resolve the effective output file extension (image format) for the fallback <img>.
      *
      * Priority: explicit `fileExtension` argument → TypoScript `image.forceFormat` → ""
+     *
+     * @param array<string, mixed> $arguments
      */
     private static function resolveFileExtension(array $arguments): string
     {
@@ -389,6 +400,8 @@ final class PictureViewHelper extends AbstractViewHelper
     }
 
     /**
+     * @param array<string, mixed> $arguments
+     *
      * @return array{0: bool, 1: string|null} [isLazy, lazyClass|null]
      */
     private static function resolveLazyArguments(array $arguments): array
@@ -404,7 +417,9 @@ final class PictureViewHelper extends AbstractViewHelper
             $lazyloadWithClass = is_string($tsLazyClass) && $tsLazyClass !== '' ? $tsLazyClass : null;
         }
 
-        return [(bool)$lazyloading, $lazyloadWithClass !== '' ? $lazyloadWithClass : null];
+        $lazyClassResult = is_string($lazyloadWithClass) && $lazyloadWithClass !== '' ? $lazyloadWithClass : null;
+
+        return [(bool)$lazyloading, $lazyClassResult];
     }
 
     /**
@@ -431,15 +446,42 @@ final class PictureViewHelper extends AbstractViewHelper
         return array_values(array_map('strtolower', $formats));
     }
 
+    /**
+     * Normalize a mixed array into a string-keyed, string-valued array.
+     *
+     * @return array<string, string>
+     */
+    private static function resolveStringArray(mixed $input): array
+    {
+        if (!is_array($input)) {
+            return [];
+        }
+        $result = [];
+        foreach ($input as $k => $v) {
+            if (is_string($k)) {
+                $result[$k] = is_string($v) ? $v : (is_scalar($v) ? (string)$v : '');
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     */
     private static function buildPictureAttributes(array $arguments): string
     {
         $attrs = '';
-        if (!empty($arguments['class'])) {
-            $attrs .= ' class="' . htmlspecialchars((string)$arguments['class'], ENT_QUOTES | ENT_XML1) . '"';
+        $classArg = is_string($arguments['class'] ?? null) ? $arguments['class'] : '';
+        if ($classArg !== '') {
+            $attrs .= ' class="' . htmlspecialchars($classArg, ENT_QUOTES | ENT_XML1) . '"';
         }
-        foreach ((array)($arguments['additionalAttributes'] ?? []) as $name => $value) {
-            $attrs .= ' ' . htmlspecialchars($name, ENT_QUOTES | ENT_XML1)
-                . '="' . htmlspecialchars((string)$value, ENT_QUOTES | ENT_XML1) . '"';
+        $additionalAttributes = is_array($arguments['additionalAttributes'] ?? null) ? $arguments['additionalAttributes'] : [];
+        foreach ($additionalAttributes as $name => $value) {
+            $nameStr = is_string($name) ? $name : (string)$name;
+            $valueStr = is_string($value) ? $value : (is_scalar($value) ? (string)$value : '');
+            $attrs .= ' ' . htmlspecialchars($nameStr, ENT_QUOTES | ENT_XML1)
+                . '="' . htmlspecialchars($valueStr, ENT_QUOTES | ENT_XML1) . '"';
         }
 
         return $attrs;

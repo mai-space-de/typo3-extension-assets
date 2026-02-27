@@ -60,7 +60,24 @@ final class FontRegistry implements SingletonInterface
         'otf'   => 'font/otf',
     ];
 
-    /** @var array<string, array{src: string, publicUrl: string, type: string, preload: bool, sites?: string[]}> */
+    /**
+     * @var array<string, array{
+     *     src: string,
+     *     publicUrl: string,
+     *     type: string,
+     *     preload: bool,
+     *     sites?: array<string>
+     * }>
+     */
+    /**
+     * @var array<string, array{
+     *     src: string,
+     *     publicUrl: string,
+     *     type: string,
+     *     preload: bool,
+     *     sites?: array<string>
+     * }>
+     */
     private array $fonts = [];
 
     private bool $discovered = false;
@@ -98,14 +115,14 @@ final class FontRegistry implements SingletonInterface
                 continue;
             }
 
-            if (!($fonts['preload'] ?? true)) {
+            if ($fonts['preload'] === false) {
                 continue;
             }
 
             $tag = sprintf(
                 '<link rel="preload" href="%s" as="font" type="%s" crossorigin>',
-                htmlspecialchars($fonts['publicUrl'], ENT_QUOTES | ENT_XML1),
-                htmlspecialchars($fonts['type'], ENT_QUOTES | ENT_XML1),
+                htmlspecialchars($fonts['publicUrl'], ENT_QUOTES),
+                htmlspecialchars($fonts['type'], ENT_QUOTES),
             );
 
             $pageRenderer->addHeaderData($tag);
@@ -147,6 +164,9 @@ final class FontRegistry implements SingletonInterface
         $this->discovered = true;
 
         foreach (ExtensionManagementUtility::getLoadedExtensionListArray() as $extKey) {
+            if (!is_string($extKey)) {
+                continue;
+            }
             $file = ExtensionManagementUtility::extPath($extKey) . 'Configuration/Fonts.php';
 
             if (!is_file($file)) {
@@ -170,6 +190,13 @@ final class FontRegistry implements SingletonInterface
                     continue;
                 }
 
+                if (!is_array($config)) {
+                    $this->logger->warning(
+                        'maispace_assets: Font entry for "' . $key . '" in "' . $extKey . '" is not an array.',
+                    );
+                    continue;
+                }
+
                 if (!isset($config['src']) || !is_string($config['src'])) {
                     $this->logger->warning(
                         'maispace_assets: Font "' . $key . '" in "' . $extKey . '" is missing required "src" key.',
@@ -186,7 +213,7 @@ final class FontRegistry implements SingletonInterface
                 }
 
                 $publicUrl = PathUtility::getAbsoluteWebPath($absolutePath);
-                $type = $config['type'] ?? $this->detectMimeType($absolutePath);
+                $type = is_string($config['type'] ?? null) ? (string)$config['type'] : $this->detectMimeType($absolutePath);
 
                 if ($type === '') {
                     $this->logger->warning(
@@ -205,7 +232,15 @@ final class FontRegistry implements SingletonInterface
                 ];
 
                 if (isset($config['sites']) && is_array($config['sites'])) {
-                    $entry['sites'] = $config['sites'];
+                    $sites = [];
+                    foreach ($config['sites'] as $site) {
+                        if (is_string($site) && $site !== '') {
+                            $sites[] = $site;
+                        }
+                    }
+                    if ($sites !== []) {
+                        $entry['sites'] = $sites;
+                    }
                 }
 
                 $this->fonts[$key] = $entry;
@@ -224,6 +259,18 @@ final class FontRegistry implements SingletonInterface
      * - It has no `sites` key (global), OR
      * - `$siteIdentifier` is not null AND appears in the `sites` array.
      */
+    /**
+     * @param array<string, mixed> $font
+     */
+    /**
+     * @param array{
+     *     src: string,
+     *     publicUrl: string,
+     *     type: string,
+     *     preload: bool,
+     *     sites?: array<string>
+     * } $font
+     */
     private function isApplicable(array $font, ?string $siteIdentifier): bool
     {
         if (!isset($font['sites'])) {
@@ -239,7 +286,8 @@ final class FontRegistry implements SingletonInterface
      */
     private function detectMimeType(string $absolutePath): string
     {
-        $ext = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
+        $info = pathinfo($absolutePath);
+        $ext = strtolower((string)($info['extension'] ?? ''));
 
         return self::MIME_MAP[$ext] ?? '';
     }

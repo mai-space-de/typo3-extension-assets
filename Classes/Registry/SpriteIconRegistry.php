@@ -56,7 +56,25 @@ final class SpriteIconRegistry implements SingletonInterface
     private const CACHE_KEY_PREFIX = 'svg_sprite_';
     private const CACHE_TAG = 'maispace_assets_svg';
 
-    /** @var array<string, array{src: string, absoluteSrc: string}> symbolId => resolved config */
+    /**
+     * @var array<string, array{
+     *     src: string,
+     *     absoluteSrc: string
+     * }> symbolId => resolved config
+     */
+    /**
+     * @var array<string, array{
+     *     src: string,
+     *     absoluteSrc: string
+     * }>
+     */
+    /**
+     * @var array<string, array{
+     *     src: string,
+     *     absoluteSrc: string,
+     *     sites?: string[]
+     * }>
+     */
     private array $symbols = [];
 
     private bool $discovered = false;
@@ -98,7 +116,10 @@ final class SpriteIconRegistry implements SingletonInterface
         $cacheKey = $this->buildCacheKey($symbols, $siteIdentifier);
 
         if ($this->cache->has($cacheKey)) {
-            return (string)$this->cache->get($cacheKey);
+            $cached = $this->cache->get($cacheKey);
+            if (is_string($cached)) {
+                return $cached;
+            }
         }
 
         $spriteXml = $this->assembleSpriteXml($symbols);
@@ -144,6 +165,9 @@ final class SpriteIconRegistry implements SingletonInterface
         $this->discovered = true;
 
         foreach (ExtensionManagementUtility::getLoadedExtensionListArray() as $extKey) {
+            if (!is_string($extKey)) {
+                continue;
+            }
             $file = ExtensionManagementUtility::extPath($extKey) . 'Configuration/SpriteIcons.php';
 
             if (!is_file($file)) {
@@ -167,6 +191,13 @@ final class SpriteIconRegistry implements SingletonInterface
                     continue;
                 }
 
+                if (!is_array($config)) {
+                    $this->logger->warning(
+                        'maispace_assets: Symbol entry for "' . $symbolId . '" in "' . $extKey . '" is not an array.',
+                    );
+                    continue;
+                }
+
                 if (!isset($config['src']) || !is_string($config['src'])) {
                     $this->logger->warning(
                         'maispace_assets: Symbol "' . $symbolId . '" in "' . $extKey . '" is missing required "src" key.',
@@ -174,6 +205,7 @@ final class SpriteIconRegistry implements SingletonInterface
                     continue;
                 }
 
+                /** @var array<string, mixed> $config */
                 /** @var BeforeSpriteSymbolRegisteredEvent $event */
                 $event = $this->eventDispatcher->dispatch(
                     new BeforeSpriteSymbolRegisteredEvent($symbolId, $config, $extKey),
@@ -186,18 +218,42 @@ final class SpriteIconRegistry implements SingletonInterface
                 $resolvedSymbolId = $event->getSymbolId();
                 $resolvedConfig = $event->getConfig();
 
-                $absoluteSrc = GeneralUtility::getFileAbsFileName($resolvedConfig['src']);
+                $absoluteSrc = isset($resolvedConfig['src']) && is_string($resolvedConfig['src'])
+                    ? GeneralUtility::getFileAbsFileName($resolvedConfig['src'])
+                    : '';
                 if ($absoluteSrc === '' || !is_file($absoluteSrc)) {
+                    $srcForWarning = is_string($resolvedConfig['src'] ?? null) ? $resolvedConfig['src'] : '';
                     $this->logger->warning(
-                        'maispace_assets: SVG file not found for symbol "' . $resolvedSymbolId . '": ' . $resolvedConfig['src'],
+                        'maispace_assets: SVG file not found for symbol "' . $resolvedSymbolId . '": ' . $srcForWarning,
+                    );
+                    continue;
+                }
+
+                // Ensure 'src' remains a string after event processing
+                if (!isset($resolvedConfig['src']) || !is_string($resolvedConfig['src'])) {
+                    $this->logger->warning(
+                        'maispace_assets: Invalid "src" after event processing for symbol "' . $resolvedSymbolId . '".',
                     );
                     continue;
                 }
 
                 // Later registrations win — allows site packages to override vendor icons.
-                $this->symbols[$resolvedSymbolId] = array_merge($resolvedConfig, [
+                $entry = [
+                    'src'         => $resolvedConfig['src'],
                     'absoluteSrc' => $absoluteSrc,
-                ]);
+                ];
+                if (isset($resolvedConfig['sites']) && is_array($resolvedConfig['sites'])) {
+                    $sites = [];
+                    foreach ($resolvedConfig['sites'] as $site) {
+                        if (is_string($site) && $site !== '') {
+                            $sites[] = $site;
+                        }
+                    }
+                    if ($sites !== []) {
+                        $entry['sites'] = $sites;
+                    }
+                }
+                $this->symbols[$resolvedSymbolId] = $entry;
             }
         }
     }
@@ -215,6 +271,12 @@ final class SpriteIconRegistry implements SingletonInterface
      *
      * When `$siteIdentifier` is null, only global symbols (no `sites` key) are returned.
      *
+     * @return array<string, array{src: string, absoluteSrc: string, sites?: string[]}>
+     */
+    /**
+     * @return array<string, array{src: string, absoluteSrc: string, sites?: string[]}>
+     */
+    /**
      * @return array<string, array{src: string, absoluteSrc: string, sites?: string[]}>
      */
     private function filterSymbolsForSite(?string $siteIdentifier): array
@@ -240,6 +302,12 @@ final class SpriteIconRegistry implements SingletonInterface
      * Read each registered SVG file, extract its `<symbol>` representation,
      * and wrap everything in the sprite container.
      *
+     * @param array<string, array{src: string, absoluteSrc: string}> $symbols
+     */
+    /**
+     * @param array<string, array{src: string, absoluteSrc: string}> $symbols
+     */
+    /**
      * @param array<string, array{src: string, absoluteSrc: string}> $symbols
      */
     private function assembleSpriteXml(array $symbols): string
@@ -308,11 +376,11 @@ final class SpriteIconRegistry implements SingletonInterface
             return '';
         }
 
-        $viewBoxAttr = $viewBox !== '' ? ' viewBox="' . htmlspecialchars($viewBox, ENT_XML1) . '"' : '';
+        $viewBoxAttr = $viewBox !== '' ? ' viewBox="' . htmlspecialchars($viewBox, ENT_QUOTES) . '"' : '';
 
         return sprintf(
             '<symbol id="%s"%s>%s</symbol>',
-            htmlspecialchars($symbolId, ENT_XML1),
+            htmlspecialchars($symbolId, ENT_QUOTES),
             $viewBoxAttr,
             $innerContent,
         );
@@ -329,6 +397,12 @@ final class SpriteIconRegistry implements SingletonInterface
      * and the file modification time. Any change to a source SVG, the addition/removal
      * of a symbol, or a different site produces a different key — no manual flush required.
      *
+     * @param array<string, array{src: string, absoluteSrc: string}> $symbols
+     */
+    /**
+     * @param array<string, array{src: string, absoluteSrc: string}> $symbols
+     */
+    /**
      * @param array<string, array{src: string, absoluteSrc: string}> $symbols
      */
     private function buildCacheKey(array $symbols, ?string $siteIdentifier): string

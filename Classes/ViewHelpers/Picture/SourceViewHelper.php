@@ -184,6 +184,9 @@ final class SourceViewHelper extends AbstractViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
@@ -206,18 +209,22 @@ final class SourceViewHelper extends AbstractViewHelper
             return '';
         }
 
-        $width = (string)$arguments['width'];
-        $height = (string)$arguments['height'];
-        $media = $arguments['media'] ?? null;
+        $widthRaw = $arguments['width'] ?? '';
+        $width = is_string($widthRaw) ? $widthRaw : '';
+        $heightRaw = $arguments['height'] ?? '';
+        $height = is_string($heightRaw) ? $heightRaw : '';
+        $media = is_string($arguments['media'] ?? null) ? $arguments['media'] : null;
 
-        $quality = (int)($arguments['quality'] ?? 0);
+        $qualityRaw = $arguments['quality'] ?? 0;
+        $quality = is_numeric($qualityRaw) ? (int)$qualityRaw : 0;
 
         // Resolve alternative formats: argument → TypoScript default.
-        $formats = self::resolveAlternativeFormats($arguments['formats'] ?? null);
+        $formatsRaw = $arguments['formats'] ?? null;
+        $formats = self::resolveAlternativeFormats(is_string($formatsRaw) ? $formatsRaw : null);
 
         // Build optional srcset string (multi-width responsive descriptor).
         $srcsetWidths = $arguments['srcset'] ?? null;
-        $sizes = is_string($arguments['sizes'] ?? null) && ($arguments['sizes'] ?? '') !== ''
+        $sizes = is_string($arguments['sizes'] ?? null) && $arguments['sizes'] !== ''
             ? $arguments['sizes']
             : null;
 
@@ -231,7 +238,9 @@ final class SourceViewHelper extends AbstractViewHelper
                 $srcsetString = $service->buildSrcsetString($file, $srcsetWidths, $height, $fileExtension, $quality);
             }
 
-            return $service->renderSourceTag($processed, $media, $arguments['type'] ?? null, $srcsetString, $sizes);
+            $typeArg = is_string($arguments['type'] ?? null) ? $arguments['type'] : null;
+
+            return $service->renderSourceTag($processed, $media, $typeArg, $srcsetString, $sizes);
         }
 
         // Format alternatives: render one <source> per alternative format, then the fallback.
@@ -253,7 +262,8 @@ final class SourceViewHelper extends AbstractViewHelper
             if (is_string($srcsetWidths) && $srcsetWidths !== '') {
                 $fallbackSrcset = $service->buildSrcsetString($file, $srcsetWidths, $height, '', $quality);
             }
-            $html .= $service->renderSourceTag($fallbackProcessed, $media, $arguments['type'] ?? null, $fallbackSrcset, $sizes);
+            $typeArg = is_string($arguments['type'] ?? null) ? $arguments['type'] : null;
+            $html .= $service->renderSourceTag($fallbackProcessed, $media, $typeArg, $fallbackSrcset, $sizes);
         }
 
         return $html;
@@ -267,6 +277,8 @@ final class SourceViewHelper extends AbstractViewHelper
      * Resolve the effective output file extension when formats is not set.
      *
      * Priority: explicit `fileExtension` argument → TypoScript `image.forceFormat` → ""
+     *
+     * @param array<string, mixed> $arguments
      */
     private static function resolveFileExtension(array $arguments): string
     {

@@ -68,7 +68,8 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        $siteIdentifier = $request->getAttribute('site')?->getIdentifier();
+        $site = $request->getAttribute('site');
+        $siteIdentifier = $site?->getIdentifier();
         $spriteXml = $this->registry->buildSprite($siteIdentifier);
 
         if ($spriteXml === '') {
@@ -114,8 +115,22 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
             return self::DEFAULT_ROUTE_PATH;
         }
 
+        /** @var array<string, mixed> $setup */
         $setup = $frontendTypoScript->getSetupArray();
-        $routePath = $setup['plugin.']['tx_maispace_assets.']['svgSprite.']['routePath'] ?? '';
+
+        $plugin = $setup['plugin.'] ?? null;
+        if (!is_array($plugin)) {
+            return self::DEFAULT_ROUTE_PATH;
+        }
+        $ext = $plugin['tx_maispace_assets.'] ?? null;
+        if (!is_array($ext)) {
+            return self::DEFAULT_ROUTE_PATH;
+        }
+        $sprite = $ext['svgSprite.'] ?? null;
+        if (!is_array($sprite)) {
+            return self::DEFAULT_ROUTE_PATH;
+        }
+        $routePath = $sprite['routePath'] ?? '';
 
         if (!is_string($routePath) || $routePath === '') {
             return self::DEFAULT_ROUTE_PATH;

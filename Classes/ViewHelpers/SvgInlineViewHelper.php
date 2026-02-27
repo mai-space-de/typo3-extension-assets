@@ -122,12 +122,16 @@ final class SvgInlineViewHelper extends AbstractViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
-        $src = (string)($arguments['src'] ?? '');
+        $srcRaw = $arguments['src'] ?? '';
+        $src = is_string($srcRaw) ? $srcRaw : '';
         if ($src === '') {
             return '';
         }
@@ -148,7 +152,9 @@ final class SvgInlineViewHelper extends AbstractViewHelper
         $cache = GeneralUtility::makeInstance(AssetCacheManager::class);
 
         if ($cache->has($cacheKey)) {
-            return (string)$cache->get($cacheKey);
+            $cached = $cache->get($cacheKey);
+
+            return is_string($cached) ? $cached : '';
         }
 
         $result = self::buildSvgMarkup($arguments, $src);
@@ -164,6 +170,9 @@ final class SvgInlineViewHelper extends AbstractViewHelper
     // Private helpers
     // -------------------------------------------------------------------------
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     private static function buildSvgMarkup(array $arguments, string $src): string
     {
         $absolutePath = GeneralUtility::getFileAbsFileName($src);
@@ -219,8 +228,9 @@ final class SvgInlineViewHelper extends AbstractViewHelper
         }
 
         // Additional attributes.
-        foreach ((array)($arguments['additionalAttributes'] ?? []) as $name => $value) {
-            $svgElement->setAttribute((string)$name, (string)$value);
+        $additionalAttributes = is_array($arguments['additionalAttributes'] ?? null) ? $arguments['additionalAttributes'] : [];
+        foreach ($additionalAttributes as $name => $value) {
+            $svgElement->setAttribute((string)$name, is_string($value) ? $value : (is_scalar($value) ? (string)$value : ''));
         }
 
         // Accessibility attributes.

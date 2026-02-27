@@ -77,24 +77,30 @@ final class FigureViewHelper extends AbstractViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
-        $children = (string)$renderChildrenClosure();
+        $childrenRaw = $renderChildrenClosure();
+        $children = is_string($childrenRaw) ? $childrenRaw : '';
 
+        $classArg = is_string($arguments['class'] ?? null) ? $arguments['class'] : '';
         $figureAttrs = '';
-        if (!empty($arguments['class'])) {
-            $figureAttrs = ' class="' . htmlspecialchars((string)$arguments['class'], ENT_QUOTES | ENT_XML1) . '"';
+        if ($classArg !== '') {
+            $figureAttrs = ' class="' . htmlspecialchars($classArg, ENT_QUOTES | ENT_XML1) . '"';
         }
 
         $figcaptionHtml = '';
-        $caption = $arguments['caption'] ?? null;
-        if ($caption !== null && $caption !== '') {
+        $caption = is_string($arguments['caption'] ?? null) ? $arguments['caption'] : '';
+        if ($caption !== '') {
+            $classFigcaption = is_string($arguments['classFigcaption'] ?? null) ? $arguments['classFigcaption'] : '';
             $captionAttrs = '';
-            if (!empty($arguments['classFigcaption'])) {
-                $captionAttrs = ' class="' . htmlspecialchars((string)$arguments['classFigcaption'], ENT_QUOTES | ENT_XML1) . '"';
+            if ($classFigcaption !== '') {
+                $captionAttrs = ' class="' . htmlspecialchars($classFigcaption, ENT_QUOTES | ENT_XML1) . '"';
             }
             $figcaptionHtml = '<figcaption' . $captionAttrs . '>'
                 . htmlspecialchars($caption, ENT_QUOTES | ENT_XML1)

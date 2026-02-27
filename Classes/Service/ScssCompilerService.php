@@ -38,7 +38,7 @@ final class ScssCompilerService
      * @param bool        $compressed     Use OutputStyle::COMPRESSED (minified output)
      * @param string|null $sourceFilePath Absolute path of the source file (for relative @import resolution)
      *
-     * @throws \ScssPhp\ScssPhp\Exception\SassException on invalid SCSS syntax
+     * @throws \Exception on invalid SCSS syntax
      */
     public function compile(
         string $scssContent,
@@ -77,8 +77,8 @@ final class ScssCompilerService
      * @param string[] $importPaths      Additional EXT: or absolute import paths
      * @param bool     $compressed       Use OutputStyle::COMPRESSED
      *
-     * @throws \RuntimeException                        if the file cannot be read
-     * @throws \ScssPhp\ScssPhp\Exception\SassException on invalid SCSS syntax
+     * @throws \RuntimeException if the file cannot be read
+     * @throws \Exception        on invalid SCSS syntax
      */
     public function compileFile(
         string $absoluteFilePath,

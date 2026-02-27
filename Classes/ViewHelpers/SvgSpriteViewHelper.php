@@ -119,24 +119,30 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
-        $symbolId = (string)$arguments['use'];
+        $useRaw = $arguments['use'] ?? '';
+        $symbolId = is_string($useRaw) ? $useRaw : '';
         if ($symbolId === '') {
             return '';
         }
 
-        $spriteUrl = self::resolveSpriteSrc($arguments['src'] ?? null);
+        $srcArg = $arguments['src'] ?? null;
+        $spriteUrl = self::resolveSpriteSrc(is_string($srcArg) ? $srcArg : null);
         $href = $spriteUrl . '#' . htmlspecialchars($symbolId, ENT_XML1);
 
         $attrs = self::buildSvgAttributes($arguments);
 
         $titleTag = '';
-        if (!empty($arguments['title'])) {
-            $titleTag = '<title>' . htmlspecialchars((string)$arguments['title']) . '</title>';
+        $titleArg = is_string($arguments['title'] ?? null) ? $arguments['title'] : '';
+        if ($titleArg !== '') {
+            $titleTag = '<title>' . htmlspecialchars($titleArg) . '</title>';
         }
 
         return sprintf(
@@ -162,12 +168,16 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         }
 
         $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        if ($request !== null) {
+        if ($request instanceof \Psr\Http\Message\ServerRequestInterface) {
             /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $fts */
             $fts = $request->getAttribute('frontend.typoscript');
             if ($fts !== null) {
+                /** @var array<string, mixed> $setup */
                 $setup = $fts->getSetupArray();
-                $routePath = $setup['plugin.']['tx_maispace_assets.']['svgSprite.']['routePath'] ?? '';
+                $plugin = is_array($setup['plugin.'] ?? null) ? $setup['plugin.'] : [];
+                $txAssets = is_array($plugin['tx_maispace_assets.'] ?? null) ? $plugin['tx_maispace_assets.'] : [];
+                $svgSprite = is_array($txAssets['svgSprite.'] ?? null) ? $txAssets['svgSprite.'] : [];
+                $routePath = $svgSprite['routePath'] ?? '';
                 if (is_string($routePath) && $routePath !== '') {
                     return '/' . ltrim(rtrim($routePath, '/'), '/');
                 }
@@ -184,33 +194,38 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
      * - aria-label set   → role="img" + aria-label, no aria-hidden
      * - aria-hidden=false → aria-hidden="false" explicitly
      * - default          → aria-hidden="true" (decorative icon)
+     *
+     * @param array<string, mixed> $arguments
      */
     private static function buildSvgAttributes(array $arguments): string
     {
         $attrs = [];
 
-        if (!empty($arguments['class'])) {
-            $attrs[] = 'class="' . htmlspecialchars((string)$arguments['class']) . '"';
+        $classArg = is_string($arguments['class'] ?? null) ? $arguments['class'] : '';
+        if ($classArg !== '') {
+            $attrs[] = 'class="' . htmlspecialchars($classArg) . '"';
         }
-        if (!empty($arguments['width'])) {
-            $attrs[] = 'width="' . htmlspecialchars((string)$arguments['width']) . '"';
+        $widthArg = is_string($arguments['width'] ?? null) ? $arguments['width'] : '';
+        if ($widthArg !== '') {
+            $attrs[] = 'width="' . htmlspecialchars($widthArg) . '"';
         }
-        if (!empty($arguments['height'])) {
-            $attrs[] = 'height="' . htmlspecialchars((string)$arguments['height']) . '"';
+        $heightArg = is_string($arguments['height'] ?? null) ? $arguments['height'] : '';
+        if ($heightArg !== '') {
+            $attrs[] = 'height="' . htmlspecialchars($heightArg) . '"';
         }
 
-        $ariaLabel = $arguments['aria-label'] ?? null;
-        $ariaHidden = $arguments['aria-hidden'] ?? null;
+        $ariaLabel = is_string($arguments['aria-label'] ?? null) ? $arguments['aria-label'] : '';
+        $ariaHidden = is_string($arguments['aria-hidden'] ?? null) ? $arguments['aria-hidden'] : '';
 
-        if ($ariaLabel !== null && $ariaLabel !== '') {
+        if ($ariaLabel !== '') {
             $attrs[] = 'role="img"';
-            $attrs[] = 'aria-label="' . htmlspecialchars((string)$ariaLabel) . '"';
+            $attrs[] = 'aria-label="' . htmlspecialchars($ariaLabel) . '"';
         } elseif ($ariaHidden === 'false') {
             $attrs[] = 'aria-hidden="false"';
         } else {
             $attrs[] = 'aria-hidden="true"';
         }
 
-        return $attrs !== [] ? ' ' . implode(' ', $attrs) : '';
+        return ' ' . implode(' ', $attrs);
     }
 }

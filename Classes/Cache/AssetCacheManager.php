@@ -34,6 +34,9 @@ final class AssetCacheManager
         return $this->cache->get($key);
     }
 
+    /**
+     * @param array<string> $tags
+     */
     public function set(string $key, mixed $data, array $tags = [], int $lifetime = 0): void
     {
         $this->cache->set($key, $data, $tags, $lifetime);
@@ -90,6 +93,8 @@ final class AssetCacheManager
     /**
      * Cache key for a built SVG sprite.
      * Derived from the sorted list of symbol IDs that were registered in this request.
+     *
+     * @param array<int|string> $symbolIds
      */
     public function buildSpriteKey(array $symbolIds): string
     {

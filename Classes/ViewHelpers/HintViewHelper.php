@@ -114,13 +114,18 @@ final class HintViewHelper extends AbstractViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
-        $href = trim((string)($arguments['href'] ?? ''));
-        $rel = trim((string)($arguments['rel'] ?? ''));
+        $hrefRaw = $arguments['href'] ?? '';
+        $relRaw = $arguments['rel'] ?? '';
+        $href = is_string($hrefRaw) ? trim($hrefRaw) : '';
+        $rel = is_string($relRaw) ? trim($relRaw) : '';
 
         if ($href === '' || $rel === '') {
             return '';
@@ -154,8 +159,9 @@ final class HintViewHelper extends AbstractViewHelper
         }
 
         // Merge any caller-supplied extra attributes.
-        foreach ((array)($arguments['additionalAttributes'] ?? []) as $name => $value) {
-            $attrs[(string)$name] = (string)$value;
+        $additionalAttributes = is_array($arguments['additionalAttributes'] ?? null) ? $arguments['additionalAttributes'] : [];
+        foreach ($additionalAttributes as $name => $value) {
+            $attrs[(string)$name] = is_string($value) ? $value : (is_scalar($value) ? (string)$value : '');
         }
 
         // Build the <link> tag.

@@ -190,12 +190,16 @@ final class LottieViewHelper extends AbstractViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): string {
-        $rawSrc = (string)($arguments['src'] ?? '');
+        $srcArg = $arguments['src'] ?? '';
+        $rawSrc = is_string($srcArg) ? $srcArg : '';
         if ($rawSrc === '') {
             return '';
         }
@@ -244,6 +248,8 @@ final class LottieViewHelper extends AbstractViewHelper
     /**
      * Determine the player script URL (argument → TypoScript → skip) and
      * register it with AssetCollector when applicable.
+     *
+     * @param array<string, mixed> $arguments
      */
     private static function maybeRegisterPlayerScript(array $arguments): void
     {
@@ -256,7 +262,7 @@ final class LottieViewHelper extends AbstractViewHelper
 
         // Resolve: explicit argument → TypoScript setting.
         $playerSrc = null;
-        if (is_string($playerSrcArg) && $playerSrcArg !== '') {
+        if (is_string($playerSrcArg)) {
             $playerSrc = $playerSrcArg;
         } else {
             $tsValue = self::getTypoScriptSetting('lottie.playerSrc', '');
@@ -277,7 +283,8 @@ final class LottieViewHelper extends AbstractViewHelper
             }
         }
 
-        $identifier = (string)($arguments['playerIdentifier'] ?? 'maispace-lottie-player');
+        $identifierArg = $arguments['playerIdentifier'] ?? 'maispace-lottie-player';
+        $identifier = is_string($identifierArg) ? $identifierArg : 'maispace-lottie-player';
         if ($identifier === '') {
             $identifier = 'maispace-lottie-player';
         }
@@ -295,6 +302,8 @@ final class LottieViewHelper extends AbstractViewHelper
 
     /**
      * Build the `<lottie-player>` HTML element string.
+     *
+     * @param array<string, mixed> $arguments
      */
     private static function buildTag(string $animationSrc, array $arguments): string
     {
@@ -314,27 +323,32 @@ final class LottieViewHelper extends AbstractViewHelper
             $attrs['controls'] = 'controls';
         }
 
-        $speed = (float)($arguments['speed'] ?? 1.0);
+        $speedRaw = $arguments['speed'] ?? 1.0;
+        $speed = is_numeric($speedRaw) ? (float)$speedRaw : 1.0;
         if ($speed !== 1.0) {
             $attrs['speed'] = (string)$speed;
         }
 
-        $direction = (int)($arguments['direction'] ?? 1);
+        $directionRaw = $arguments['direction'] ?? 1;
+        $direction = is_numeric($directionRaw) ? (int)$directionRaw : 1;
         if ($direction !== 1) {
             $attrs['direction'] = (string)$direction;
         }
 
-        $mode = (string)($arguments['mode'] ?? 'normal');
+        $modeRaw = $arguments['mode'] ?? 'normal';
+        $mode = is_string($modeRaw) ? $modeRaw : 'normal';
         if ($mode !== '' && $mode !== 'normal') {
             $attrs['mode'] = $mode;
         }
 
-        $renderer = (string)($arguments['renderer'] ?? 'svg');
+        $rendererRaw = $arguments['renderer'] ?? 'svg';
+        $renderer = is_string($rendererRaw) ? $rendererRaw : 'svg';
         if ($renderer !== '' && $renderer !== 'svg') {
             $attrs['renderer'] = $renderer;
         }
 
-        $background = (string)($arguments['background'] ?? 'transparent');
+        $backgroundRaw = $arguments['background'] ?? 'transparent';
+        $background = is_string($backgroundRaw) ? $backgroundRaw : 'transparent';
         if ($background !== '' && $background !== 'transparent') {
             $attrs['background'] = $background;
         }
@@ -356,13 +370,14 @@ final class LottieViewHelper extends AbstractViewHelper
         }
 
         // Additional caller-supplied attributes.
-        foreach ((array)($arguments['additionalAttributes'] ?? []) as $name => $value) {
-            $attrs[(string)$name] = (string)$value;
+        $additionalAttributes = is_array($arguments['additionalAttributes'] ?? null) ? $arguments['additionalAttributes'] : [];
+        foreach ($additionalAttributes as $name => $value) {
+            $attrs[(string)$name] = is_string($value) ? $value : (is_scalar($value) ? (string)$value : '');
         }
 
         $tag = '<lottie-player';
         foreach ($attrs as $name => $value) {
-            if ($value === '' || $value === null) {
+            if ($value === '') {
                 continue;
             }
             // Boolean attributes (autoplay, loop, controls) output as name="name".
@@ -380,17 +395,26 @@ final class LottieViewHelper extends AbstractViewHelper
     private static function getTypoScriptSetting(string $dotPath, mixed $default): mixed
     {
         $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        if ($request === null) {
+        if (!$request instanceof \Psr\Http\Message\ServerRequestInterface) {
             return $default;
         }
 
+        /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $fts */
         $fts = $request->getAttribute('frontend.typoscript');
         if ($fts === null) {
             return $default;
         }
 
+        /** @var array<string, mixed> $setup */
         $setup = $fts->getSetupArray();
-        $root = $setup['plugin.']['tx_maispace_assets.'] ?? [];
+        $rootPlugin = $setup['plugin.'] ?? null;
+        if (!is_array($rootPlugin)) {
+            return $default;
+        }
+        $root = $rootPlugin['tx_maispace_assets.'] ?? null;
+        if (!is_array($root)) {
+            return $default;
+        }
 
         $parts = explode('.', $dotPath);
         $node = $root;
@@ -399,10 +423,11 @@ final class LottieViewHelper extends AbstractViewHelper
             if ($isLast) {
                 return $node[$part] ?? $default;
             }
-            $node = $node[$part . '.'] ?? [];
-            if (!is_array($node)) {
+            $next = $node[$part . '.'] ?? null;
+            if (!is_array($next)) {
                 return $default;
             }
+            $node = $next;
         }
 
         return $default;

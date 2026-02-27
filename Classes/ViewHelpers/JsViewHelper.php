@@ -126,11 +126,15 @@ final class JsViewHelper extends AbstractAssetViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): void {
-        AssetProcessingService::handleJs($arguments, $renderChildrenClosure());
+        $inlineContent = $renderChildrenClosure();
+        AssetProcessingService::handleJs($arguments, is_string($inlineContent) ? $inlineContent : null);
     }
 }

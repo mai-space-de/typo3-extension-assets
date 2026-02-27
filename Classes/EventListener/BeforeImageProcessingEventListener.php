@@ -47,21 +47,6 @@ use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
  */
 final class BeforeImageProcessingEventListener
 {
-    /**
-     * MIME types that are suitable for conversion to modern formats.
-     *
-     * SVG and GIF (animated) are excluded — they should not be rasterised.
-     *
-     * @var array<string, true>
-     */
-    private const CONVERTIBLE_MIME_TYPES = [
-        'image/jpeg' => true,
-        'image/png'  => true,
-        'image/bmp'  => true,
-        'image/tiff' => true,
-        'image/gif'  => true,
-    ];
-
     public function __invoke(BeforeImageProcessingEvent $event): void
     {
         // -----------------------------------------------------------------

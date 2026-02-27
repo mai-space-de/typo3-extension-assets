@@ -29,6 +29,7 @@ final class AfterJsProcessedEvent
     public function __construct(
         private string $identifier,
         private string $processedJs,
+        /** @var array<string, mixed> */
         private readonly array $viewHelperArguments,
     ) {
     }
@@ -55,6 +56,9 @@ final class AfterJsProcessedEvent
     /**
      * The original ViewHelper argument array, e.g. ['identifier', 'src', 'priority',
      * 'minify', 'defer', 'async', 'type'].
+     */
+    /**
+     * @return array<string, mixed>
      */
     public function getViewHelperArguments(): array
     {

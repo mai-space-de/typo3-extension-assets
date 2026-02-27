@@ -5,7 +5,9 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\EventListener;
 
 use Maispace\MaispaceAssets\Registry\FontRegistry;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Page\Event\BeforeStylesheetsRenderingEvent;
+use TYPO3\CMS\Core\Site\Entity\Site;
 
 /**
  * Emits `<link rel="preload" as="font">` header tags before the page `<head>` is rendered.
@@ -39,11 +41,14 @@ final class FontPreloadEventListener
         $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
 
         $siteIdentifier = null;
-        if ($request !== null) {
-            $siteIdentifier = $request->getAttribute('site')?->getIdentifier();
+        if ($request instanceof ServerRequestInterface) {
+            $site = $request->getAttribute('site');
+            if ($site instanceof Site) {
+                $siteIdentifier = $site->getIdentifier();
+            }
         }
 
-        $globalPreloadEnabled = $this->resolveGlobalPreloadSetting($request);
+        $globalPreloadEnabled = $this->resolveGlobalPreloadSetting($request instanceof ServerRequestInterface ? $request : null);
 
         $this->fontRegistry->emitPreloadHeaders($siteIdentifier, $globalPreloadEnabled);
     }
@@ -56,7 +61,7 @@ final class FontPreloadEventListener
      * Read `plugin.tx_maispace_assets.fonts.preload` from the current TypoScript setup.
      * Returns true when not configured (preloading enabled by default).
      */
-    private function resolveGlobalPreloadSetting(mixed $request): bool
+    private function resolveGlobalPreloadSetting(?ServerRequestInterface $request): bool
     {
         if ($request === null) {
             return true;
@@ -68,8 +73,21 @@ final class FontPreloadEventListener
             return true;
         }
 
+        /** @var array<string, mixed> $setup */
         $setup = $fts->getSetupArray();
-        $setting = $setup['plugin.']['tx_maispace_assets.']['fonts.']['preload'] ?? null;
+        $plugin = $setup['plugin.'] ?? null;
+        if (!is_array($plugin)) {
+            return true;
+        }
+        $ext = $plugin['tx_maispace_assets.'] ?? null;
+        if (!is_array($ext)) {
+            return true;
+        }
+        $fonts = $ext['fonts.'] ?? null;
+        if (!is_array($fonts)) {
+            return true;
+        }
+        $setting = $fonts['preload'] ?? null;
 
         // TypoScript values arrive as strings; treat '0' as disabled, anything else as enabled.
         return $setting !== '0';

@@ -39,6 +39,7 @@ final class BeforeSpriteSymbolRegisteredEvent
      */
     public function __construct(
         private string $symbolId,
+        /** @var array<string, mixed> */
         private array $config,
         private readonly string $sourceExtensionKey,
     ) {
@@ -68,6 +69,9 @@ final class BeforeSpriteSymbolRegisteredEvent
      * Currently supports:
      *   'src' (string, required) — EXT: path or absolute path to the .svg file.
      */
+    /**
+     * @return array<string, mixed>
+     */
     public function getConfig(): array
     {
         return $this->config;
@@ -75,6 +79,9 @@ final class BeforeSpriteSymbolRegisteredEvent
 
     /**
      * Replace the configuration array, e.g. to point to a different SVG file.
+     */
+    /**
+     * @param array<string, mixed> $config
      */
     public function setConfig(array $config): void
     {

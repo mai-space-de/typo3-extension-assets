@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers\Traits;
 
+use Psr\Http\Message\ServerRequestInterface;
+
 /**
  * Provides read-only access to the extension's TypoScript settings.
  *
@@ -29,29 +31,39 @@ trait TypoScriptSettingTrait
     private static function getTypoScriptSetting(string $dotPath, mixed $default): mixed
     {
         $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        if ($request === null) {
+        if (!$request instanceof ServerRequestInterface) {
             return $default;
         }
 
+        /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $fts */
         $fts = $request->getAttribute('frontend.typoscript');
         if ($fts === null) {
             return $default;
         }
 
+        /** @var array<string, mixed> $setup */
         $setup = $fts->getSetupArray();
-        $root = $setup['plugin.']['tx_maispace_assets.'] ?? [];
+        $plugin = $setup['plugin.'] ?? null;
+        if (!is_array($plugin)) {
+            return $default;
+        }
+        $root = $plugin['tx_maispace_assets.'] ?? null;
+        if (!is_array($root)) {
+            return $default;
+        }
 
         $parts = explode('.', $dotPath);
         $node = $root;
+        $lastIndex = count($parts) - 1;
         foreach ($parts as $i => $part) {
-            $isLast = ($i === count($parts) - 1);
-            if ($isLast) {
+            if ($i === $lastIndex) {
                 return $node[$part] ?? $default;
             }
-            $node = $node[$part . '.'] ?? [];
-            if (!is_array($node)) {
+            $next = $node[$part . '.'] ?? null;
+            if (!is_array($next)) {
                 return $default;
             }
+            $node = $next;
         }
 
         return $default;

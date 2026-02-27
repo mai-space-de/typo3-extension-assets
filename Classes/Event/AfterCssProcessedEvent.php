@@ -29,6 +29,7 @@ final class AfterCssProcessedEvent
     public function __construct(
         private string $identifier,
         private string $processedCss,
+        /** @var array<string, mixed> */
         private readonly array $viewHelperArguments,
     ) {
     }
@@ -57,6 +58,9 @@ final class AfterCssProcessedEvent
      * The original ViewHelper argument array, e.g. ['identifier', 'src', 'priority',
      * 'minify', 'inline', 'deferred', 'media'].
      * These are read-only — use setProcessedCss() to influence the output.
+     */
+    /**
+     * @return array<string, mixed>
      */
     public function getViewHelperArguments(): array
     {

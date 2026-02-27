@@ -30,6 +30,7 @@ final class AfterScssCompiledEvent
         private string $identifier,
         private readonly string $originalScss,
         private string $compiledCss,
+        /** @var array<string, mixed> */
         private readonly array $viewHelperArguments,
     ) {
     }
@@ -64,6 +65,9 @@ final class AfterScssCompiledEvent
     /**
      * The original ViewHelper argument array, e.g. ['identifier', 'src', 'priority',
      * 'minify', 'inline', 'importPaths'].
+     */
+    /**
+     * @return array<string, mixed>
      */
     public function getViewHelperArguments(): array
     {

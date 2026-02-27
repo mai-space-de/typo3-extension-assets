@@ -217,6 +217,9 @@ final class ImageViewHelper extends AbstractViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
@@ -233,12 +236,14 @@ final class ImageViewHelper extends AbstractViewHelper
         // Resolve the output format: explicit argument → TypoScript forceFormat → source format.
         $fileExtension = self::resolveFileExtension($arguments);
 
-        $quality = (int)($arguments['quality'] ?? 0);
+        $quality = is_int($arguments['quality'] ?? null) ? (int)$arguments['quality'] : 0;
+        $widthArg = is_string($arguments['width'] ?? null) ? $arguments['width'] : '';
+        $heightArg = is_string($arguments['height'] ?? null) ? $arguments['height'] : '';
 
         $processed = $service->processImage(
             $file,
-            (string)$arguments['width'],
-            (string)$arguments['height'],
+            $widthArg,
+            $heightArg,
             $fileExtension,
             $quality,
         );
@@ -253,25 +258,32 @@ final class ImageViewHelper extends AbstractViewHelper
             $srcsetString = $service->buildSrcsetString(
                 $file,
                 $srcsetArg,
-                (string)$arguments['height'],
+                $heightArg,
                 $fileExtension,
                 $quality,
             );
         }
 
+        $additional = [];
+        foreach ((array)($arguments['additionalAttributes'] ?? []) as $k => $v) {
+            if (is_string($k) && is_string($v)) {
+                $additional[$k] = $v;
+            }
+        }
+
         $imgHtml = $service->renderImgTag($processed, [
-            'alt'                  => (string)($arguments['alt'] ?? ''),
-            'class'                => $arguments['class'] ?? null,
-            'id'                   => $arguments['id'] ?? null,
-            'title'                => $arguments['title'] ?? null,
+            'alt'                  => is_string($arguments['alt'] ?? null) ? $arguments['alt'] : '',
+            'class'                => is_string($arguments['class'] ?? null) ? $arguments['class'] : null,
+            'id'                   => is_string($arguments['id'] ?? null) ? $arguments['id'] : null,
+            'title'                => is_string($arguments['title'] ?? null) ? $arguments['title'] : null,
             'lazyloading'          => $lazyloading,
             'lazyloadWithClass'    => $lazyloadWithClass,
-            'fetchPriority'        => $arguments['fetchPriority'] ?? null,
-            'decoding'             => $arguments['decoding'] ?? null,
-            'crossorigin'          => $arguments['crossorigin'] ?? null,
+            'fetchPriority'        => is_string($arguments['fetchPriority'] ?? null) ? $arguments['fetchPriority'] : null,
+            'decoding'             => is_string($arguments['decoding'] ?? null) ? $arguments['decoding'] : null,
+            'crossorigin'          => is_string($arguments['crossorigin'] ?? null) ? $arguments['crossorigin'] : null,
             'srcset'               => $srcsetString,
-            'sizes'                => $arguments['sizes'] ?? null,
-            'additionalAttributes' => (array)($arguments['additionalAttributes'] ?? []),
+            'sizes'                => is_string($arguments['sizes'] ?? null) ? $arguments['sizes'] : null,
+            'additionalAttributes' => $additional,
         ]);
 
         if ((bool)($arguments['preload'] ?? false)) {
@@ -290,8 +302,8 @@ final class ImageViewHelper extends AbstractViewHelper
                 $preloadMedia,
                 $fetchPriorityAttr,
                 $mimeType,
-                $srcsetString ?: null,
-                is_string($arguments['sizes'] ?? null) && ($arguments['sizes'] ?? '') !== '' ? $arguments['sizes'] : null,
+                $srcsetString !== '' ? $srcsetString : null,
+                is_string($arguments['sizes'] ?? null) && $arguments['sizes'] !== '' ? $arguments['sizes'] : null,
             );
         }
 
@@ -309,6 +321,8 @@ final class ImageViewHelper extends AbstractViewHelper
      *  1. Explicit `fileExtension` ViewHelper argument
      *  2. TypoScript `plugin.tx_maispace_assets.image.forceFormat`
      *  3. Empty string → use source file format (no conversion)
+     *
+     * @param array<string, mixed> $arguments
      */
     private static function resolveFileExtension(array $arguments): string
     {
@@ -329,6 +343,8 @@ final class ImageViewHelper extends AbstractViewHelper
      *  1. Explicit ViewHelper argument
      *  2. TypoScript default (plugin.tx_maispace_assets.image.lazyloading / .lazyloadWithClass)
      *
+     * @param array<string, mixed> $arguments
+     *
      * @return array{0: bool, 1: string|null} [isLazy, lazyClass|null]
      */
     private static function resolveLazyArguments(array $arguments): array
@@ -345,7 +361,9 @@ final class ImageViewHelper extends AbstractViewHelper
             $lazyloadWithClass = is_string($tsLazyClass) && $tsLazyClass !== '' ? $tsLazyClass : null;
         }
 
-        return [(bool)$lazyloading, $lazyloadWithClass !== '' ? $lazyloadWithClass : null];
+        $lazyClassResult = is_string($lazyloadWithClass) && $lazyloadWithClass !== '' ? $lazyloadWithClass : null;
+
+        return [(bool)$lazyloading, $lazyClassResult];
     }
 
 }

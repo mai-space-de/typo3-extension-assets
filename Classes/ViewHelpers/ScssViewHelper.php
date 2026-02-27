@@ -120,11 +120,15 @@ final class ScssViewHelper extends AbstractAssetViewHelper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
     public static function renderStatic(
         array $arguments,
         \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext,
     ): void {
-        AssetProcessingService::handleScss($arguments, $renderChildrenClosure());
+        $inlineContent = $renderChildrenClosure();
+        AssetProcessingService::handleScss($arguments, is_string($inlineContent) ? $inlineContent : null);
     }
 }
