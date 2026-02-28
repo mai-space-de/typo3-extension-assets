@@ -103,4 +103,25 @@ final class AssetCacheManager
 
         return 'svg_sprite_' . sha1(implode('|', $sorted));
     }
+
+    /**
+     * Cache key for per-page critical CSS at a specific viewport.
+     *
+     * Key format: critical_css_{sha1(pageUid|viewport)}
+     * This keeps keys deterministic and collision-free across pages and viewports.
+     */
+    public function buildCriticalCssKey(int $pageUid, string $viewport): string
+    {
+        return 'critical_css_' . sha1($pageUid . '|' . $viewport);
+    }
+
+    /**
+     * Cache key for per-page critical JS at a specific viewport.
+     *
+     * Key format: critical_js_{sha1(pageUid|viewport)}
+     */
+    public function buildCriticalJsKey(int $pageUid, string $viewport): string
+    {
+        return 'critical_js_' . sha1($pageUid . '|' . $viewport);
+    }
 }
