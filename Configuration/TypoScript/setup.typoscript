@@ -139,7 +139,6 @@ plugin.tx_maispace_assets {
         # 1 for cache (default), 0 for rebuild on every request (only for development).
         cache = 1
     }
-}
 
     # =========================================================================
     # Critical CSS / JS inline injection
@@ -162,27 +161,32 @@ plugin.tx_maispace_assets {
         # Example: chromiumBin = /usr/bin/chromium-browser
         chromiumBin =
 
-        # Mobile viewport width in CSS pixels (used by the extract command).
-        mobile.width = 375
+        mobile {
+            # Mobile viewport width in CSS pixels (used by the extract command).
+            width = 375
 
-        # Mobile viewport height in CSS pixels.
-        mobile.height = 667
+            # Mobile viewport height in CSS pixels.
+            height = 667
 
-        # Desktop viewport width in CSS pixels.
-        desktop.width = 1440
+            # Upper boundary (inclusive) of the mobile CSS media query applied to the
+            # injected mobile <style> block. Must be one less than desktop.minWidth.
+            # Default: 767 → media="screen and (max-width: 767px)"
+            maxWidth = 767
+        }
 
-        # Desktop viewport height in CSS pixels.
-        desktop.height = 900
+        desktop {
+            # Desktop viewport width in CSS pixels.
+            width = 1440
 
-        # Upper boundary (inclusive) of the mobile CSS media query applied to the
-        # injected mobile <style> block. Must be one less than desktop.minWidth.
-        # Default: 767 → media="screen and (max-width: 767px)"
-        mobile.maxWidth = 767
+            # Desktop viewport height in CSS pixels.
+            height = 900
 
-        # Lower boundary (inclusive) of the desktop CSS media query.
-        # Default: 768 → media="screen and (min-width: 768px)"
-        desktop.minWidth = 768
+            # Lower boundary (inclusive) of the desktop CSS media query.
+            # Default: 768 → media="screen and (min-width: 768px)"
+            minWidth = 768
+        }
     }
+}
 
 # =============================================================================
 # Debug mode

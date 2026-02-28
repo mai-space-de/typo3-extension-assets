@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Command;
 
@@ -142,20 +142,31 @@ final class CriticalCssExtractCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $chromiumBin = (string)($input->getOption('chromium-bin') ?? '');
-        $siteFilter  = $input->getOption('site');
+        $chromiumBin = $input->getOption('chromium-bin');
+        $chromiumBin = is_string($chromiumBin) ? $chromiumBin : '';
+
+        $siteFilter = $input->getOption('site');
         $pagesFilter = $input->getOption('pages');
-        $connectMs   = (int)($input->getOption('connect-timeout') ?? 5000);
-        $loadMs      = (int)($input->getOption('page-timeout') ?? 15000);
+
+        $connectMs = $input->getOption('connect-timeout');
+        $connectMs = is_numeric($connectMs) ? (int)$connectMs : 5000;
+
+        $loadMs = $input->getOption('page-timeout');
+        $loadMs = is_numeric($loadMs) ? (int)$loadMs : 15000;
+
+        $mobileWidth = $input->getOption('mobile-width');
+        $mobileHeight = $input->getOption('mobile-height');
+        $desktopWidth = $input->getOption('desktop-width');
+        $desktopHeight = $input->getOption('desktop-height');
 
         $viewports = [
             'mobile' => [
-                'width'  => (int)($input->getOption('mobile-width') ?? 375),
-                'height' => (int)($input->getOption('mobile-height') ?? 667),
+                'width'  => is_numeric($mobileWidth) ? (int)$mobileWidth : 375,
+                'height' => is_numeric($mobileHeight) ? (int)$mobileHeight : 667,
             ],
             'desktop' => [
-                'width'  => (int)($input->getOption('desktop-width') ?? 1440),
-                'height' => (int)($input->getOption('desktop-height') ?? 900),
+                'width'  => is_numeric($desktopWidth) ? (int)$desktopWidth : 1440,
+                'height' => is_numeric($desktopHeight) ? (int)$desktopHeight : 900,
             ],
         ];
 
@@ -210,7 +221,7 @@ final class CriticalCssExtractCommand extends Command
 
         // ── Process sites ─────────────────────────────────────────────────────
         $totalOk = 0;
-        $errors  = 0;
+        $errors = 0;
 
         foreach ($sites as $site) {
             $siteId = $site->getIdentifier();
@@ -272,6 +283,7 @@ final class CriticalCssExtractCommand extends Command
      * When $uidFilter is set, only those UIDs are processed (with URLs generated via the site router).
      *
      * @param list<int> $uidFilter
+     *
      * @return list<array{uid: int, url: string}>
      */
     private function collectPages(Site $site, array $uidFilter): array
@@ -287,7 +299,7 @@ final class CriticalCssExtractCommand extends Command
             foreach ($uidFilter as $uid) {
                 try {
                     $router = $site->getRouter();
-                    $uri    = $router->generateUri($uid);
+                    $uri = $router->generateUri($uid);
                     $pages[] = ['uid' => $uid, 'url' => (string)$uri];
                 } catch (\Throwable $e) {
                     // Page UID may not belong to this site — silently skip.

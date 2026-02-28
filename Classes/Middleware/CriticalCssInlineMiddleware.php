@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Middleware;
 
@@ -108,7 +108,7 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
         }
 
         // Locate </head> and splice in the critical blocks immediately before it.
-        $body         = (string)$response->getBody();
+        $body = (string)$response->getBody();
         $headClosePos = stripos($body, '</head>');
         if ($headClosePos === false) {
             return $response;
@@ -127,17 +127,17 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
      */
     private function buildInjection(int $pageUid, ServerRequestInterface $request): string
     {
-        $mobileCss  = $this->criticalAssetService->getCriticalCss($pageUid, 'mobile');
+        $mobileCss = $this->criticalAssetService->getCriticalCss($pageUid, 'mobile');
         $desktopCss = $this->criticalAssetService->getCriticalCss($pageUid, 'desktop');
-        $mobileJs   = $this->criticalAssetService->getCriticalJs($pageUid, 'mobile');
-        $desktopJs  = $this->criticalAssetService->getCriticalJs($pageUid, 'desktop');
+        $mobileJs = $this->criticalAssetService->getCriticalJs($pageUid, 'mobile');
+        $desktopJs = $this->criticalAssetService->getCriticalJs($pageUid, 'desktop');
 
         if ($mobileCss === null && $desktopCss === null && $mobileJs === null && $desktopJs === null) {
             return '';
         }
 
         $nonceAttr = $this->buildNonceAttr($request);
-        $output    = '';
+        $output = '';
 
         // Critical CSS — mobile viewport.
         if ($mobileCss !== null) {

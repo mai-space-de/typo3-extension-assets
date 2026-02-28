@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Service;
 
@@ -55,7 +55,7 @@ final class CriticalAssetService
      * @param int                                           $pageUid     TYPO3 page UID
      * @param string                                        $pageUrl     Absolute frontend URL
      * @param string                                        $chromiumBin Absolute path to chromium/chrome binary
-     * @param array<string, array{width: int, height: int}> $viewports  Keyed by viewport name, e.g.
+     * @param array<string, array{width: int, height: int}> $viewports   Keyed by viewport name, e.g.
      *                                                                   ['mobile'=>['width'=>375,'height'=>667]]
      * @param int                                           $connectMs   Chromium start timeout (ms)
      * @param int                                           $loadMs      Per-page load timeout (ms)
@@ -76,8 +76,8 @@ final class CriticalAssetService
             $client->start();
 
             foreach ($viewports as $viewportName => $size) {
-                $width  = (int)($size['width']  ?? 1440);
-                $height = (int)($size['height'] ?? 900);
+                $width = (int)$size['width'];
+                $height = (int)$size['height'];
 
                 $this->logger->debug('maispace_assets: extracting critical assets', [
                     'pageUid'  => $pageUid,
@@ -91,7 +91,7 @@ final class CriticalAssetService
                 $client->navigate($pageUrl);
 
                 $css = $client->getAboveFoldCriticalCss($height);
-                $js  = $client->getAboveFoldCriticalJs($height);
+                $js = $client->getAboveFoldCriticalJs($height);
 
                 /** @var AfterCriticalCssExtractedEvent $event */
                 $event = $this->dispatcher->dispatch(
@@ -99,7 +99,7 @@ final class CriticalAssetService
                 );
 
                 $css = $event->getCriticalCss();
-                $js  = $event->getCriticalJs();
+                $js = $event->getCriticalJs();
 
                 $tags = ['maispace_critical', 'maispace_critical_p' . $pageUid];
 
@@ -134,7 +134,7 @@ final class CriticalAssetService
      */
     public function getCriticalCss(int $pageUid, string $viewport): ?string
     {
-        $key   = $this->cache->buildCriticalCssKey($pageUid, $viewport);
+        $key = $this->cache->buildCriticalCssKey($pageUid, $viewport);
         $value = $this->cache->has($key) ? $this->cache->get($key) : null;
 
         return is_string($value) && $value !== '' ? $value : null;
@@ -146,7 +146,7 @@ final class CriticalAssetService
      */
     public function getCriticalJs(int $pageUid, string $viewport): ?string
     {
-        $key   = $this->cache->buildCriticalJsKey($pageUid, $viewport);
+        $key = $this->cache->buildCriticalJsKey($pageUid, $viewport);
         $value = $this->cache->has($key) ? $this->cache->get($key) : null;
 
         return is_string($value) && $value !== '' ? $value : null;

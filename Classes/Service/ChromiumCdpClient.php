@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Service;
 
@@ -33,7 +33,7 @@ final class ChromiumCdpClient
     private ?Process $process = null;
 
     /** @var resource|null */
-    private $socket = null;
+    private $socket;
 
     private int $commandId = 1;
     private readonly int $debugPort;
@@ -104,8 +104,9 @@ final class ChromiumCdpClient
         $tokens = $this->collectAboveFoldTokens($viewportHeight);
 
         $coverageResult = $this->sendCommandSync('CSS.stopRuleUsageTracking');
+        $result = $coverageResult['result'] ?? [];
         /** @var array<array{styleSheetId: string, startOffset: int, endOffset: int, used: bool}> $ruleUsage */
-        $ruleUsage = $coverageResult['result']['ruleUsage'] ?? [];
+        $ruleUsage = is_array($result) ? ($result['ruleUsage'] ?? []) : [];
 
         // Index used ranges by stylesheet id.
         /** @var array<string, list<array{start: int, end: int}>> $usedBySheet */
@@ -125,8 +126,9 @@ final class ChromiumCdpClient
 
         // Get all stylesheet headers so we know which ones had coverage hits.
         $sheetsResult = $this->sendCommandSync('CSS.getAllStyleSheets');
+        $result = $sheetsResult['result'] ?? [];
         /** @var list<array{styleSheetId: string}> $headers */
-        $headers = $sheetsResult['result']['headers'] ?? [];
+        $headers = is_array($result) ? ($result['headers'] ?? []) : [];
 
         $criticalCss = '';
 
@@ -137,13 +139,16 @@ final class ChromiumCdpClient
             }
 
             $textResult = $this->sendCommandSync('CSS.getStyleSheetText', ['styleSheetId' => $sheetId]);
-            $sheetText  = $textResult['result']['text'] ?? '';
+            $result = $textResult['result'] ?? [];
+            $sheetText = is_array($result) && is_string($result['text'] ?? null) ? (string)$result['text'] : '';
             if ($sheetText === '') {
                 continue;
             }
 
             foreach ($usedBySheet[$sheetId] as $range) {
-                $ruleText = trim(substr($sheetText, $range['start'], $range['end'] - $range['start']));
+                $start = (int)$range['start'];
+                $length = (int)$range['end'] - $start;
+                $ruleText = trim(substr($sheetText, $start, $length));
                 if ($ruleText !== '' && $this->ruleIsAboveFold($ruleText, $tokens)) {
                     $criticalCss .= $ruleText . "\n";
                 }
@@ -181,9 +186,11 @@ final class ChromiumCdpClient
             $viewportHeight,
         );
 
-        $result  = $this->sendCommandSync('Runtime.evaluate', ['expression' => $script, 'returnByValue' => true]);
-        $raw     = $result['result']['result']['value'] ?? '[]';
-        $scripts = json_decode((string)$raw, true);
+        $result = $this->sendCommandSync('Runtime.evaluate', ['expression' => $script, 'returnByValue' => true]);
+        $res = $result['result'] ?? [];
+        $val = is_array($res) ? ($res['result'] ?? []) : [];
+        $raw = is_array($val) && is_string($val['value'] ?? null) ? (string)$val['value'] : '[]';
+        $scripts = json_decode($raw, true);
 
         return is_array($scripts) ? implode("\n", $scripts) : '';
     }
@@ -202,7 +209,9 @@ final class ChromiumCdpClient
                 // ignore on close
             }
 
-            fclose($this->socket);
+            if (is_resource($this->socket)) {
+                fclose($this->socket);
+            }
             $this->socket = null;
         }
 
@@ -250,7 +259,7 @@ final class ChromiumCdpClient
         $deadline = microtime(true) + ($this->connectTimeoutMs / 1000);
 
         while (microtime(true) < $deadline) {
-            $ctx      = stream_context_create(['http' => ['timeout' => 0.5]]);
+            $ctx = stream_context_create(['http' => ['timeout' => 0.5]]);
             $response = @file_get_contents(
                 'http://127.0.0.1:' . $this->debugPort . '/json/version',
                 false,
@@ -264,15 +273,12 @@ final class ChromiumCdpClient
             usleep(100_000); // 100 ms
         }
 
-        throw new \RuntimeException(
-            'Chromium did not become ready within ' . $this->connectTimeoutMs . ' ms. '
-            . 'Check that the binary at "' . $this->chromiumBin . '" works and has sufficient permissions.',
-        );
+        throw new \RuntimeException('Chromium did not become ready within ' . $this->connectTimeoutMs . ' ms. Check that the binary at "' . $this->chromiumBin . '" works and has sufficient permissions.');
     }
 
     private function createTab(): string
     {
-        $ctx      = stream_context_create(['http' => ['timeout' => 5]]);
+        $ctx = stream_context_create(['http' => ['timeout' => 5]]);
         $response = @file_get_contents('http://127.0.0.1:' . $this->debugPort . '/json/new', false, $ctx);
 
         if ($response === false) {
@@ -281,7 +287,7 @@ final class ChromiumCdpClient
 
         $data = json_decode($response, true);
 
-        if (!isset($data['webSocketDebuggerUrl']) || !is_string($data['webSocketDebuggerUrl'])) {
+        if (!is_array($data) || !isset($data['webSocketDebuggerUrl']) || !is_string($data['webSocketDebuggerUrl'])) {
             throw new \RuntimeException('Unexpected response from /json/new — webSocketDebuggerUrl missing');
         }
 
@@ -293,9 +299,9 @@ final class ChromiumCdpClient
     private function connectWebSocket(string $wsUrl): void
     {
         $parsed = parse_url($wsUrl);
-        $host   = (string)($parsed['host'] ?? '127.0.0.1');
-        $port   = (int)($parsed['port'] ?? 80);
-        $path   = ($parsed['path'] ?? '/') . (isset($parsed['query']) ? '?' . $parsed['query'] : '');
+        $host = (string)($parsed['host'] ?? '127.0.0.1');
+        $port = (int)($parsed['port'] ?? 80);
+        $path = ($parsed['path'] ?? '/') . (isset($parsed['query']) ? '?' . $parsed['query'] : '');
 
         $socket = stream_socket_client(
             "tcp://{$host}:{$port}",
@@ -306,9 +312,7 @@ final class ChromiumCdpClient
         );
 
         if ($socket === false) {
-            throw new \RuntimeException(
-                "Cannot connect to Chromium WebSocket tcp://{$host}:{$port}: {$errstr} ({$errno})",
-            );
+            throw new \RuntimeException("Cannot connect to Chromium WebSocket tcp://{$host}:{$port}: {$errstr} ({$errno})");
         }
 
         $this->socket = $socket;
@@ -373,6 +377,7 @@ final class ChromiumCdpClient
      * Send a CDP command and block until a response with the matching id arrives.
      *
      * @param array<string, mixed> $params
+     *
      * @return array<string, mixed>
      */
     private function sendCommandSync(string $method, array $params = []): array
@@ -389,14 +394,13 @@ final class ChromiumCdpClient
             }
 
             $data = json_decode($frame, true);
-            if (is_array($data) && isset($data['id']) && (int)$data['id'] === $id) {
+            if (is_array($data) && isset($data['id']) && is_numeric($data['id']) && (int)$data['id'] === $id) {
+                /** @var array<string, mixed> $data */
                 return $data;
             }
         }
 
-        throw new \RuntimeException(
-            "CDP command '{$method}' timed out after {$this->pageLoadTimeoutMs} ms",
-        );
+        throw new \RuntimeException("CDP command '{$method}' timed out after {$this->pageLoadTimeoutMs} ms");
     }
 
     private function waitForEvent(string $method): void
@@ -415,9 +419,7 @@ final class ChromiumCdpClient
             }
         }
 
-        throw new \RuntimeException(
-            "Timed out waiting for CDP event '{$method}' after {$this->pageLoadTimeoutMs} ms",
-        );
+        throw new \RuntimeException("Timed out waiting for CDP event '{$method}' after {$this->pageLoadTimeoutMs} ms");
     }
 
     // ─── WebSocket frame encoding (RFC 6455) ─────────────────────────────────
@@ -427,7 +429,7 @@ final class ChromiumCdpClient
      */
     private function writeFrame(string $payload): void
     {
-        $len   = strlen($payload);
+        $len = strlen($payload);
         $frame = "\x81"; // FIN=1, opcode=1 (text frame)
 
         if ($len <= 125) {
@@ -438,15 +440,17 @@ final class ChromiumCdpClient
             $frame .= chr(127 | 0x80) . pack('J', $len);
         }
 
-        $mask   = random_bytes(4);
+        $mask = random_bytes(4);
         $frame .= $mask;
 
         $masked = '';
-        for ($i = 0; $i < $len; $i++) {
+        for ($i = 0; $i < $len; ++$i) {
             $masked .= chr(ord($payload[$i]) ^ ord($mask[$i % 4]));
         }
 
-        fwrite($this->socket, $frame . $masked);
+        if (is_resource($this->socket)) {
+            fwrite($this->socket, $frame . $masked);
+        }
     }
 
     /**
@@ -482,21 +486,29 @@ final class ChromiumCdpClient
                 return '';
             }
 
-            $payloadLen = (int)unpack('n', $ext)[1];
+            $unpacked = unpack('n', $ext);
+            if ($unpacked === false || !isset($unpacked[1]) || !is_numeric($unpacked[1])) {
+                return '';
+            }
+            $payloadLen = (int)$unpacked[1];
         } elseif ($payloadLen === 127) {
             $ext = fread($this->socket, 8);
             if ($ext === false || strlen($ext) < 8) {
                 return '';
             }
 
-            $payloadLen = (int)unpack('J', $ext)[1];
+            $unpacked = unpack('J', $ext);
+            if ($unpacked === false || !isset($unpacked[1]) || !is_numeric($unpacked[1])) {
+                return '';
+            }
+            $payloadLen = (int)$unpacked[1];
         }
 
         if ($payloadLen === 0) {
             return '';
         }
 
-        $payload   = '';
+        $payload = '';
         $remaining = $payloadLen;
 
         while ($remaining > 0) {
@@ -505,7 +517,7 @@ final class ChromiumCdpClient
                 break;
             }
 
-            $payload   .= $chunk;
+            $payload .= $chunk;
             $remaining -= strlen($chunk);
         }
 
@@ -541,11 +553,17 @@ final class ChromiumCdpClient
             $viewportHeight,
         );
 
-        $result  = $this->sendCommandSync('Runtime.evaluate', ['expression' => $script, 'returnByValue' => true]);
-        $raw     = $result['result']['result']['value'] ?? '[]';
-        $decoded = json_decode((string)$raw, true);
+        $result = $this->sendCommandSync('Runtime.evaluate', ['expression' => $script, 'returnByValue' => true]);
+        $res = $result['result'] ?? [];
+        $val = is_array($res) ? ($res['result'] ?? []) : [];
+        $raw = is_array($val) && is_string($val['value'] ?? null) ? (string)$val['value'] : '[]';
+        $decoded = json_decode($raw, true);
 
-        return is_array($decoded) ? $decoded : [];
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter($decoded, 'is_string'));
     }
 
     /**
