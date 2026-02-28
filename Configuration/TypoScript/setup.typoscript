@@ -185,6 +185,12 @@ plugin.tx_maispace_assets {
             # Default: 768 → media="screen and (min-width: 768px)"
             minWidth = 768
         }
+
+        # Optional CSS layer name for injected critical CSS.
+        # If set, the <style> content is wrapped in @layer {name} { ... }.
+        # Leave empty (default) to disable CSS layers for critical CSS.
+        # Example: layer = maispace-critical
+        layer =
     }
 }
 

@@ -95,12 +95,12 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
         }
 
         // Resolve page UID from the routing result set by page-resolver.
+        /** @var PageArguments|null $routing */
         $routing = $request->getAttribute('routing');
         if (!$routing instanceof PageArguments) {
             return $response;
         }
 
-        /** @var PageArguments $routing */
         $pageUid = $routing->getPageId();
         if ($pageUid <= 0) {
             return $response;
@@ -151,26 +151,35 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
             return '';
         }
 
+        $layerName = $this->resolveLayer($request);
         $nonceAttr = $this->buildNonceAttr($request);
         $output = '';
 
         // Critical CSS — mobile viewport.
         if ($mobileCss !== null) {
+            $cssContent = $mobileCss;
+            if ($layerName !== '') {
+                $cssContent = sprintf('@layer %s {%s}', $layerName, $mobileCss);
+            }
             $output .= sprintf(
                 '<style media="screen and (max-width: %dpx)"%s>%s</style>',
                 self::MOBILE_MAX_PX,
                 $nonceAttr,
-                $mobileCss,
+                $cssContent,
             );
         }
 
         // Critical CSS — desktop viewport.
         if ($desktopCss !== null) {
+            $cssContent = $desktopCss;
+            if ($layerName !== '') {
+                $cssContent = sprintf('@layer %s {%s}', $layerName, $desktopCss);
+            }
             $output .= sprintf(
                 '<style media="screen and (min-width: %dpx)"%s>%s</style>',
                 self::DESKTOP_MIN_PX,
                 $nonceAttr,
-                $desktopCss,
+                $cssContent,
             );
         }
 
@@ -181,6 +190,39 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
         }
 
         return $output;
+    }
+
+    /**
+     * Resolve the configured CSS layer name for critical CSS.
+     */
+    private function resolveLayer(ServerRequestInterface $request): string
+    {
+        /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $frontendTypoScript */
+        $frontendTypoScript = $request->getAttribute('frontend.typoscript');
+
+        if ($frontendTypoScript === null) {
+            return '';
+        }
+
+        /** @var array<string, mixed> $setup */
+        $setup = $frontendTypoScript->getSetupArray();
+
+        $plugin = $setup['plugin.'] ?? null;
+        if (!is_array($plugin)) {
+            return '';
+        }
+        $ext = $plugin['tx_maispace_assets.'] ?? null;
+        if (!is_array($ext)) {
+            return '';
+        }
+        $critical = $ext['criticalCss.'] ?? null;
+        if (!is_array($critical)) {
+            return '';
+        }
+
+        $layer = $critical['layer'] ?? '';
+
+        return is_string($layer) ? trim($layer) : '';
     }
 
     /**
@@ -196,6 +238,6 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
 
         $value = (string)$nonce;
 
-        return $value !== '' ? ' nonce="' . htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE) . '"' : '';
+        return $value !== '' ? ' nonce="' . htmlspecialchars($value, \ENT_QUOTES | \ENT_SUBSTITUTE) . '"' : '';
     }
 }

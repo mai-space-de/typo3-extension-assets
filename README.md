@@ -553,6 +553,22 @@ Enable/disable globally via TypoScript:
 plugin.tx_maispace_assets.criticalCss.enable = 1
 ```
 
+### CSS Layers support
+
+You can wrap the injected critical CSS in a [CSS Layer](https://developer.mozilla.org/en-US/docs/Web/CSS/@layer) to manage specificity and ordering. This is especially useful if your main site styles also use layers.
+
+```typoscript
+# Wrap critical CSS in @layer {name} { ... }
+plugin.tx_maispace_assets.criticalCss.layer = maispace-critical
+```
+
+When configured, the injected blocks will look like this:
+```html
+<style media="screen and (max-width: 767px)">
+  @layer maispace-critical { /* mobile rules */ }
+</style>
+```
+
 ---
 
 ## Development
@@ -577,6 +593,7 @@ vendor/bin/phpunit --configuration phpunit.xml.dist --testdox
 | File | What it tests |
 |---|---|
 | `Tests/Unit/Cache/AssetCacheManagerTest.php` | Key-building methods, cache delegation |
+| `Tests/Unit/Middleware/CriticalCssInlineMiddlewareTest.php` | Injection logic, CSS layers, CSP nonces |
 | `Tests/Unit/Service/AssetProcessingServiceTest.php` | `isExternalUrl`, `buildIdentifier`, `buildIntegrityAttrs`, `resolveFlag` |
 | `Tests/Unit/Service/ImageRenderingServiceTest.php` | `detectMimeType`, `renderSourceTag`, `renderImgTag`, `addImagePreloadHeader` |
 

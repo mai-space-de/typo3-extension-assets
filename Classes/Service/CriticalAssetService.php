@@ -33,7 +33,7 @@ use Psr\Log\LoggerInterface;
  * @see \Maispace\MaispaceAssets\Command\CriticalCssExtractCommand
  * @see \Maispace\MaispaceAssets\Middleware\CriticalCssInlineMiddleware
  */
-final class CriticalAssetService
+class CriticalAssetService
 {
     public function __construct(
         private readonly AssetCacheManager $cache,
