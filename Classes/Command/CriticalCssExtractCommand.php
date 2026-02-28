@@ -138,6 +138,13 @@ final class CriticalCssExtractCommand extends Command
                 InputOption::VALUE_OPTIONAL,
                 'Per-page navigation and load timeout in milliseconds',
                 15000,
+            )
+            ->addOption(
+                'workspace',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Limit extraction to a specific workspace ID (default: 0 = Live)',
+                0,
             );
     }
 
@@ -156,6 +163,9 @@ final class CriticalCssExtractCommand extends Command
 
         $loadMs = $input->getOption('page-timeout');
         $loadMs = is_numeric($loadMs) ? (int)$loadMs : 15000;
+
+        $workspaceId = $input->getOption('workspace');
+        $workspaceId = is_numeric($workspaceId) ? (int)$workspaceId : 0;
 
         $mobileWidth = $input->getOption('mobile-width');
         $mobileHeight = $input->getOption('mobile-height');
@@ -267,7 +277,7 @@ final class CriticalCssExtractCommand extends Command
                             $chromiumBin,
                             $viewports,
                             $langId,
-                            0, // Live workspace for now
+                            $workspaceId,
                             $connectMs,
                             $loadMs,
                         );

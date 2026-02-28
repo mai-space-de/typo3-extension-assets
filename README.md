@@ -34,6 +34,7 @@ A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, ima
 | SRI integrity on external assets | `integrityValue="sha384-..."` argument |
 | Semantic `<figure>/<figcaption>` wrapper | `<mai:figure>` |
 | Multi-site scoping for sprites and fonts | `'sites'` key in config files |
+| Critical CSS extraction & inlining | `maispace:assets:critical:extract` |
 | Deploy-time cache warm-up | `php vendor/bin/typo3 maispace:assets:warmup` |
 | PSR-14 events at every processing stage | `Classes/Event/` |
 
@@ -510,6 +511,47 @@ Both registries use the same auto-discovery pattern — no `ext_localconf.php` r
 | `EXT:my_ext/Configuration/Fonts.php` | Register fonts for `<link rel="preload">` |
 
 The registries scan all loaded TYPO3 extensions for these files on first use. Later-loaded extensions win on key conflicts, so site packages can override vendor icons/fonts.
+
+---
+
+## Critical CSS & JS
+
+Critical assets (above-the-fold CSS and synchronous JS) are extracted per-page using a headless Chromium instance. This ensures that only the CSS required for the initial viewport is inlined, while the rest of the styles load non-blocking.
+
+### Extraction (CLI)
+
+Run the extraction command after every full-page cache flush or major template change:
+
+```bash
+# All sites, all pages, all languages (default)
+php vendor/bin/typo3 maispace:assets:critical:extract
+
+# Specific site only
+php vendor/bin/typo3 maispace:assets:critical:extract --site=main
+
+# Specific workspace (e.g. 1 = Draft)
+php vendor/bin/typo3 maispace:assets:critical:extract --workspace=1
+
+# Specific pages only
+php vendor/bin/typo3 maispace:assets:critical:extract --pages=1,12,42
+```
+
+The command recursively collects all standard pages from the site root, visits each URL at both mobile and desktop viewports, and caches the result for injection.
+
+### Automatic Injection
+
+The `CriticalCssInlineMiddleware` automatically injects the cached critical assets into the `<head>` of HTML responses. Both mobile and desktop CSS are included, scoped via media queries:
+
+```html
+<style media="screen and (max-width: 767px)">/* mobile rules */</style>
+<style media="screen and (min-width: 768px)">/* desktop rules */</style>
+```
+
+Enable/disable globally via TypoScript:
+
+```typoscript
+plugin.tx_maispace_assets.criticalCss.enable = 1
+```
 
 ---
 
