@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Command;
 
+use Doctrine\DBAL\ParameterType;
 use Maispace\MaispaceAssets\Service\CriticalAssetService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -11,6 +12,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 
@@ -57,6 +59,7 @@ final class CriticalCssExtractCommand extends Command
     public function __construct(
         private readonly CriticalAssetService $criticalAssetService,
         private readonly SiteFinder $siteFinder,
+        private readonly ConnectionPool $connectionPool,
     ) {
         parent::__construct();
     }
@@ -65,14 +68,14 @@ final class CriticalCssExtractCommand extends Command
     {
         $this
             ->setHelp(
-                'Visits every page of each configured TYPO3 site using a headless Chromium instance,' . PHP_EOL
-                . 'captures CSS coverage at both mobile and desktop viewports, filters to rules that' . PHP_EOL
-                . 'apply to elements visible above the fold, and stores the result in the TYPO3' . PHP_EOL
-                . 'caching framework cache.' . PHP_EOL
-                . PHP_EOL
-                . 'The CriticalCssInlineMiddleware reads those cached entries on every request and' . PHP_EOL
-                . 'injects them as inline <style>/<script> blocks immediately before </head>.' . PHP_EOL
-                . PHP_EOL
+                'Visits every page of each configured TYPO3 site using a headless Chromium instance,' . "\n"
+                . 'captures CSS coverage at both mobile and desktop viewports, filters to rules that' . "\n"
+                . 'apply to elements visible above the fold, and stores the result in the TYPO3' . "\n"
+                . 'caching framework cache.' . "\n"
+                . "\n"
+                . 'The CriticalCssInlineMiddleware reads those cached entries on every request and' . "\n"
+                . 'injects them as inline <style>/<script> blocks immediately before </head>.' . "\n"
+                . "\n"
                 . 'Run after deploy and after every full-page cache flush. Idempotent.',
             )
             ->addOption(
@@ -212,9 +215,12 @@ final class CriticalCssExtractCommand extends Command
         // ── Resolve page UID filter ───────────────────────────────────────────
         /** @var list<int> $pageUidFilter */
         $pageUidFilter = [];
-        if (is_string($pagesFilter) && $pagesFilter !== '') {
+        if (is_string($pagesFilter) && (string)$pagesFilter !== '') {
+            /** @var non-empty-string $pagesFilterStr */
+            $pagesFilterStr = $pagesFilter;
+            $exploded = explode(',', $pagesFilterStr);
             $pageUidFilter = array_values(array_filter(
-                array_map(static fn (string $s): int => (int)trim($s), explode(',', $pagesFilter)),
+                array_map(static fn (string $s): int => (int)trim($s), $exploded),
                 static fn (int $uid): bool => $uid > 0,
             ));
         }
@@ -227,34 +233,51 @@ final class CriticalCssExtractCommand extends Command
             $siteId = $site->getIdentifier();
             $io->section("Site: {$siteId}");
 
-            $pages = $this->collectPages($site, $pageUidFilter);
+            $pageUids = $this->collectPageUids($site, $pageUidFilter);
 
-            if ($pages === []) {
+            if ($pageUids === []) {
                 $io->note("No pages found for site '{$siteId}'.");
                 continue;
             }
 
-            $io->writeln(sprintf('  Processing %d page(s) × %d viewport(s)…', count($pages), count($viewports)));
+            $languages = $site->getLanguages();
+            $numPages = (int)count($pageUids);
+            $numLangs = (int)count($languages);
+            $numViewports = (int)count($viewports);
+            $io->writeln(sprintf('  Processing %d page(s) × %d language(s) × %d viewport(s)…', $numPages, $numLangs, $numViewports));
             $io->newLine();
 
-            foreach ($pages as ['uid' => $pageUid, 'url' => $pageUrl]) {
-                $io->write(sprintf('  [%d] %s … ', $pageUid, $pageUrl));
+            foreach ($pageUids as $pageUid) {
+                foreach ($languages as $language) {
+                    $langId = $language->getLanguageId();
+                    try {
+                        $router = $site->getRouter();
+                        $pageUrl = (string)$router->generateUri($pageUid, ['_language' => $language]);
+                    } catch (\Throwable) {
+                        // Skip if URL cannot be generated (e.g., page not available in this language)
+                        continue;
+                    }
 
-                try {
-                    $this->criticalAssetService->extractForPage(
-                        $pageUid,
-                        $pageUrl,
-                        $chromiumBin,
-                        $viewports,
-                        $connectMs,
-                        $loadMs,
-                    );
+                    $io->write(sprintf('  [%d] L:%d %s … ', $pageUid, $langId, $pageUrl));
 
-                    $io->writeln('<info>✓</info>');
-                    ++$totalOk;
-                } catch (\Throwable $e) {
-                    $io->writeln('<error>✗  ' . $e->getMessage() . '</error>');
-                    ++$errors;
+                    try {
+                        $this->criticalAssetService->extractForPage(
+                            $pageUid,
+                            $pageUrl,
+                            $chromiumBin,
+                            $viewports,
+                            $langId,
+                            0, // Live workspace for now
+                            $connectMs,
+                            $loadMs,
+                        );
+
+                        $io->writeln('<info>✓</info>');
+                        ++$totalOk;
+                    } catch (\Throwable $e) {
+                        $io->writeln('<error>✗  ' . $e->getMessage() . '</error>');
+                        ++$errors;
+                    }
                 }
             }
         }
@@ -265,11 +288,8 @@ final class CriticalCssExtractCommand extends Command
             $io->warning(sprintf('%d page(s) failed. Check TYPO3 system logs for details.', $errors));
         }
 
-        $io->success(sprintf(
-            'Done. %d page(s) processed successfully across %d viewport(s).',
-            $totalOk,
-            count($viewports),
-        ));
+        $numViewports = (int)count($viewports);
+        $io->success(sprintf('Done. %d page(s) processed successfully across %d viewport(s).', (int)$totalOk, (int)$numViewports));
 
         return $errors > 0 ? Command::FAILURE : Command::SUCCESS;
     }
@@ -277,38 +297,84 @@ final class CriticalCssExtractCommand extends Command
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /**
-     * Collect page UID + URL pairs for a site.
+     * Collect all page UIDs for a site.
      *
-     * When $uidFilter is empty, only the site root page (language 0) is included.
-     * When $uidFilter is set, only those UIDs are processed (with URLs generated via the site router).
+     * When $uidFilter is empty, all pages within the site root are included recursively.
+     * When $uidFilter is set, only those UIDs are included.
      *
      * @param list<int> $uidFilter
      *
-     * @return list<array{uid: int, url: string}>
+     * @return list<int>
      */
-    private function collectPages(Site $site, array $uidFilter): array
+    private function collectPageUids(Site $site, array $uidFilter): array
     {
-        $pages = [];
-
-        if ($uidFilter === []) {
-            // Default: process only the root page of the default language.
-            $rootUid = $site->getRootPageId();
-            $rootUrl = rtrim((string)$site->getBase(), '/') . '/';
-            $pages[] = ['uid' => $rootUid, 'url' => $rootUrl];
-        } else {
-            foreach ($uidFilter as $uid) {
-                try {
-                    $router = $site->getRouter();
-                    $uri = $router->generateUri($uid);
-                    $pages[] = ['uid' => $uid, 'url' => (string)$uri];
-                } catch (\Throwable $e) {
-                    // Page UID may not belong to this site — silently skip.
-                    continue;
-                }
-            }
+        if ($uidFilter !== []) {
+            return $uidFilter;
         }
 
-        return $pages;
+        $rootPageId = $site->getRootPageId();
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
+        $rows = $queryBuilder
+            ->select('uid')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->or(
+                    $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($rootPageId, ParameterType::INTEGER)),
+                    $queryBuilder->expr()->like('recursive_pid_list', $queryBuilder->createNamedParameter('%,' . $rootPageId . ',%')),
+                ),
+                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, ParameterType::INTEGER)),
+                $queryBuilder->expr()->eq('doktype', $queryBuilder->createNamedParameter(1, ParameterType::INTEGER)), // Standard page
+                $queryBuilder->expr()->eq('hidden', $queryBuilder->createNamedParameter(0, ParameterType::INTEGER)),
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, ParameterType::INTEGER)),
+            )
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        if ($rows === []) {
+            // Fallback for TYPO3 versions/configurations where recursive_pid_list is not easily usable or empty.
+            // Simplified recursive fetch.
+            return $this->fetchChildUidsRecursive([$rootPageId]);
+        }
+
+        return array_map(static function (array $row): int {
+            $uid = $row['uid'] ?? 0;
+
+            return is_numeric($uid) ? (int)$uid : 0;
+        }, $rows);
+    }
+
+    /**
+     * @param list<int> $pids
+     *
+     * @return list<int>
+     */
+    private function fetchChildUidsRecursive(array $pids): array
+    {
+        $allUids = $pids;
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
+        $rows = $queryBuilder
+            ->select('uid')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->in('pid', $queryBuilder->createNamedParameter($pids, \TYPO3\CMS\Core\Database\Connection::PARAM_INT_ARRAY)),
+                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter(0, ParameterType::INTEGER)),
+                $queryBuilder->expr()->eq('doktype', $queryBuilder->createNamedParameter(1, ParameterType::INTEGER)),
+                $queryBuilder->expr()->eq('hidden', $queryBuilder->createNamedParameter(0, ParameterType::INTEGER)),
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, ParameterType::INTEGER)),
+            )
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        if ($rows !== []) {
+            $childUids = array_map(static function (array $row): int {
+                $uid = $row['uid'] ?? 0;
+
+                return is_numeric($uid) ? (int)$uid : 0;
+            }, $rows);
+            $allUids = array_merge($allUids, $this->fetchChildUidsRecursive($childUids));
+        }
+
+        return $allUids;
     }
 
     /**

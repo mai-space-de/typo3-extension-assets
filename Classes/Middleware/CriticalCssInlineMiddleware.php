@@ -10,8 +10,10 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\ConsumableNonce;
+use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 
 /**
  * PSR-15 middleware that injects per-page critical CSS and JS into <head>.
@@ -76,6 +78,7 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
     public function __construct(
         private readonly CriticalAssetService $criticalAssetService,
         private readonly StreamFactoryInterface $streamFactory,
+        private readonly Context $context,
     ) {
     }
 
@@ -97,12 +100,13 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
             return $response;
         }
 
+        /** @var PageArguments $routing */
         $pageUid = $routing->getPageId();
         if ($pageUid <= 0) {
             return $response;
         }
 
-        $injection = $this->buildInjection($pageUid, $request);
+        $injection = $this->buildInjection($pageUid, $request, $routing);
         if ($injection === '') {
             return $response;
         }
@@ -125,12 +129,23 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
      * Build the complete injection string: viewport-scoped <style> blocks and
      * an optional critical <script> block.
      */
-    private function buildInjection(int $pageUid, ServerRequestInterface $request): string
+    private function buildInjection(int $pageUid, ServerRequestInterface $request, PageArguments $routing): string
     {
-        $mobileCss = $this->criticalAssetService->getCriticalCss($pageUid, 'mobile');
-        $desktopCss = $this->criticalAssetService->getCriticalCss($pageUid, 'desktop');
-        $mobileJs = $this->criticalAssetService->getCriticalJs($pageUid, 'mobile');
-        $desktopJs = $this->criticalAssetService->getCriticalJs($pageUid, 'desktop');
+        $languageId = 0;
+        if (method_exists($routing, 'getSiteLanguage')) {
+            $language = $routing->getSiteLanguage();
+            if ($language instanceof SiteLanguage) {
+                $languageId = $language->getLanguageId();
+            }
+        }
+
+        $workspaceIdMixed = $this->context->getPropertyFromAspect('workspace', 'id', 0);
+        $workspaceId = is_numeric($workspaceIdMixed) ? (int)$workspaceIdMixed : 0;
+
+        $mobileCss = $this->criticalAssetService->getCriticalCss($pageUid, 'mobile', $languageId, $workspaceId);
+        $desktopCss = $this->criticalAssetService->getCriticalCss($pageUid, 'desktop', $languageId, $workspaceId);
+        $mobileJs = $this->criticalAssetService->getCriticalJs($pageUid, 'mobile', $languageId, $workspaceId);
+        $desktopJs = $this->criticalAssetService->getCriticalJs($pageUid, 'desktop', $languageId, $workspaceId);
 
         if ($mobileCss === null && $desktopCss === null && $mobileJs === null && $desktopJs === null) {
             return '';

@@ -57,6 +57,8 @@ final class CriticalAssetService
      * @param string                                        $chromiumBin Absolute path to chromium/chrome binary
      * @param array<string, array{width: int, height: int}> $viewports   Keyed by viewport name, e.g.
      *                                                                   ['mobile'=>['width'=>375,'height'=>667]]
+     * @param int                                           $languageId  TYPO3 language ID
+     * @param int                                           $workspaceId TYPO3 workspace ID
      * @param int                                           $connectMs   Chromium start timeout (ms)
      * @param int                                           $loadMs      Per-page load timeout (ms)
      *
@@ -67,6 +69,8 @@ final class CriticalAssetService
         string $pageUrl,
         string $chromiumBin,
         array $viewports,
+        int $languageId = 0,
+        int $workspaceId = 0,
         int $connectMs = 5000,
         int $loadMs = 15000,
     ): void {
@@ -80,11 +84,13 @@ final class CriticalAssetService
                 $height = (int)$size['height'];
 
                 $this->logger->debug('maispace_assets: extracting critical assets', [
-                    'pageUid'  => $pageUid,
-                    'viewport' => $viewportName,
-                    'url'      => $pageUrl,
-                    'width'    => $width,
-                    'height'   => $height,
+                    'pageUid'     => $pageUid,
+                    'languageId'  => $languageId,
+                    'workspaceId' => $workspaceId,
+                    'viewport'    => $viewportName,
+                    'url'         => $pageUrl,
+                    'width'       => $width,
+                    'height'      => $height,
                 ]);
 
                 $client->setViewport($width, $height);
@@ -95,29 +101,33 @@ final class CriticalAssetService
 
                 /** @var AfterCriticalCssExtractedEvent $event */
                 $event = $this->dispatcher->dispatch(
-                    new AfterCriticalCssExtractedEvent($pageUid, $viewportName, $css, $js),
+                    new AfterCriticalCssExtractedEvent($pageUid, $viewportName, $languageId, $workspaceId, $css, $js),
                 );
 
                 $css = $event->getCriticalCss();
                 $js = $event->getCriticalJs();
 
-                $tags = ['maispace_critical', 'maispace_critical_p' . $pageUid];
+                $tags = $this->cache->buildPageTags($pageUid, $languageId, $workspaceId);
 
                 if ($css !== '') {
-                    $this->cache->set($this->cache->buildCriticalCssKey($pageUid, $viewportName), $css, $tags);
+                    $this->cache->set($this->cache->buildCriticalCssKey($pageUid, $viewportName, $languageId, $workspaceId), $css, $tags);
                     $this->logger->info('maispace_assets: cached critical CSS', [
-                        'pageUid'  => $pageUid,
-                        'viewport' => $viewportName,
-                        'bytes'    => strlen($css),
+                        'pageUid'     => $pageUid,
+                        'languageId'  => $languageId,
+                        'workspaceId' => $workspaceId,
+                        'viewport'    => $viewportName,
+                        'bytes'       => strlen($css),
                     ]);
                 }
 
                 if ($js !== '') {
-                    $this->cache->set($this->cache->buildCriticalJsKey($pageUid, $viewportName), $js, $tags);
+                    $this->cache->set($this->cache->buildCriticalJsKey($pageUid, $viewportName, $languageId, $workspaceId), $js, $tags);
                     $this->logger->info('maispace_assets: cached critical JS', [
-                        'pageUid'  => $pageUid,
-                        'viewport' => $viewportName,
-                        'bytes'    => strlen($js),
+                        'pageUid'     => $pageUid,
+                        'languageId'  => $languageId,
+                        'workspaceId' => $workspaceId,
+                        'viewport'    => $viewportName,
+                        'bytes'       => strlen($js),
                     ]);
                 }
             }
@@ -129,24 +139,24 @@ final class CriticalAssetService
     // ─── Retrieval ────────────────────────────────────────────────────────────
 
     /**
-     * Return cached critical CSS for the given page UID and viewport name.
+     * Return cached critical CSS for the given page UID, viewport name, language, and workspace.
      * Returns null when no entry has been extracted yet (cold cache).
      */
-    public function getCriticalCss(int $pageUid, string $viewport): ?string
+    public function getCriticalCss(int $pageUid, string $viewport, int $languageId = 0, int $workspaceId = 0): ?string
     {
-        $key = $this->cache->buildCriticalCssKey($pageUid, $viewport);
+        $key = $this->cache->buildCriticalCssKey($pageUid, $viewport, $languageId, $workspaceId);
         $value = $this->cache->has($key) ? $this->cache->get($key) : null;
 
         return is_string($value) && $value !== '' ? $value : null;
     }
 
     /**
-     * Return cached critical JS for the given page UID and viewport name.
+     * Return cached critical JS for the given page UID, viewport name, language, and workspace.
      * Returns null when no entry has been extracted yet (cold cache).
      */
-    public function getCriticalJs(int $pageUid, string $viewport): ?string
+    public function getCriticalJs(int $pageUid, string $viewport, int $languageId = 0, int $workspaceId = 0): ?string
     {
-        $key = $this->cache->buildCriticalJsKey($pageUid, $viewport);
+        $key = $this->cache->buildCriticalJsKey($pageUid, $viewport, $languageId, $workspaceId);
         $value = $this->cache->has($key) ? $this->cache->get($key) : null;
 
         return is_string($value) && $value !== '' ? $value : null;
@@ -155,12 +165,19 @@ final class CriticalAssetService
     // ─── Cache management ─────────────────────────────────────────────────────
 
     /**
-     * Purge all cached critical CSS and JS for a specific page UID.
+     * Purge all cached critical CSS and JS for a specific page UID, and optionally language/workspace.
      * Useful after a page's content or template changes.
      */
-    public function purgePage(int $pageUid): void
+    public function purgePage(int $pageUid, ?int $languageId = null, ?int $workspaceId = null): void
     {
-        $this->cache->flushByTag('maispace_critical_p' . $pageUid);
+        $tag = 'maispace_critical_p' . $pageUid;
+        if ($languageId !== null) {
+            $tag .= '_l' . $languageId;
+        }
+        if ($workspaceId !== null) {
+            $tag .= '_w' . $workspaceId;
+        }
+        $this->cache->flushByTag($tag);
     }
 
     /**

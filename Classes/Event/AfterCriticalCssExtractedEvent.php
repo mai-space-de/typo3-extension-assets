@@ -28,6 +28,8 @@ final class AfterCriticalCssExtractedEvent
     public function __construct(
         private readonly int $pageUid,
         private readonly string $viewport,
+        private readonly int $languageId,
+        private readonly int $workspaceId,
         private string $criticalCss,
         private string $criticalJs,
     ) {
@@ -39,6 +41,22 @@ final class AfterCriticalCssExtractedEvent
     public function getPageUid(): int
     {
         return $this->pageUid;
+    }
+
+    /**
+     * The TYPO3 language ID for which critical assets were extracted.
+     */
+    public function getLanguageId(): int
+    {
+        return $this->languageId;
+    }
+
+    /**
+     * The TYPO3 workspace ID for which critical assets were extracted.
+     */
+    public function getWorkspaceId(): int
+    {
+        return $this->workspaceId;
     }
 
     /**
