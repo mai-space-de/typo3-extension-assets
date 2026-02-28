@@ -139,6 +139,59 @@ plugin.tx_maispace_assets {
         # 1 for cache (default), 0 for rebuild on every request (only for development).
         cache = 1
     }
+
+    # =========================================================================
+    # Critical CSS / JS inline injection
+    #
+    # Critical assets are extracted by the CLI command:
+    #   php vendor/bin/typo3 maispace:assets:critical:extract
+    #
+    # The CriticalCssInlineMiddleware then injects them as inline <style> and
+    # <script> blocks immediately before </head> on every page request.
+    # =========================================================================
+    criticalCss {
+        # Enable the CriticalCssInlineMiddleware. Set to 0 to disable injection
+        # without removing the middleware registration.
+        # 1 for enabled (default), 0 for disabled.
+        enable = 1
+
+        # Path to the Chromium or Google Chrome binary used by the extract command.
+        # Leave empty to trigger auto-detection (common system paths are tried).
+        # Override via the --chromium-bin option on the CLI command as well.
+        # Example: chromiumBin = /usr/bin/chromium-browser
+        chromiumBin =
+
+        mobile {
+            # Mobile viewport width in CSS pixels (used by the extract command).
+            width = 375
+
+            # Mobile viewport height in CSS pixels.
+            height = 667
+
+            # Upper boundary (inclusive) of the mobile CSS media query applied to the
+            # injected mobile <style> block. Must be one less than desktop.minWidth.
+            # Default: 767 → media="screen and (max-width: 767px)"
+            maxWidth = 767
+        }
+
+        desktop {
+            # Desktop viewport width in CSS pixels.
+            width = 1440
+
+            # Desktop viewport height in CSS pixels.
+            height = 900
+
+            # Lower boundary (inclusive) of the desktop CSS media query.
+            # Default: 768 → media="screen and (min-width: 768px)"
+            minWidth = 768
+        }
+
+        # Optional CSS layer name for injected critical CSS.
+        # If set, the <style> content is wrapped in @layer {name} { ... }.
+        # Leave empty (default) to disable CSS layers for critical CSS.
+        # Example: layer = maispace-critical
+        layer =
+    }
 }
 
 # =============================================================================

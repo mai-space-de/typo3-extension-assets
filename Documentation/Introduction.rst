@@ -138,6 +138,18 @@ Extensibility
 *  All default behaviours (minify, defer, lazy loading, cache) can be overridden globally via
    **TypoScript** or per-asset via **ViewHelper arguments**.
 
+Critical CSS & JS
+-----------------
+
+*  **Per-page extraction**: Extract only the CSS required for the initial viewport using a
+   headless Chromium instance.
+*  **Multi-site & Multi-language**: Extraction automatically handles all configured sites,
+   languages, and workspaces.
+*  **Automatic Injection**: The ``CriticalCssInlineMiddleware`` automatically injects the
+   cached critical assets into the ``<head>`` of HTML responses.
+*  **CSS Layers support**: Wrap inlined critical CSS in a dedicated `@layer` to manage
+   specificity and ordering (especially useful when the main theme also uses layers).
+
 Global ViewHelper Namespace
 ===========================
 

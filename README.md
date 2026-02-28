@@ -34,6 +34,7 @@ A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, ima
 | SRI integrity on external assets | `integrityValue="sha384-..."` argument |
 | Semantic `<figure>/<figcaption>` wrapper | `<mai:figure>` |
 | Multi-site scoping for sprites and fonts | `'sites'` key in config files |
+| Critical CSS extraction & inlining | `maispace:assets:critical:extract` |
 | Deploy-time cache warm-up | `php vendor/bin/typo3 maispace:assets:warmup` |
 | PSR-14 events at every processing stage | `Classes/Event/` |
 
@@ -513,6 +514,63 @@ The registries scan all loaded TYPO3 extensions for these files on first use. La
 
 ---
 
+## Critical CSS & JS
+
+Critical assets (above-the-fold CSS and synchronous JS) are extracted per-page using a headless Chromium instance. This ensures that only the CSS required for the initial viewport is inlined, while the rest of the styles load non-blocking.
+
+### Extraction (CLI)
+
+Run the extraction command after every full-page cache flush or major template change:
+
+```bash
+# All sites, all pages, all languages (default)
+php vendor/bin/typo3 maispace:assets:critical:extract
+
+# Specific site only
+php vendor/bin/typo3 maispace:assets:critical:extract --site=main
+
+# Specific workspace (e.g. 1 = Draft)
+php vendor/bin/typo3 maispace:assets:critical:extract --workspace=1
+
+# Specific pages only
+php vendor/bin/typo3 maispace:assets:critical:extract --pages=1,12,42
+```
+
+The command recursively collects all standard pages from the site root, visits each URL at both mobile and desktop viewports, and caches the result for injection.
+
+### Automatic Injection
+
+The `CriticalCssInlineMiddleware` automatically injects the cached critical assets into the `<head>` of HTML responses. Both mobile and desktop CSS are included, scoped via media queries:
+
+```html
+<style media="screen and (max-width: 767px)">/* mobile rules */</style>
+<style media="screen and (min-width: 768px)">/* desktop rules */</style>
+```
+
+Enable/disable globally via TypoScript:
+
+```typoscript
+plugin.tx_maispace_assets.criticalCss.enable = 1
+```
+
+### CSS Layers support
+
+You can wrap the injected critical CSS in a [CSS Layer](https://developer.mozilla.org/en-US/docs/Web/CSS/@layer) to manage specificity and ordering. This is especially useful if your main site styles also use layers.
+
+```typoscript
+# Wrap critical CSS in @layer {name} { ... }
+plugin.tx_maispace_assets.criticalCss.layer = maispace-critical
+```
+
+When configured, the injected blocks will look like this:
+```html
+<style media="screen and (max-width: 767px)">
+  @layer maispace-critical { /* mobile rules */ }
+</style>
+```
+
+---
+
 ## Development
 
 ### Running tests
@@ -535,6 +593,7 @@ vendor/bin/phpunit --configuration phpunit.xml.dist --testdox
 | File | What it tests |
 |---|---|
 | `Tests/Unit/Cache/AssetCacheManagerTest.php` | Key-building methods, cache delegation |
+| `Tests/Unit/Middleware/CriticalCssInlineMiddlewareTest.php` | Injection logic, CSS layers, CSP nonces |
 | `Tests/Unit/Service/AssetProcessingServiceTest.php` | `isExternalUrl`, `buildIdentifier`, `buildIntegrityAttrs`, `resolveFlag` |
 | `Tests/Unit/Service/ImageRenderingServiceTest.php` | `detectMimeType`, `renderSourceTag`, `renderImgTag`, `addImagePreloadHeader` |
 

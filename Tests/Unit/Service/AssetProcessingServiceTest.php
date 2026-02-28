@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\Tests\Unit\Service;
 
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,17 +20,13 @@ final class AssetProcessingServiceTest extends TestCase
     // isExternalUrl
     // -------------------------------------------------------------------------
 
-    /**
-     * @dataProvider provideExternalUrls
-     */
+    #[DataProvider('provideExternalUrls')]
     public function testIsExternalUrlReturnsTrueForExternalUrls(string $url): void
     {
         self::assertTrue($this->callIsExternalUrl($url));
     }
 
-    /**
-     * @dataProvider provideLocalUrls
-     */
+    #[DataProvider('provideLocalUrls')]
     public function testIsExternalUrlReturnsFalseForLocalPaths(string $url): void
     {
         self::assertFalse($this->callIsExternalUrl($url));

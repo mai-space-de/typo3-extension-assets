@@ -103,4 +103,41 @@ final class AssetCacheManager
 
         return 'svg_sprite_' . sha1(implode('|', $sorted));
     }
+
+    /**
+     * Cache key for per-page critical CSS at a specific viewport, language, and workspace.
+     *
+     * Key format: critical_css_{sha1(pageUid|viewport|languageId|workspaceId)}
+     * This keeps keys deterministic and collision-free across pages, viewports, languages, and workspaces.
+     */
+    public function buildCriticalCssKey(int $pageUid, string $viewport, int $languageId, int $workspaceId): string
+    {
+        return 'critical_css_' . sha1($pageUid . '|' . $viewport . '|' . $languageId . '|' . $workspaceId);
+    }
+
+    /**
+     * Cache key for per-page critical JS at a specific viewport, language, and workspace.
+     *
+     * Key format: critical_js_{sha1(pageUid|viewport|languageId|workspaceId)}
+     */
+    public function buildCriticalJsKey(int $pageUid, string $viewport, int $languageId, int $workspaceId): string
+    {
+        return 'critical_js_' . sha1($pageUid . '|' . $viewport . '|' . $languageId . '|' . $workspaceId);
+    }
+
+    /**
+     * Build cache tags for a specific page UID, language, and workspace.
+     *
+     * @return array<string>
+     */
+    public function buildPageTags(int $pageUid, int $languageId, int $workspaceId): array
+    {
+        return [
+            'maispace_critical',
+            'maispace_critical_p' . $pageUid,
+            'maispace_critical_p' . $pageUid . '_l' . $languageId,
+            'maispace_critical_p' . $pageUid . '_w' . $workspaceId,
+            'maispace_critical_p' . $pageUid . '_l' . $languageId . '_w' . $workspaceId,
+        ];
+    }
 }

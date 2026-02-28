@@ -37,6 +37,9 @@ Overview
     * - :ref:`event-after-image-processed`
       - After an image has been processed by ImageService. Listeners can inspect the
         result, replace the ProcessedFile, or trigger CDN cache warming.
+    * - :ref:`event-after-critical-css-extracted`
+      - After critical CSS/JS is extracted per-page by the CLI command, before it is
+        cached. Useful for post-processing the extracted above-the-fold content.
 
 All events carry **mutable data** — call ``set*()`` methods to modify the output.
 The modified content is cached, so subsequent requests serve the listener-modified version.
@@ -625,6 +628,73 @@ Example Listener
             -   name: event.listener
                 identifier: 'my-site-image-metrics'
                 event: Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
+
+.. _event-after-critical-css-extracted:
+
+AfterCriticalCssExtractedEvent
+==============================
+
+**Class:** ``Maispace\MaispaceAssets\Event\AfterCriticalCssExtractedEvent``
+
+Fired by ``CriticalAssetService::extractForPage()`` after above-the-fold critical CSS
+and JS have been extracted for a page and viewport, but before the result is stored
+in the TYPO3 cache.
+
+Use this event to:
+
+-  Add vendor prefixes or custom property fallbacks to the extracted CSS.
+-  Remove specific rules that should never be inlined (e.g. print styles).
+-  Completely replace the extracted content with a hand-curated version.
+
+API
+---
+
+.. list-table::
+    :header-rows: 1
+    :widths: 40 60
+
+    * - Method
+      - Description
+    * - ``getPageUid(): int``
+      - The TYPO3 page UID.
+    * - ``getLanguageId(): int``
+      - The TYPO3 language ID.
+    * - ``getWorkspaceId(): int``
+      - The TYPO3 workspace ID.
+    * - ``getViewport(): string``
+      - Viewport name (e.g. ``"mobile"``, ``"desktop"``).
+    * - ``getCriticalCss(): string``
+      - The extracted critical CSS string.
+    * - ``setCriticalCss(string $css): void``
+      - Replace the CSS before caching.
+    * - ``getCriticalJs(): string``
+      - The extracted critical JS string.
+    * - ``setCriticalJs(string $js): void``
+      - Replace the JS before caching.
+
+Example Listener
+----------------
+
+.. code-block:: php
+
+    <?php
+    // my_site_package/Classes/EventListener/CriticalCssModifier.php
+
+    namespace MyVendor\MySitePackage\EventListener;
+
+    use Maispace\MaispaceAssets\Event\AfterCriticalCssExtractedEvent;
+
+    final class CriticalCssModifier
+    {
+        public function __invoke(AfterCriticalCssExtractedEvent $event): void
+        {
+            // Add a custom copyright header to the inlined CSS.
+            $css = "/* Critical CSS for page " . $event->getPageUid() . " */\n"
+                 . $event->getCriticalCss();
+
+            $event->setCriticalCss($css);
+        }
+    }
 
 Built-in Listener — FontPreloadEventListener
 =============================================

@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\Tests\Unit\Service;
 
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
@@ -40,9 +41,7 @@ final class ImageRenderingServiceTest extends TestCase
     // detectMimeType
     // -------------------------------------------------------------------------
 
-    /**
-     * @dataProvider provideMimeTypeMapping
-     */
+    #[DataProvider('provideMimeTypeMapping')]
     public function testDetectMimeTypeReturnsCorrectType(string $ext, string $expectedMime): void
     {
         $processed = $this->makeProcessedFile('/path/to/image.' . $ext);

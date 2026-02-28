@@ -224,6 +224,67 @@ Font Settings
 SVG Sprite Settings
 ===================
 
+Critical CSS & JS Settings
+==========================
+
+.. confval:: plugin.tx_maispace_assets.criticalCss.enable
+    :type: boolean
+    :Default: 1
+
+    Enable the ``CriticalCssInlineMiddleware`` which automatically injects cached critical
+    assets into the ``<head>``.
+
+.. confval:: plugin.tx_maispace_assets.criticalCss.layer
+    :type: string
+    :Default: *(empty)*
+
+    CSS layer name for the injected critical CSS. If set, the injected ``<style>`` content
+    is wrapped in ``@layer {name} { ... }``.
+
+.. confval:: plugin.tx_maispace_assets.criticalCss.mobile.width
+    :type: integer
+    :Default: 375
+
+    Viewport width in CSS pixels used for mobile extraction.
+
+.. confval:: plugin.tx_maispace_assets.criticalCss.mobile.height
+    :type: integer
+    :Default: 667
+
+    Viewport height in CSS pixels.
+
+.. confval:: plugin.tx_maispace_assets.criticalCss.mobile.maxWidth
+    :type: integer
+    :Default: 767
+
+    Upper boundary (inclusive) for the mobile media query. Screens <= this width receive
+    the mobile critical CSS.
+
+.. confval:: plugin.tx_maispace_assets.criticalCss.desktop.width
+    :type: integer
+    :Default: 1440
+
+    Viewport width for desktop extraction.
+
+.. confval:: plugin.tx_maispace_assets.criticalCss.desktop.height
+    :type: integer
+    :Default: 900
+
+    Viewport height for desktop extraction.
+
+.. confval:: plugin.tx_maispace_assets.criticalCss.desktop.minWidth
+    :type: integer
+    :Default: 768
+
+    Lower boundary (inclusive) for the desktop media query.
+
+.. confval:: plugin.tx_maispace_assets.criticalCss.chromiumBin
+    :type: string
+    :Default: *(empty)*
+
+    Absolute path to the Chromium/Chrome binary. If empty, common paths are tried automatically.
+    Can be overridden via the CLI command using the ``--chromium-bin`` option.
+
 .. _configuration-spriteiconregistry:
 
 Symbol Registration (SpriteIcons.php)
@@ -415,6 +476,36 @@ Example output:
      [OK] All sites warmed up successfully.
 
 .. _configuration-fontregistry:
+
+Critical CSS & JS Extraction
+============================
+
+Extract per-page critical above-the-fold CSS and JS for every configured TYPO3 site,
+language, and workspace:
+
+.. code-block:: bash
+
+    # All sites, all pages, all languages (default)
+    php vendor/bin/typo3 maispace:assets:critical:extract
+
+    # Specific site only
+    php vendor/bin/typo3 maispace:assets:critical:extract --site=main
+
+    # Specific workspace (e.g. 1 = Draft)
+    php vendor/bin/typo3 maispace:assets:critical:extract --workspace=1
+
+    # Specific pages only
+    php vendor/bin/typo3 maispace:assets:critical:extract --pages=1,12,42
+
+    # Custom Chromium binary
+    php vendor/bin/typo3 maispace:assets:critical:extract --chromium-bin=/usr/bin/chromium
+
+The command automatically iterates through all configured TYPO3 sites and recursively
+collects all standard pages (doktype=1) from each site's root. For each page, it
+iterates through all configured languages and viewports (mobile/desktop).
+
+The extracted assets are stored in the TYPO3 caching framework and automatically injected
+by the ``CriticalCssInlineMiddleware`` if enabled.
 
 Font Registration (Fonts.php)
 =============================

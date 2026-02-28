@@ -55,12 +55,12 @@ final class WarmupCommand extends Command
     protected function configure(): void
     {
         $this->setHelp(
-            'Run this command at deploy time (after cache clearing) to prime the maispace_assets cache.' . PHP_EOL
-            . PHP_EOL
-            . 'Each TYPO3 site gets its own pre-built SVG sprite keyed by symbol content.' . PHP_EOL
-            . 'Font registrations are discovered from all loaded extensions and written' . PHP_EOL
-            . 'into the FontRegistry singleton for the duration of the process.' . PHP_EOL
-            . PHP_EOL
+            'Run this command at deploy time (after cache clearing) to prime the maispace_assets cache.' . "\n"
+            . "\n"
+            . 'Each TYPO3 site gets its own pre-built SVG sprite keyed by symbol content.' . "\n"
+            . 'Font registrations are discovered from all loaded extensions and written' . "\n"
+            . 'into the FontRegistry singleton for the duration of the process.' . "\n"
+            . "\n"
             . 'The command is idempotent — running it multiple times is safe.',
         );
     }
@@ -71,9 +71,10 @@ final class WarmupCommand extends Command
 
         // ── Font discovery ────────────────────────────────────────────────────
         $fontKeys = $this->fontRegistry->getRegisteredFontKeys();
+        $numFonts = (int)count($fontKeys);
         $io->writeln(sprintf(
             '<info>Font registry:</info> %d font(s) discovered across all extensions.',
-            count($fontKeys),
+            $numFonts,
         ));
 
         if ($fontKeys !== []) {
@@ -93,7 +94,8 @@ final class WarmupCommand extends Command
             return Command::SUCCESS;
         }
 
-        $io->section(sprintf('Building SVG sprite for %d site(s)', count($sites)));
+        $numSites = (int)count($sites);
+        $io->section(sprintf('Building SVG sprite for %d site(s)', $numSites));
 
         $errors = 0;
 
