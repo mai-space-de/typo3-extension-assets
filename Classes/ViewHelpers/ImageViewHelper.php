@@ -7,9 +7,7 @@ namespace Maispace\MaispaceAssets\ViewHelpers;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Render a single responsive `<img>` tag with optional lazy loading, preloading,
@@ -48,7 +46,6 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  */
 final class ImageViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
     use TypoScriptSettingTrait;
 
     /** Disable output escaping — this ViewHelper returns raw HTML. */
@@ -217,28 +214,22 @@ final class ImageViewHelper extends AbstractViewHelper
         );
     }
 
-    /**
-     * @param array<string, mixed> $arguments
-     */
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext,
-    ): string {
+    public function render(): string
+    {
         /** @var ImageRenderingService $service */
         $service = GeneralUtility::makeInstance(ImageRenderingService::class);
 
-        $file = $service->resolveImage($arguments['image']);
+        $file = $service->resolveImage($this->arguments['image']);
         if ($file === null) {
             return '';
         }
 
         // Resolve the output format: explicit argument → TypoScript forceFormat → source format.
-        $fileExtension = self::resolveFileExtension($arguments);
+        $fileExtension = self::resolveFileExtension($this->arguments);
 
-        $quality = is_int($arguments['quality'] ?? null) ? (int)$arguments['quality'] : 0;
-        $widthArg = is_string($arguments['width'] ?? null) ? $arguments['width'] : '';
-        $heightArg = is_string($arguments['height'] ?? null) ? $arguments['height'] : '';
+        $quality = is_int($this->arguments['quality'] ?? null) ? (int)$this->arguments['quality'] : 0;
+        $widthArg = is_string($this->arguments['width'] ?? null) ? $this->arguments['width'] : '';
+        $heightArg = is_string($this->arguments['height'] ?? null) ? $this->arguments['height'] : '';
 
         $processed = $service->processImage(
             $file,
@@ -249,11 +240,11 @@ final class ImageViewHelper extends AbstractViewHelper
         );
 
         // Resolve lazy loading from arguments, then TypoScript fallback.
-        [$lazyloading, $lazyloadWithClass] = self::resolveLazyArguments($arguments);
+        [$lazyloading, $lazyloadWithClass] = self::resolveLazyArguments($this->arguments);
 
         // Build srcset string if srcset widths are specified.
         $srcsetString = null;
-        $srcsetArg = $arguments['srcset'] ?? null;
+        $srcsetArg = $this->arguments['srcset'] ?? null;
         if (is_string($srcsetArg) && $srcsetArg !== '') {
             $srcsetString = $service->buildSrcsetString(
                 $file,
@@ -265,34 +256,34 @@ final class ImageViewHelper extends AbstractViewHelper
         }
 
         $additional = [];
-        foreach ((array)($arguments['additionalAttributes'] ?? []) as $k => $v) {
+        foreach ((array)($this->arguments['additionalAttributes'] ?? []) as $k => $v) {
             if (is_string($k) && is_string($v)) {
                 $additional[$k] = $v;
             }
         }
 
         $imgHtml = $service->renderImgTag($processed, [
-            'alt'                  => is_string($arguments['alt'] ?? null) ? $arguments['alt'] : '',
-            'class'                => is_string($arguments['class'] ?? null) ? $arguments['class'] : null,
-            'id'                   => is_string($arguments['id'] ?? null) ? $arguments['id'] : null,
-            'title'                => is_string($arguments['title'] ?? null) ? $arguments['title'] : null,
+            'alt'                  => is_string($this->arguments['alt'] ?? null) ? $this->arguments['alt'] : '',
+            'class'                => is_string($this->arguments['class'] ?? null) ? $this->arguments['class'] : null,
+            'id'                   => is_string($this->arguments['id'] ?? null) ? $this->arguments['id'] : null,
+            'title'                => is_string($this->arguments['title'] ?? null) ? $this->arguments['title'] : null,
             'lazyloading'          => $lazyloading,
             'lazyloadWithClass'    => $lazyloadWithClass,
-            'fetchPriority'        => is_string($arguments['fetchPriority'] ?? null) ? $arguments['fetchPriority'] : null,
-            'decoding'             => is_string($arguments['decoding'] ?? null) ? $arguments['decoding'] : null,
-            'crossorigin'          => is_string($arguments['crossorigin'] ?? null) ? $arguments['crossorigin'] : null,
+            'fetchPriority'        => is_string($this->arguments['fetchPriority'] ?? null) ? $this->arguments['fetchPriority'] : null,
+            'decoding'             => is_string($this->arguments['decoding'] ?? null) ? $this->arguments['decoding'] : null,
+            'crossorigin'          => is_string($this->arguments['crossorigin'] ?? null) ? $this->arguments['crossorigin'] : null,
             'srcset'               => $srcsetString,
-            'sizes'                => is_string($arguments['sizes'] ?? null) ? $arguments['sizes'] : null,
+            'sizes'                => is_string($this->arguments['sizes'] ?? null) ? $this->arguments['sizes'] : null,
             'additionalAttributes' => $additional,
         ]);
 
-        if ((bool)($arguments['preload'] ?? false)) {
+        if ((bool)($this->arguments['preload'] ?? false)) {
             $imageService = GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Service\ImageService::class);
             $url = $imageService->getImageUri($processed, true);
-            $preloadMedia = is_string($arguments['preloadMedia'] ?? null) && $arguments['preloadMedia'] !== ''
-                ? $arguments['preloadMedia']
+            $preloadMedia = is_string($this->arguments['preloadMedia'] ?? null) && $this->arguments['preloadMedia'] !== ''
+                ? $this->arguments['preloadMedia']
                 : null;
-            $fetchPriorityVal = $arguments['fetchPriority'] ?? null;
+            $fetchPriorityVal = $this->arguments['fetchPriority'] ?? null;
             $fetchPriorityAttr = (is_string($fetchPriorityVal) && in_array($fetchPriorityVal, ['high', 'low', 'auto'], true))
                 ? $fetchPriorityVal
                 : null;
@@ -303,7 +294,7 @@ final class ImageViewHelper extends AbstractViewHelper
                 $fetchPriorityAttr,
                 $mimeType,
                 $srcsetString !== '' ? $srcsetString : null,
-                is_string($arguments['sizes'] ?? null) && $arguments['sizes'] !== '' ? $arguments['sizes'] : null,
+                is_string($this->arguments['sizes'] ?? null) && $this->arguments['sizes'] !== '' ? $this->arguments['sizes'] : null,
             );
         }
 

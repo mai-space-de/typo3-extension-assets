@@ -5,7 +5,6 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 
 /**
  * Include a JavaScript asset from a file path or inline Fluid content.
@@ -126,15 +125,9 @@ final class JsViewHelper extends AbstractAssetViewHelper
         );
     }
 
-    /**
-     * @param array<string, mixed> $arguments
-     */
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext,
-    ): void {
-        $inlineContent = $renderChildrenClosure();
-        AssetProcessingService::handleJs($arguments, is_string($inlineContent) ? $inlineContent : null);
+    public function render(): void
+    {
+        $inlineContent = $this->renderChildren();
+        AssetProcessingService::handleJs($this->arguments, is_string($inlineContent) ? $inlineContent : null);
     }
 }

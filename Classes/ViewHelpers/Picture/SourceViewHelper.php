@@ -8,9 +8,7 @@ use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\PictureViewHelper;
 use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Render one or more `<source>` tags inside a `<mai:picture>` element.
@@ -78,7 +76,6 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  */
 final class SourceViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
     use TypoScriptSettingTrait;
 
     /** Disable output escaping — this ViewHelper returns raw HTML. */
@@ -184,20 +181,14 @@ final class SourceViewHelper extends AbstractViewHelper
         );
     }
 
-    /**
-     * @param array<string, mixed> $arguments
-     */
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext,
-    ): string {
+    public function render(): string
+    {
         /** @var ImageRenderingService $service */
         $service = GeneralUtility::makeInstance(ImageRenderingService::class);
-        $varContainer = $renderingContext->getViewHelperVariableContainer();
+        $varContainer = $this->renderingContext->getViewHelperVariableContainer();
 
         // Resolve the image: explicit override or inherited from parent PictureViewHelper.
-        $imageArg = $arguments['image'] ?? null;
+        $imageArg = $this->arguments['image'] ?? null;
         if ($imageArg !== null) {
             $file = $service->resolveImage($imageArg);
         } else {
@@ -209,28 +200,28 @@ final class SourceViewHelper extends AbstractViewHelper
             return '';
         }
 
-        $widthRaw = $arguments['width'] ?? '';
+        $widthRaw = $this->arguments['width'] ?? '';
         $width = is_string($widthRaw) ? $widthRaw : '';
-        $heightRaw = $arguments['height'] ?? '';
+        $heightRaw = $this->arguments['height'] ?? '';
         $height = is_string($heightRaw) ? $heightRaw : '';
-        $media = is_string($arguments['media'] ?? null) ? $arguments['media'] : null;
+        $media = is_string($this->arguments['media'] ?? null) ? $this->arguments['media'] : null;
 
-        $qualityRaw = $arguments['quality'] ?? 0;
+        $qualityRaw = $this->arguments['quality'] ?? 0;
         $quality = is_numeric($qualityRaw) ? (int)$qualityRaw : 0;
 
         // Resolve alternative formats: argument → TypoScript default.
-        $formatsRaw = $arguments['formats'] ?? null;
+        $formatsRaw = $this->arguments['formats'] ?? null;
         $formats = self::resolveAlternativeFormats(is_string($formatsRaw) ? $formatsRaw : null);
 
         // Build optional srcset string (multi-width responsive descriptor).
-        $srcsetWidths = $arguments['srcset'] ?? null;
-        $sizes = is_string($arguments['sizes'] ?? null) && $arguments['sizes'] !== ''
-            ? $arguments['sizes']
+        $srcsetWidths = $this->arguments['srcset'] ?? null;
+        $sizes = is_string($this->arguments['sizes'] ?? null) && $this->arguments['sizes'] !== ''
+            ? $this->arguments['sizes']
             : null;
 
         // No format alternatives: render a single <source> tag (classic behaviour).
         if ($formats === []) {
-            $fileExtension = self::resolveFileExtension($arguments);
+            $fileExtension = self::resolveFileExtension($this->arguments);
             $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
 
             $srcsetString = null;
@@ -238,7 +229,7 @@ final class SourceViewHelper extends AbstractViewHelper
                 $srcsetString = $service->buildSrcsetString($file, $srcsetWidths, $height, $fileExtension, $quality);
             }
 
-            $typeArg = is_string($arguments['type'] ?? null) ? $arguments['type'] : null;
+            $typeArg = is_string($this->arguments['type'] ?? null) ? $this->arguments['type'] : null;
 
             return $service->renderSourceTag($processed, $media, $typeArg, $srcsetString, $sizes);
         }
@@ -256,13 +247,13 @@ final class SourceViewHelper extends AbstractViewHelper
         }
 
         // Fallback <source> in the original/default format (no fileExtension override).
-        if ((bool)($arguments['fallback'] ?? true)) {
+        if ((bool)($this->arguments['fallback'] ?? true)) {
             $fallbackProcessed = $service->processImage($file, $width, $height, '', $quality);
             $fallbackSrcset = null;
             if (is_string($srcsetWidths) && $srcsetWidths !== '') {
                 $fallbackSrcset = $service->buildSrcsetString($file, $srcsetWidths, $height, '', $quality);
             }
-            $typeArg = is_string($arguments['type'] ?? null) ? $arguments['type'] : null;
+            $typeArg = is_string($this->arguments['type'] ?? null) ? $this->arguments['type'] : null;
             $html .= $service->renderSourceTag($fallbackProcessed, $media, $typeArg, $fallbackSrcset, $sizes);
         }
 

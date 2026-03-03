@@ -6,9 +6,7 @@ namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Emit a resource hint `<link>` tag into `<head>`.
@@ -50,8 +48,6 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  */
 final class HintViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
-
     /** This ViewHelper produces no output of its own — it only injects into <head>. */
     protected $escapeOutput = false;
 
@@ -114,16 +110,10 @@ final class HintViewHelper extends AbstractViewHelper
         );
     }
 
-    /**
-     * @param array<string, mixed> $arguments
-     */
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext,
-    ): string {
-        $hrefRaw = $arguments['href'] ?? '';
-        $relRaw = $arguments['rel'] ?? '';
+    public function render(): string
+    {
+        $hrefRaw = $this->arguments['href'] ?? '';
+        $relRaw = $this->arguments['rel'] ?? '';
         $href = is_string($hrefRaw) ? trim($hrefRaw) : '';
         $rel = is_string($relRaw) ? trim($relRaw) : '';
 
@@ -135,7 +125,7 @@ final class HintViewHelper extends AbstractViewHelper
         $attrs['rel'] = $rel;
         $attrs['href'] = $href;
 
-        $as = $arguments['as'] ?? null;
+        $as = $this->arguments['as'] ?? null;
         if (is_string($as) && $as !== '') {
             $attrs['as'] = $as;
         } elseif ($rel === 'modulepreload') {
@@ -143,23 +133,23 @@ final class HintViewHelper extends AbstractViewHelper
             $attrs['as'] = 'script';
         }
 
-        $type = $arguments['type'] ?? null;
+        $type = $this->arguments['type'] ?? null;
         if (is_string($type) && $type !== '') {
             $attrs['type'] = $type;
         }
 
-        $crossorigin = $arguments['crossorigin'] ?? null;
+        $crossorigin = $this->arguments['crossorigin'] ?? null;
         if (is_string($crossorigin) && $crossorigin !== '') {
             $attrs['crossorigin'] = $crossorigin;
         }
 
-        $media = $arguments['media'] ?? null;
+        $media = $this->arguments['media'] ?? null;
         if (is_string($media) && $media !== '') {
             $attrs['media'] = $media;
         }
 
         // Merge any caller-supplied extra attributes.
-        $additionalAttributes = is_array($arguments['additionalAttributes'] ?? null) ? $arguments['additionalAttributes'] : [];
+        $additionalAttributes = is_array($this->arguments['additionalAttributes'] ?? null) ? $this->arguments['additionalAttributes'] : [];
         foreach ($additionalAttributes as $name => $value) {
             $attrs[(string)$name] = is_string($value) ? $value : (is_scalar($value) ? (string)$value : '');
         }

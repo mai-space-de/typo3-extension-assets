@@ -5,7 +5,6 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 
 /**
  * Include a CSS asset from a file path or inline Fluid content.
@@ -110,15 +109,9 @@ final class CssViewHelper extends AbstractAssetViewHelper
         );
     }
 
-    /**
-     * @param array<string, mixed> $arguments
-     */
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext,
-    ): void {
-        $inlineContent = $renderChildrenClosure();
-        AssetProcessingService::handleCss($arguments, is_string($inlineContent) ? $inlineContent : null);
+    public function render(): void
+    {
+        $inlineContent = $this->renderChildren();
+        AssetProcessingService::handleCss($this->arguments, is_string($inlineContent) ? $inlineContent : null);
     }
 }

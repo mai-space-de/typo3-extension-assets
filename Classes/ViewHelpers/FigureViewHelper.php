@@ -4,9 +4,7 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Wrap content in a `<figure>` element with an optional `<figcaption>`.
@@ -42,8 +40,6 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  */
 final class FigureViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
-
     /** Disable output escaping — this ViewHelper returns raw HTML. */
     protected $escapeOutput = false;
 
@@ -77,27 +73,21 @@ final class FigureViewHelper extends AbstractViewHelper
         );
     }
 
-    /**
-     * @param array<string, mixed> $arguments
-     */
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext,
-    ): string {
-        $childrenRaw = $renderChildrenClosure();
+    public function render(): string
+    {
+        $childrenRaw = $this->renderChildren();
         $children = is_string($childrenRaw) ? $childrenRaw : '';
 
-        $classArg = is_string($arguments['class'] ?? null) ? $arguments['class'] : '';
+        $classArg = is_string($this->arguments['class'] ?? null) ? $this->arguments['class'] : '';
         $figureAttrs = '';
         if ($classArg !== '') {
             $figureAttrs = ' class="' . htmlspecialchars($classArg, ENT_QUOTES | ENT_XML1) . '"';
         }
 
         $figcaptionHtml = '';
-        $caption = is_string($arguments['caption'] ?? null) ? $arguments['caption'] : '';
+        $caption = is_string($this->arguments['caption'] ?? null) ? $this->arguments['caption'] : '';
         if ($caption !== '') {
-            $classFigcaption = is_string($arguments['classFigcaption'] ?? null) ? $arguments['classFigcaption'] : '';
+            $classFigcaption = is_string($this->arguments['classFigcaption'] ?? null) ? $this->arguments['classFigcaption'] : '';
             $captionAttrs = '';
             if ($classFigcaption !== '') {
                 $captionAttrs = ' class="' . htmlspecialchars($classFigcaption, ENT_QUOTES | ENT_XML1) . '"';

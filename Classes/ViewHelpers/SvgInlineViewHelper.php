@@ -6,9 +6,7 @@ namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Maispace\MaispaceAssets\Cache\AssetCacheManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Embed an SVG file directly as inline markup.
@@ -49,8 +47,6 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  */
 final class SvgInlineViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
-
     /** Disable output escaping — this ViewHelper returns raw SVG markup. */
     protected $escapeOutput = false;
 
@@ -122,15 +118,9 @@ final class SvgInlineViewHelper extends AbstractViewHelper
         );
     }
 
-    /**
-     * @param array<string, mixed> $arguments
-     */
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext,
-    ): string {
-        $srcRaw = $arguments['src'] ?? '';
+    public function render(): string
+    {
+        $srcRaw = $this->arguments['src'] ?? '';
         $src = is_string($srcRaw) ? $srcRaw : '';
         if ($src === '') {
             return '';
@@ -139,13 +129,13 @@ final class SvgInlineViewHelper extends AbstractViewHelper
         // Build a stable cache key from all arguments that affect the rendered output.
         $cacheKey = 'svginline_' . md5(implode('|', [
             $src,
-            $arguments['class'] ?? '',
-            $arguments['width'] ?? '',
-            $arguments['height'] ?? '',
-            $arguments['aria-hidden'] ?? '',
-            $arguments['aria-label'] ?? '',
-            $arguments['title'] ?? '',
-            serialize($arguments['additionalAttributes'] ?? []),
+            $this->arguments['class'] ?? '',
+            $this->arguments['width'] ?? '',
+            $this->arguments['height'] ?? '',
+            $this->arguments['aria-hidden'] ?? '',
+            $this->arguments['aria-label'] ?? '',
+            $this->arguments['title'] ?? '',
+            serialize($this->arguments['additionalAttributes'] ?? []),
         ]));
 
         /** @var AssetCacheManager $cache */
@@ -157,7 +147,7 @@ final class SvgInlineViewHelper extends AbstractViewHelper
             return is_string($cached) ? $cached : '';
         }
 
-        $result = self::buildSvgMarkup($arguments, $src);
+        $result = self::buildSvgMarkup($this->arguments, $src);
 
         if ($result !== '') {
             $cache->set($cacheKey, $result, ['maispace_assets_svg']);

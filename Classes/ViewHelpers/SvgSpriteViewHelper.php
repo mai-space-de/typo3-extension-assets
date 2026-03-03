@@ -4,9 +4,7 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * Output an `<svg><use>` reference to a symbol in the maispace_assets SVG sprite.
@@ -46,8 +44,6 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  */
 final class SvgSpriteViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
-
     private const DEFAULT_ROUTE_PATH = '/maispace/sprite.svg';
 
     /** Disable output escaping — this ViewHelper returns raw SVG markup. */
@@ -119,28 +115,22 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         );
     }
 
-    /**
-     * @param array<string, mixed> $arguments
-     */
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext,
-    ): string {
-        $useRaw = $arguments['use'] ?? '';
+    public function render(): string
+    {
+        $useRaw = $this->arguments['use'] ?? '';
         $symbolId = is_string($useRaw) ? $useRaw : '';
         if ($symbolId === '') {
             return '';
         }
 
-        $srcArg = $arguments['src'] ?? null;
+        $srcArg = $this->arguments['src'] ?? null;
         $spriteUrl = self::resolveSpriteSrc(is_string($srcArg) ? $srcArg : null);
         $href = $spriteUrl . '#' . htmlspecialchars($symbolId, ENT_XML1);
 
-        $attrs = self::buildSvgAttributes($arguments);
+        $attrs = self::buildSvgAttributes($this->arguments);
 
         $titleTag = '';
-        $titleArg = is_string($arguments['title'] ?? null) ? $arguments['title'] : '';
+        $titleArg = is_string($this->arguments['title'] ?? null) ? $this->arguments['title'] : '';
         if ($titleArg !== '') {
             $titleTag = '<title>' . htmlspecialchars($titleArg) . '</title>';
         }

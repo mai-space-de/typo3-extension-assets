@@ -21,7 +21,6 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  * Central service for processing CSS, JS, and SCSS assets.
  *
  * All ViewHelpers delegate to the static entry points here (handleCss, handleJs, handleScss).
- * Static methods are required because the ViewHelpers use CompileWithRenderStatic.
  * Dependencies are resolved via GeneralUtility::makeInstance() which respects the DI container.
  *
  * Processing pipeline (per asset type):
@@ -898,7 +897,6 @@ final class AssetProcessingService
 
     // -------------------------------------------------------------------------
     // Dependency resolution via GeneralUtility::makeInstance
-    // (required because ViewHelpers use static renderStatic)
     // -------------------------------------------------------------------------
 
     private static function cache(): AssetCacheManager
