@@ -17,7 +17,6 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  */
 abstract class AbstractAssetViewHelper extends AbstractViewHelper
 {
-
     public function initializeArguments(): void
     {
         $this->registerArgument(
