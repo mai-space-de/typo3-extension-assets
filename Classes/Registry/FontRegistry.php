@@ -4,8 +4,6 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Registry;
 
-use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
-use Maispace\MaispaceAssets\Exception\InvalidAssetConfigurationException;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -169,40 +167,35 @@ final class FontRegistry implements SingletonInterface
             $fonts = require $file;
 
             if (!is_array($fonts)) {
-                $message = 'maispace_assets: Fonts.php in extension "' . $extKey . '" did not return an array.';
-                $this->logger->warning($message);
+                $this->logger->warning('maispace_assets: Fonts.php in extension "' . $extKey . '" did not return an array — skipping extension.');
 
-                throw new InvalidAssetConfigurationException($message);
+                continue;
             }
 
             foreach ($fonts as $key => $config) {
                 if (!is_string($key) || $key === '') {
-                    $message = 'maispace_assets: Invalid (non-string or empty) font key in "' . $extKey . '/Configuration/Fonts.php".';
-                    $this->logger->warning($message);
+                    $this->logger->warning('maispace_assets: Invalid (non-string or empty) font key in "' . $extKey . '/Configuration/Fonts.php" — skipping entry.');
 
-                    throw new InvalidAssetConfigurationException($message);
+                    continue;
                 }
 
                 if (!is_array($config)) {
-                    $message = 'maispace_assets: Font entry for key "' . $key . '" in "' . $extKey . '" must be an array, got ' . gettype($config) . '.';
-                    $this->logger->warning($message);
+                    $this->logger->warning('maispace_assets: Font entry for key "' . $key . '" in "' . $extKey . '" must be an array, got ' . gettype($config) . ' — skipping.');
 
-                    throw new InvalidAssetConfigurationException($message);
+                    continue;
                 }
 
                 if (!isset($config['src']) || !is_string($config['src'])) {
-                    $message = 'maispace_assets: Font "' . $key . '" in "' . $extKey . '" is missing the required "src" key (must be a non-empty string path).';
-                    $this->logger->warning($message);
+                    $this->logger->warning('maispace_assets: Font "' . $key . '" in "' . $extKey . '" is missing the required "src" key (must be a non-empty string path) — skipping.');
 
-                    throw new InvalidAssetConfigurationException($message);
+                    continue;
                 }
 
                 $absolutePath = GeneralUtility::getFileAbsFileName($config['src']);
                 if ($absolutePath === '' || !is_file($absolutePath)) {
-                    $message = 'maispace_assets: Font file not found for "' . $key . '" in "' . $extKey . '": "' . $config['src'] . '". Verify the EXT: path is correct.';
-                    $this->logger->warning($message);
+                    $this->logger->warning('maispace_assets: Font file not found for "' . $key . '" in "' . $extKey . '": "' . $config['src'] . '". Verify the EXT: path is correct — skipping.');
 
-                    throw new AssetFileNotFoundException($message);
+                    continue;
                 }
 
                 $publicPath = Environment::getPublicPath();
@@ -217,11 +210,12 @@ final class FontRegistry implements SingletonInterface
                 $type = is_string($config['type'] ?? null) ? (string)$config['type'] : $this->detectMimeType($absolutePath);
 
                 if ($type === '') {
-                    $message = 'maispace_assets: Cannot determine MIME type for font "' . $key . '" in "' . $extKey . '": "' . $config['src'] . '". '
-                        . 'Add an explicit "type" key to the entry (e.g. \'type\' => \'font/woff2\').';
-                    $this->logger->warning($message);
+                    $this->logger->warning(
+                        'maispace_assets: Cannot determine MIME type for font "' . $key . '" in "' . $extKey . '": "' . $config['src'] . '". '
+                        . 'Add an explicit "type" key to the entry (e.g. \'type\' => \'font/woff2\') — skipping.',
+                    );
 
-                    throw new InvalidAssetConfigurationException($message);
+                    continue;
                 }
 
                 // Later registrations win — site packages can override vendor fonts.

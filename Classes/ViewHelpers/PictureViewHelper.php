@@ -274,6 +274,10 @@ final class PictureViewHelper extends AbstractViewHelper
     {
         $file = $this->imageRenderingService->resolveImage($this->arguments['image']);
 
+        if ($file === null) {
+            return '';
+        }
+
         // Resolve lazy loading settings (argument → TypoScript fallback)
         [$lazyloading, $lazyloadWithClass] = $this->resolveLazyArguments($this->arguments);
 
