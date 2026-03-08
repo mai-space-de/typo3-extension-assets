@@ -224,6 +224,10 @@ final class ImageViewHelper extends AbstractViewHelper
     {
         $file = $this->imageRenderingService->resolveImage($this->arguments['image']);
 
+        if ($file === null) {
+            return '';
+        }
+
         // Resolve the output format: explicit argument → TypoScript forceFormat → source format.
         $fileExtension = $this->resolveFileExtension($this->arguments);
 

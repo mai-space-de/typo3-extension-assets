@@ -6,8 +6,6 @@ namespace Maispace\MaispaceAssets\Service;
 
 use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
 use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
-use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
-use Maispace\MaispaceAssets\Exception\InvalidImageInputException;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -91,12 +89,12 @@ final class ImageRenderingService implements SingletonInterface
     /**
      * Resolve any supported image input to a FAL File or FileReference.
      *
-     * @param mixed $image int UID, File, FileReference, or non-empty string path
+     * Returns null when the input is of an unsupported type, is an empty string,
+     * or when the referenced file or FileReference cannot be located.
      *
-     * @throws InvalidImageInputException when $image is of an unsupported type or is an empty string
-     * @throws AssetFileNotFoundException when the referenced file or FileReference cannot be located
+     * @param mixed $image int UID, File, FileReference, or non-empty string path
      */
-    public function resolveImage(mixed $image): File|FileReference
+    public function resolveImage(mixed $image): File|FileReference|null
     {
         if ($image instanceof File || $image instanceof FileReference) {
             return $image;
@@ -107,10 +105,9 @@ final class ImageRenderingService implements SingletonInterface
             try {
                 return $this->resourceFactory->getFileReferenceObject((int)$image);
             } catch (\Exception $e) {
-                $message = 'maispace_assets: Could not resolve FileReference with UID ' . $image . ': ' . $e->getMessage();
-                $this->logger->warning($message);
+                $this->logger->warning('maispace_assets: Could not resolve FileReference with UID ' . $image . ': ' . $e->getMessage());
 
-                throw new AssetFileNotFoundException($message, 0, $e);
+                return null;
             }
         }
 
@@ -118,10 +115,9 @@ final class ImageRenderingService implements SingletonInterface
         if (is_string($image) && $image !== '') {
             $absolutePath = GeneralUtility::getFileAbsFileName($image);
             if ($absolutePath === '' || !is_file($absolutePath)) {
-                $message = 'maispace_assets: Image file not found: ' . $image;
-                $this->logger->warning($message);
+                $this->logger->warning('maispace_assets: Image file not found: ' . $image);
 
-                throw new AssetFileNotFoundException($message);
+                return null;
             }
 
             try {
@@ -130,25 +126,22 @@ final class ImageRenderingService implements SingletonInterface
                     return $fileObject;
                 }
 
-                $message = 'maispace_assets: FAL returned a non-File object for path "' . $image . '"';
-                $this->logger->warning($message);
+                $this->logger->warning('maispace_assets: FAL returned a non-File object for path "' . $image . '"');
 
-                throw new AssetFileNotFoundException($message);
-            } catch (AssetFileNotFoundException $e) {
-                throw $e;
+                return null;
             } catch (\Exception $e) {
-                $message = 'maispace_assets: Could not retrieve FAL object for "' . $image . '": ' . $e->getMessage();
-                $this->logger->warning($message);
+                $this->logger->warning('maispace_assets: Could not retrieve FAL object for "' . $image . '": ' . $e->getMessage());
 
-                throw new AssetFileNotFoundException($message, 0, $e);
+                return null;
             }
         }
 
-        $message = 'maispace_assets: Unsupported image input type: ' . gettype($image)
-            . '. Expected int UID, File, FileReference, or non-empty string path.';
-        $this->logger->warning($message);
+        $this->logger->warning(
+            'maispace_assets: Unsupported image input type: ' . gettype($image)
+            . '. Expected int UID, File, FileReference, or non-empty string path.',
+        );
 
-        throw new InvalidImageInputException($message);
+        return null;
     }
 
     // -------------------------------------------------------------------------

@@ -10,7 +10,6 @@ use Maispace\MaispaceAssets\Event\AfterJsProcessedEvent;
 use Maispace\MaispaceAssets\Event\AfterScssCompiledEvent;
 use Maispace\MaispaceAssets\Exception\AssetCompilationException;
 use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
-use Maispace\MaispaceAssets\Exception\AssetWriteException;
 use MatthiasMullie\Minify;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -202,10 +201,9 @@ final class AssetProcessingService
         // Write to typo3temp/ and get the public-relative path.
         $publicPath = $this->writeToTemp($request, $processed, $identifier, 'css');
         if ($publicPath === null) {
-            $message = 'maispace_assets: Could not write CSS file for identifier "' . $identifier . '". Check write permissions on typo3temp/assets/.';
-            $this->logger->error($message);
+            $this->logger->error('maispace_assets: Could not write CSS file for identifier "' . $identifier . '". Check write permissions on typo3temp/assets/.');
 
-            throw new AssetWriteException($message);
+            return;
         }
 
         // Build SRI integrity attributes when requested.
@@ -382,10 +380,9 @@ final class AssetProcessingService
         // File-based JS.
         $publicPath = $this->writeToTemp($request, $processed, $identifier, 'js');
         if ($publicPath === null) {
-            $message = 'maispace_assets: Could not write JS file for identifier "' . $identifier . '". Check write permissions on typo3temp/assets/.';
-            $this->logger->error($message);
+            $this->logger->error('maispace_assets: Could not write JS file for identifier "' . $identifier . '". Check write permissions on typo3temp/assets/.');
 
-            throw new AssetWriteException($message);
+            return;
         }
 
         // Build SRI integrity attributes when requested.
@@ -570,10 +567,9 @@ final class AssetProcessingService
 
         $publicPath = $this->writeToTemp($request, $css, $identifier, 'css');
         if ($publicPath === null) {
-            $message = 'maispace_assets: Could not write compiled SCSS for identifier "' . $identifier . '". Check write permissions on typo3temp/assets/.';
-            $this->logger->error($message);
+            $this->logger->error('maispace_assets: Could not write compiled SCSS for identifier "' . $identifier . '". Check write permissions on typo3temp/assets/.');
 
-            throw new AssetWriteException($message);
+            return;
         }
 
         $absolutePath = Environment::getPublicPath() . PathUtility::getAbsoluteWebPath($publicPath);
@@ -616,8 +612,6 @@ final class AssetProcessingService
      * so callers can detect them with isExternalUrl() and bypass local file processing.
      *
      * @return array{0: string|null, 1: string|null, 2: bool}
-     *
-     * @throws AssetFileNotFoundException when src points to a non-existent local file
      */
     private function resolveSource(?string $src, ?string $inlineContent): array
     {
@@ -629,10 +623,9 @@ final class AssetProcessingService
 
             $absolute = GeneralUtility::getFileAbsFileName($src);
             if ($absolute === '' || !is_file($absolute)) {
-                $message = 'maispace_assets: Asset file not found: "' . $src . '". Verify the EXT: path or public-relative path is correct.';
-                $this->logger->warning($message);
+                $this->logger->warning('maispace_assets: Asset file not found: "' . $src . '". Verify the EXT: path or public-relative path is correct.');
 
-                throw new AssetFileNotFoundException($message);
+                return [null, null, false];
             }
             $content = (string)file_get_contents($absolute);
 

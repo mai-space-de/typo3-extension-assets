@@ -4,8 +4,6 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Tests\Unit\Service;
 
-use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
-use Maispace\MaispaceAssets\Exception\InvalidImageInputException;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -15,8 +13,8 @@ use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Extbase\Service\ImageService;
 
 /**
- * Verifies that ImageRenderingService::resolveImage() throws typed exceptions
- * instead of silently returning null for invalid or missing inputs.
+ * Verifies that ImageRenderingService::resolveImage() returns null and logs
+ * a warning for invalid or missing inputs instead of throwing exceptions.
  */
 final class ImageRenderingServiceExceptionTest extends TestCase
 {
@@ -39,103 +37,72 @@ final class ImageRenderingServiceExceptionTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Unsupported types → InvalidImageInputException
+    // Unsupported types → returns null (logs warning)
     // -------------------------------------------------------------------------
 
-    public function testResolveImageThrowsForNull(): void
+    public function testResolveImageReturnsNullForNull(): void
     {
-        $this->expectException(InvalidImageInputException::class);
-        $this->expectExceptionMessageMatches('/Unsupported image input type/');
-
-        $this->subject->resolveImage(null);
+        self::assertNull($this->subject->resolveImage(null));
     }
 
-    public function testResolveImageThrowsForEmptyString(): void
+    public function testResolveImageReturnsNullForEmptyString(): void
     {
-        $this->expectException(InvalidImageInputException::class);
-        $this->expectExceptionMessageMatches('/Unsupported image input type/');
-
-        $this->subject->resolveImage('');
+        self::assertNull($this->subject->resolveImage(''));
     }
 
-    public function testResolveImageThrowsForBooleanInput(): void
+    public function testResolveImageReturnsNullForBooleanInput(): void
     {
-        $this->expectException(InvalidImageInputException::class);
-        $this->expectExceptionMessageMatches('/Unsupported image input type/');
-
-        $this->subject->resolveImage(true);
+        self::assertNull($this->subject->resolveImage(true));
     }
 
-    public function testResolveImageThrowsForArrayInput(): void
+    public function testResolveImageReturnsNullForArrayInput(): void
     {
-        $this->expectException(InvalidImageInputException::class);
-        $this->expectExceptionMessageMatches('/Unsupported image input type/');
-
-        $this->subject->resolveImage([]);
+        self::assertNull($this->subject->resolveImage([]));
     }
 
-    public function testResolveImageThrowsForArbitraryObject(): void
+    public function testResolveImageReturnsNullForArbitraryObject(): void
     {
-        $this->expectException(InvalidImageInputException::class);
-        $this->expectExceptionMessageMatches('/Unsupported image input type/');
-
-        $this->subject->resolveImage(new \stdClass());
+        self::assertNull($this->subject->resolveImage(new \stdClass()));
     }
 
-    public function testExceptionMessageContainsActualType(): void
+    public function testResolveImageReturnsNullForDouble(): void
     {
-        try {
-            $this->subject->resolveImage(3.14);
-            self::fail('Expected InvalidImageInputException was not thrown.');
-        } catch (InvalidImageInputException $e) {
-            self::assertStringContainsString('double', $e->getMessage());
-        }
+        self::assertNull($this->subject->resolveImage(3.14));
     }
 
     // -------------------------------------------------------------------------
-    // FAL UID lookup failure → AssetFileNotFoundException
+    // FAL UID lookup failure → returns null (logs warning)
     // -------------------------------------------------------------------------
 
-    public function testResolveImageThrowsWhenFileReferenceUidDoesNotExist(): void
+    public function testResolveImageReturnsNullWhenFileReferenceUidDoesNotExist(): void
     {
         $this->resourceFactory
             ->method('getFileReferenceObject')
             ->willThrowException(new \RuntimeException('Record not found'));
 
-        $this->expectException(AssetFileNotFoundException::class);
-        $this->expectExceptionMessageMatches('/Could not resolve FileReference/');
-
-        $this->subject->resolveImage(99999);
+        self::assertNull($this->subject->resolveImage(99999));
     }
 
-    public function testResolveImageWrapsOriginalExceptionAsChained(): void
+    public function testResolveImageReturnsNullOnFileReferenceLookupFailure(): void
     {
-        $original = new \RuntimeException('DB error');
         $this->resourceFactory
             ->method('getFileReferenceObject')
-            ->willThrowException($original);
+            ->willThrowException(new \RuntimeException('DB error'));
 
-        try {
-            $this->subject->resolveImage(1);
-            self::fail('Expected AssetFileNotFoundException was not thrown.');
-        } catch (AssetFileNotFoundException $e) {
-            self::assertSame($original, $e->getPrevious());
-        }
+        self::assertNull($this->subject->resolveImage(1));
     }
 
-    public function testResolveImageThrowsWhenNumericStringUidDoesNotExist(): void
+    public function testResolveImageReturnsNullWhenNumericStringUidDoesNotExist(): void
     {
         $this->resourceFactory
             ->method('getFileReferenceObject')
             ->willThrowException(new \RuntimeException('Not found'));
 
-        $this->expectException(AssetFileNotFoundException::class);
-
-        $this->subject->resolveImage('42');
+        self::assertNull($this->subject->resolveImage('42'));
     }
 
     // -------------------------------------------------------------------------
-    // Return type — resolveImage no longer returns null
+    // Valid inputs — returns the object unchanged
     // -------------------------------------------------------------------------
 
     public function testResolveImageWithValidFileObjectReturnsIt(): void
