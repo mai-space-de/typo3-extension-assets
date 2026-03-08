@@ -37,6 +37,9 @@
     "extra": {
         "typo3/cms": {
             "extension-key": "maispace_assets"
+        },
+        "branch-alias": {
+            "dev-main": "13.0.x-dev"
         }
     },
     "scripts": {
