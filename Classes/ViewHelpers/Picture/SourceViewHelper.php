@@ -199,7 +199,7 @@ final class SourceViewHelper extends AbstractViewHelper
         }
 
         if ($file === null) {
-            return '';
+            throw new \RuntimeException('maispace_assets: <mai:picture.source> has no image to process. Either set the "image" argument directly or nest this ViewHelper inside <mai:picture>.', 1_700_000_004);
         }
 
         $widthRaw = $this->arguments['width'] ?? '';

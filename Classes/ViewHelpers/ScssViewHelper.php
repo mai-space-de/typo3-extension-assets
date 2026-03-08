@@ -126,7 +126,7 @@ final class ScssViewHelper extends AbstractAssetViewHelper
         $renderingContext = $this->renderingContext;
         $request = $renderingContext->getRequest();
         if ($request === null) {
-            return '';
+            throw new \RuntimeException('maispace_assets: <mai:scss> requires an HTTP request in the rendering context. This ViewHelper cannot be used in CLI or backend contexts without a request.', 1_700_000_003);
         }
 
         $inlineContent = $this->renderChildren();

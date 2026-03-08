@@ -6,6 +6,8 @@ namespace Maispace\MaispaceAssets\Service;
 
 use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
 use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
+use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
+use Maispace\MaispaceAssets\Exception\InvalidImageInputException;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -89,11 +91,12 @@ final class ImageRenderingService implements SingletonInterface
     /**
      * Resolve any supported image input to a FAL File or FileReference.
      *
-     * @param mixed $image int UID, File, FileReference, or string path
+     * @param mixed $image int UID, File, FileReference, or non-empty string path
      *
-     * @return File|FileReference|null Returns null and logs a warning on failure
+     * @throws InvalidImageInputException when $image is of an unsupported type or is an empty string
+     * @throws AssetFileNotFoundException when the referenced file or FileReference cannot be located
      */
-    public function resolveImage(mixed $image): File|FileReference|null
+    public function resolveImage(mixed $image): File|FileReference
     {
         if ($image instanceof File || $image instanceof FileReference) {
             return $image;
@@ -104,11 +107,10 @@ final class ImageRenderingService implements SingletonInterface
             try {
                 return $this->resourceFactory->getFileReferenceObject((int)$image);
             } catch (\Exception $e) {
-                $this->logger->warning(
-                    'maispace_assets: Could not resolve FileReference with UID ' . $image . ': ' . $e->getMessage(),
-                );
+                $message = 'maispace_assets: Could not resolve FileReference with UID ' . $image . ': ' . $e->getMessage();
+                $this->logger->warning($message);
 
-                return null;
+                throw new AssetFileNotFoundException($message, 0, $e);
             }
         }
 
@@ -116,9 +118,10 @@ final class ImageRenderingService implements SingletonInterface
         if (is_string($image) && $image !== '') {
             $absolutePath = GeneralUtility::getFileAbsFileName($image);
             if ($absolutePath === '' || !is_file($absolutePath)) {
-                $this->logger->warning('maispace_assets: Image file not found: ' . $image);
+                $message = 'maispace_assets: Image file not found: ' . $image;
+                $this->logger->warning($message);
 
-                return null;
+                throw new AssetFileNotFoundException($message);
             }
 
             try {
@@ -127,19 +130,25 @@ final class ImageRenderingService implements SingletonInterface
                     return $fileObject;
                 }
 
-                return null;
-            } catch (\Exception $e) {
-                $this->logger->warning(
-                    'maispace_assets: Could not retrieve FAL object for "' . $image . '": ' . $e->getMessage(),
-                );
+                $message = 'maispace_assets: FAL returned a non-File object for path "' . $image . '"';
+                $this->logger->warning($message);
 
-                return null;
+                throw new AssetFileNotFoundException($message);
+            } catch (AssetFileNotFoundException $e) {
+                throw $e;
+            } catch (\Exception $e) {
+                $message = 'maispace_assets: Could not retrieve FAL object for "' . $image . '": ' . $e->getMessage();
+                $this->logger->warning($message);
+
+                throw new AssetFileNotFoundException($message, 0, $e);
             }
         }
 
-        $this->logger->warning('maispace_assets: Unsupported image input type: ' . gettype($image));
+        $message = 'maispace_assets: Unsupported image input type: ' . gettype($image)
+            . '. Expected int UID, File, FileReference, or non-empty string path.';
+        $this->logger->warning($message);
 
-        return null;
+        throw new InvalidImageInputException($message);
     }
 
     // -------------------------------------------------------------------------
