@@ -4,14 +4,20 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\Tests\Unit\Service;
 
+use Maispace\MaispaceAssets\Cache\AssetCacheManager;
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
+use Maispace\MaispaceAssets\Service\ScssCompilerService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
+use TYPO3\CMS\Core\EventDispatcher\EventDispatcherInterface;
+use TYPO3\CMS\Core\Page\AssetCollector;
 
 /**
  * Unit tests for AssetProcessingService helper methods.
  *
- * The private static methods are exercised via PHP Reflection so we can
+ * The private methods are exercised via PHP Reflection so we can
  * test the pure logic without bootstrapping a full TYPO3 environment.
  */
 final class AssetProcessingServiceTest extends TestCase
@@ -179,12 +185,23 @@ final class AssetProcessingServiceTest extends TestCase
     // Reflection helpers
     // -------------------------------------------------------------------------
 
+    private function createService(): AssetProcessingService
+    {
+        return new AssetProcessingService(
+            $this->createMock(AssetCacheManager::class),
+            $this->createMock(EventDispatcherInterface::class),
+            $this->createMock(AssetCollector::class),
+            $this->createMock(LoggerInterface::class),
+            $this->createMock(ScssCompilerService::class),
+        );
+    }
+
     private function callIsExternalUrl(string $src): bool
     {
         $method = new \ReflectionMethod(AssetProcessingService::class, 'isExternalUrl');
         $method->setAccessible(true);
 
-        return $method->invoke(null, $src);
+        return $method->invoke($this->createService(), $src);
     }
 
     private function callBuildIdentifier(
@@ -195,8 +212,9 @@ final class AssetProcessingServiceTest extends TestCase
     ): string {
         $method = new \ReflectionMethod(AssetProcessingService::class, 'buildIdentifier');
         $method->setAccessible(true);
+        $request = $this->createMock(ServerRequestInterface::class);
 
-        return $method->invoke(null, $explicit, $src, $content, $type);
+        return $method->invoke($this->createService(), $request, $explicit, $src, $content, $type);
     }
 
     private function callBuildIntegrityAttrs(array $arguments, string $content): array
@@ -204,14 +222,15 @@ final class AssetProcessingServiceTest extends TestCase
         $method = new \ReflectionMethod(AssetProcessingService::class, 'buildIntegrityAttrs');
         $method->setAccessible(true);
 
-        return $method->invoke(null, $arguments, $content);
+        return $method->invoke($this->createService(), $arguments, $content);
     }
 
     private function callResolveFlag(string $setting, ?bool $argumentValue, string $section): bool
     {
         $method = new \ReflectionMethod(AssetProcessingService::class, 'resolveFlag');
         $method->setAccessible(true);
+        $request = $this->createMock(ServerRequestInterface::class);
 
-        return $method->invoke(null, $setting, $argumentValue, $section);
+        return $method->invoke($this->createService(), $request, $setting, $argumentValue, $section);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
+use Maispace\MaispaceAssets\Service\AssetProcessingService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -17,6 +18,10 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  */
 abstract class AbstractAssetViewHelper extends AbstractViewHelper
 {
+    public function __construct(
+        protected readonly AssetProcessingService $assetProcessingService,
+    ) {}
+
     public function initializeArguments(): void
     {
         $this->registerArgument(

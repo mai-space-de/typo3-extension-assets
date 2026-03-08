@@ -7,6 +7,7 @@ namespace Maispace\MaispaceAssets\ViewHelpers;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -50,6 +51,11 @@ final class ImageViewHelper extends AbstractViewHelper
 
     /** Disable output escaping — this ViewHelper returns raw HTML. */
     protected $escapeOutput = false;
+
+    public function __construct(
+        protected readonly ImageRenderingService $imageRenderingService,
+        protected readonly ImageService $imageService,
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -216,22 +222,19 @@ final class ImageViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        /** @var ImageRenderingService $service */
-        $service = GeneralUtility::makeInstance(ImageRenderingService::class);
-
-        $file = $service->resolveImage($this->arguments['image']);
+        $file = $this->imageRenderingService->resolveImage($this->arguments['image']);
         if ($file === null) {
             return '';
         }
 
         // Resolve the output format: explicit argument → TypoScript forceFormat → source format.
-        $fileExtension = self::resolveFileExtension($this->arguments);
+        $fileExtension = $this->resolveFileExtension($this->arguments);
 
         $quality = is_int($this->arguments['quality'] ?? null) ? (int)$this->arguments['quality'] : 0;
         $widthArg = is_string($this->arguments['width'] ?? null) ? $this->arguments['width'] : '';
         $heightArg = is_string($this->arguments['height'] ?? null) ? $this->arguments['height'] : '';
 
-        $processed = $service->processImage(
+        $processed = $this->imageRenderingService->processImage(
             $file,
             $widthArg,
             $heightArg,
@@ -240,13 +243,13 @@ final class ImageViewHelper extends AbstractViewHelper
         );
 
         // Resolve lazy loading from arguments, then TypoScript fallback.
-        [$lazyloading, $lazyloadWithClass] = self::resolveLazyArguments($this->arguments);
+        [$lazyloading, $lazyloadWithClass] = $this->resolveLazyArguments($this->arguments);
 
         // Build srcset string if srcset widths are specified.
         $srcsetString = null;
         $srcsetArg = $this->arguments['srcset'] ?? null;
         if (is_string($srcsetArg) && $srcsetArg !== '') {
-            $srcsetString = $service->buildSrcsetString(
+            $srcsetString = $this->imageRenderingService->buildSrcsetString(
                 $file,
                 $srcsetArg,
                 $heightArg,
@@ -262,7 +265,7 @@ final class ImageViewHelper extends AbstractViewHelper
             }
         }
 
-        $imgHtml = $service->renderImgTag($processed, [
+        $imgHtml = $this->imageRenderingService->renderImgTag($processed, [
             'alt'                  => is_string($this->arguments['alt'] ?? null) ? $this->arguments['alt'] : '',
             'class'                => is_string($this->arguments['class'] ?? null) ? $this->arguments['class'] : null,
             'id'                   => is_string($this->arguments['id'] ?? null) ? $this->arguments['id'] : null,
@@ -278,8 +281,7 @@ final class ImageViewHelper extends AbstractViewHelper
         ]);
 
         if ((bool)($this->arguments['preload'] ?? false)) {
-            $imageService = GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Service\ImageService::class);
-            $url = $imageService->getImageUri($processed, true);
+            $url = $this->imageService->getImageUri($processed, true);
             $preloadMedia = is_string($this->arguments['preloadMedia'] ?? null) && $this->arguments['preloadMedia'] !== ''
                 ? $this->arguments['preloadMedia']
                 : null;
@@ -287,8 +289,8 @@ final class ImageViewHelper extends AbstractViewHelper
             $fetchPriorityAttr = (is_string($fetchPriorityVal) && in_array($fetchPriorityVal, ['high', 'low', 'auto'], true))
                 ? $fetchPriorityVal
                 : null;
-            $mimeType = $service->detectMimeType($processed) ?: null;
-            $service->addImagePreloadHeader(
+            $mimeType = $this->imageRenderingService->detectMimeType($processed) ?: null;
+            $this->imageRenderingService->addImagePreloadHeader(
                 $url,
                 $preloadMedia,
                 $fetchPriorityAttr,
@@ -315,14 +317,14 @@ final class ImageViewHelper extends AbstractViewHelper
      *
      * @param array<string, mixed> $arguments
      */
-    private static function resolveFileExtension(array $arguments): string
+    private function resolveFileExtension(array $arguments): string
     {
         $arg = $arguments['fileExtension'] ?? null;
         if (is_string($arg) && $arg !== '') {
             return $arg;
         }
 
-        $ts = self::getTypoScriptSetting('image.forceFormat', '');
+        $ts = $this->getTypoScriptSetting('image.forceFormat', '');
 
         return is_string($ts) ? $ts : '';
     }
@@ -338,15 +340,15 @@ final class ImageViewHelper extends AbstractViewHelper
      *
      * @return array{0: bool, 1: string|null} [isLazy, lazyClass|null]
      */
-    private static function resolveLazyArguments(array $arguments): array
+    private function resolveLazyArguments(array $arguments): array
     {
         $lazyloading = $arguments['lazyloading'] ?? null;
         $lazyloadWithClass = $arguments['lazyloadWithClass'] ?? null;
 
         // If neither is explicitly set, check TypoScript defaults.
         if ($lazyloading === null && $lazyloadWithClass === null) {
-            $tsLazy = self::getTypoScriptSetting('image.lazyloading', null);
-            $tsLazyClass = self::getTypoScriptSetting('image.lazyloadWithClass', null);
+            $tsLazy = $this->getTypoScriptSetting('image.lazyloading', null);
+            $tsLazyClass = $this->getTypoScriptSetting('image.lazyloadWithClass', null);
 
             $lazyloading = $tsLazy !== null ? (bool)$tsLazy : false;
             $lazyloadWithClass = is_string($tsLazyClass) && $tsLazyClass !== '' ? $tsLazyClass : null;
@@ -356,5 +358,4 @@ final class ImageViewHelper extends AbstractViewHelper
 
         return [(bool)$lazyloading, $lazyClassResult];
     }
-
 }

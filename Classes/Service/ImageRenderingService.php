@@ -77,7 +77,8 @@ final class ImageRenderingService implements SingletonInterface
         private readonly ImageService $imageService,
         private readonly LoggerInterface $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
-        private readonly ?PageRenderer $pageRenderer = null,
+        private readonly ResourceFactory $resourceFactory,
+        private readonly PageRenderer $pageRenderer,
     ) {
     }
 
@@ -98,13 +99,10 @@ final class ImageRenderingService implements SingletonInterface
             return $image;
         }
 
-        /** @var ResourceFactory $resourceFactory */
-        $resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
-
         // Integer or numeric string → sys_file_reference UID
         if (is_int($image) || (is_string($image) && ctype_digit($image))) {
             try {
-                return $resourceFactory->getFileReferenceObject((int)$image);
+                return $this->resourceFactory->getFileReferenceObject((int)$image);
             } catch (\Exception $e) {
                 $this->logger->warning(
                     'maispace_assets: Could not resolve FileReference with UID ' . $image . ': ' . $e->getMessage(),
@@ -124,7 +122,7 @@ final class ImageRenderingService implements SingletonInterface
             }
 
             try {
-                $fileObject = $resourceFactory->retrieveFileOrFolderObject($absolutePath);
+                $fileObject = $this->resourceFactory->retrieveFileOrFolderObject($absolutePath);
                 if ($fileObject instanceof File) {
                     return $fileObject;
                 }
@@ -480,7 +478,7 @@ final class ImageRenderingService implements SingletonInterface
 
         $tag = $this->buildTag('link', $attrs, selfClosing: true);
 
-        ($this->pageRenderer ?? GeneralUtility::makeInstance(PageRenderer::class))->addHeaderData($tag);
+        $this->pageRenderer->addHeaderData($tag);
     }
 
     // -------------------------------------------------------------------------

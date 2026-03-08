@@ -28,9 +28,9 @@ trait TypoScriptSettingTrait
      * @param string $dotPath Dot-separated path, e.g. "image.lazyloading" or "css.minify"
      * @param mixed  $default Fallback when the setting is absent
      */
-    private static function getTypoScriptSetting(string $dotPath, mixed $default): mixed
+    private function getTypoScriptSetting(string $dotPath, mixed $default): mixed
     {
-        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $request = $this->renderingContext->getRequest();
         if (!$request instanceof ServerRequestInterface) {
             return $default;
         }

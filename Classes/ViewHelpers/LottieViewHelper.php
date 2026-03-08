@@ -4,6 +4,9 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
+use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
+use Psr\Log\LoggerInterface;
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -58,8 +61,15 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  */
 final class LottieViewHelper extends AbstractViewHelper
 {
+    use TypoScriptSettingTrait;
+
     /** Disable output escaping — this ViewHelper returns a raw custom element. */
     protected $escapeOutput = false;
+
+    public function __construct(
+        protected readonly AssetCollector $collector,
+        protected readonly LoggerInterface $logger,
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -195,16 +205,16 @@ final class LottieViewHelper extends AbstractViewHelper
         }
 
         // Resolve animation src to a public URL.
-        $animationSrc = self::resolveAnimationSrc($rawSrc);
+        $animationSrc = $this->resolveAnimationSrc($rawSrc);
         if ($animationSrc === '') {
             return '';
         }
 
         // Optionally register the player script.
-        self::maybeRegisterPlayerScript($this->arguments);
+        $this->maybeRegisterPlayerScript($this->arguments);
 
         // Build the <lottie-player> element.
-        return self::buildTag($animationSrc, $this->arguments);
+        return $this->buildTag($animationSrc, $this->arguments);
     }
 
     // -------------------------------------------------------------------------
@@ -217,7 +227,7 @@ final class LottieViewHelper extends AbstractViewHelper
      * External URLs are passed through unchanged.
      * EXT: paths and absolute paths are resolved to public-relative URLs.
      */
-    private static function resolveAnimationSrc(string $src): string
+    private function resolveAnimationSrc(string $src): string
     {
         if (str_starts_with($src, 'http://') || str_starts_with($src, 'https://') || str_starts_with($src, '//')) {
             return $src;
@@ -225,11 +235,17 @@ final class LottieViewHelper extends AbstractViewHelper
 
         $absolute = GeneralUtility::getFileAbsFileName($src);
         if ($absolute === '' || !is_file($absolute)) {
-            GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class)
-                ->getLogger(__CLASS__)
-                ->warning('maispace_assets: Lottie animation file not found: ' . $src);
+            $this->logger->warning('maispace_assets: Lottie animation file not found: ' . $src);
 
             return '';
+        }
+
+        $publicPath = Environment::getPublicPath();
+        if (str_starts_with($absolute, $publicPath)) {
+            $relativePath = ltrim(substr($absolute, strlen($publicPath)), '/\\');
+            $sitePath = Environment::isCli() ? '/' : (string)GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
+
+            return $sitePath . $relativePath;
         }
 
         return PathUtility::getAbsoluteWebPath($absolute);
@@ -241,7 +257,7 @@ final class LottieViewHelper extends AbstractViewHelper
      *
      * @param array<string, mixed> $arguments
      */
-    private static function maybeRegisterPlayerScript(array $arguments): void
+    private function maybeRegisterPlayerScript(array $arguments): void
     {
         $playerSrcArg = $arguments['playerSrc'] ?? null;
 
@@ -255,7 +271,7 @@ final class LottieViewHelper extends AbstractViewHelper
         if (is_string($playerSrcArg)) {
             $playerSrc = $playerSrcArg;
         } else {
-            $tsValue = self::getTypoScriptSetting('lottie.playerSrc', '');
+            $tsValue = $this->getTypoScriptSetting('lottie.playerSrc', '');
             if (is_string($tsValue) && $tsValue !== '') {
                 $playerSrc = $tsValue;
             }
@@ -269,7 +285,14 @@ final class LottieViewHelper extends AbstractViewHelper
         if (!str_starts_with($playerSrc, 'http://') && !str_starts_with($playerSrc, 'https://') && !str_starts_with($playerSrc, '//')) {
             $absolute = GeneralUtility::getFileAbsFileName($playerSrc);
             if ($absolute !== '' && is_file($absolute)) {
-                $playerSrc = PathUtility::getAbsoluteWebPath($absolute);
+                $publicPath = Environment::getPublicPath();
+                if (str_starts_with($absolute, $publicPath)) {
+                    $relativePath = ltrim(substr($absolute, strlen($publicPath)), '/\\');
+                    $sitePath = Environment::isCli() ? '/' : (string)GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
+                    $playerSrc = $sitePath . $relativePath;
+                } else {
+                    $playerSrc = PathUtility::getAbsoluteWebPath($absolute);
+                }
             }
         }
 
@@ -279,10 +302,8 @@ final class LottieViewHelper extends AbstractViewHelper
             $identifier = 'maispace-lottie-player';
         }
 
-        /** @var AssetCollector $collector */
-        $collector = GeneralUtility::makeInstance(AssetCollector::class);
         // lottie-player v2+ is an ES module; type="module" defers and scopes it safely.
-        $collector->addJavaScript(
+        $this->collector->addJavaScript(
             $identifier,
             $playerSrc,
             ['type'     => 'module'],
@@ -295,7 +316,7 @@ final class LottieViewHelper extends AbstractViewHelper
      *
      * @param array<string, mixed> $arguments
      */
-    private static function buildTag(string $animationSrc, array $arguments): string
+    private function buildTag(string $animationSrc, array $arguments): string
     {
         $attrs = [];
 
@@ -377,49 +398,5 @@ final class LottieViewHelper extends AbstractViewHelper
         $tag .= '></lottie-player>';
 
         return $tag;
-    }
-
-    /**
-     * Read a TypoScript setting from plugin.tx_maispace_assets.{dotPath}.
-     */
-    private static function getTypoScriptSetting(string $dotPath, mixed $default): mixed
-    {
-        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        if (!$request instanceof \Psr\Http\Message\ServerRequestInterface) {
-            return $default;
-        }
-
-        /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $fts */
-        $fts = $request->getAttribute('frontend.typoscript');
-        if ($fts === null) {
-            return $default;
-        }
-
-        /** @var array<string, mixed> $setup */
-        $setup = $fts->getSetupArray();
-        $rootPlugin = $setup['plugin.'] ?? null;
-        if (!is_array($rootPlugin)) {
-            return $default;
-        }
-        $root = $rootPlugin['tx_maispace_assets.'] ?? null;
-        if (!is_array($root)) {
-            return $default;
-        }
-
-        $parts = explode('.', $dotPath);
-        $node = $root;
-        foreach ($parts as $i => $part) {
-            $isLast = ($i === count($parts) - 1);
-            if ($isLast) {
-                return $node[$part] ?? $default;
-            }
-            $next = $node[$part . '.'] ?? null;
-            if (!is_array($next)) {
-                return $default;
-            }
-            $node = $next;
-        }
-
-        return $default;
     }
 }

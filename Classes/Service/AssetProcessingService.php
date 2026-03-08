@@ -36,26 +36,30 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  */
 final class AssetProcessingService
 {
+    public function __construct(
+        private readonly AssetCacheManager $cache,
+        private readonly EventDispatcherInterface $dispatcher,
+        private readonly AssetCollector $collector,
+        private readonly LoggerInterface $logger,
+        private readonly ScssCompilerService $scssCompiler,
+    ) {}
+
     // -------------------------------------------------------------------------
-    // Public static entry points (called from ViewHelpers)
+    // Public entry points (called from ViewHelpers)
     // -------------------------------------------------------------------------
 
     /**
      * Process a CSS asset and register it with TYPO3's AssetCollector.
      *
-     * @param array<string, mixed> $arguments     ViewHelper arguments (identifier, src, priority, minify, inline, deferred, media)
-     * @param string|null          $inlineContent Content captured from the ViewHelper's child nodes
+     * @param ServerRequestInterface $request      The current PSR-7 request
+     * @param array<string, mixed>   $arguments    ViewHelper arguments (identifier, src, priority, minify, inline, deferred, media)
+     * @param string|null            $inlineContent Content captured from the ViewHelper's child nodes
      */
-    public static function handleCss(array $arguments, ?string $inlineContent = null): void
+    public function handleCss(ServerRequestInterface $request, array $arguments, ?string $inlineContent = null): void
     {
-        $cache = self::cache();
-        $dispatcher = self::dispatcher();
-        $logger = self::logger();
-        $collector = self::collector();
-
         $srcArg = isset($arguments['src']) && is_string($arguments['src']) ? $arguments['src'] : null;
         $deferredArg = $arguments['deferred'] ?? null;
-        $isDeferred = self::resolveFlag('deferred', is_bool($deferredArg) ? $deferredArg : null, 'css');
+        $isDeferred = $this->resolveFlag($request, 'deferred', is_bool($deferredArg) ? $deferredArg : null, 'css');
         $isInline = isset($arguments['inline']) && is_bool($arguments['inline']) ? $arguments['inline'] : false;
         $isPriority = isset($arguments['priority']) && is_bool($arguments['priority']) ? $arguments['priority'] : false;
         $media = isset($arguments['media']) && is_string($arguments['media']) ? $arguments['media'] : 'all';
@@ -64,7 +68,7 @@ final class AssetProcessingService
         if ($isInline) {
             $id = is_string($arguments['identifier'] ?? null) ? (string)$arguments['identifier'] : ($srcArg ?? 'unknown');
             if (!empty($arguments['integrity'])) {
-                $logger->warning(
+                $this->logger->warning(
                     'maispace_assets: integrity="true" has no effect on inline CSS'
                     . ' (identifier: ' . $id . ').'
                     . ' SRI integrity is only supported for file-based <link> output.'
@@ -72,7 +76,7 @@ final class AssetProcessingService
                 );
             }
             if ($media !== '' && $media !== 'all') {
-                $logger->warning(
+                $this->logger->warning(
                     'maispace_assets: media="' . $media . '" has no effect on inline CSS'
                     . ' (identifier: ' . $id . ').'
                     . ' The media attribute is only applied to <link> tags.'
@@ -80,7 +84,7 @@ final class AssetProcessingService
                 );
             }
             if ($isDeferred) {
-                $logger->warning(
+                $this->logger->warning(
                     'maispace_assets: deferred="true" has no effect on inline CSS'
                     . ' (identifier: ' . $id . ').'
                     . ' Deferred loading only applies to file-based <link> output.'
@@ -90,16 +94,17 @@ final class AssetProcessingService
         }
 
         // 1. External URL — bypass all local file processing entirely.
-        if ($srcArg !== null && self::isExternalUrl($srcArg)) {
-            $identifier = self::buildIdentifier(
+        if ($srcArg !== null && $this->isExternalUrl($srcArg)) {
+            $identifier = $this->buildIdentifier(
+                $request,
                 isset($arguments['identifier']) && is_string($arguments['identifier']) ? $arguments['identifier'] : null,
                 $srcArg,
                 $srcArg,
                 'css'
             );
-            $integrityAttrs = self::buildIntegrityAttrsForExternal($arguments);
+            $integrityAttrs = $this->buildIntegrityAttrsForExternal($arguments);
             if ($isDeferred) {
-                $collector->addStyleSheet(
+                $this->collector->addStyleSheet(
                     $identifier,
                     $srcArg,
                     array_filter([
@@ -108,14 +113,14 @@ final class AssetProcessingService
                     ] + $integrityAttrs),
                     ['priority' => false],
                 );
-                $collector->addInlineStyleSheet(
+                $this->collector->addInlineStyleSheet(
                     $identifier . '_noscript',
                     '<noscript><link rel="stylesheet" href="' . htmlspecialchars($srcArg) . '"></noscript>',
                     [],
                     ['priority' => false],
                 );
             } else {
-                $collector->addStyleSheet(
+                $this->collector->addStyleSheet(
                     $identifier,
                     $srcArg,
                     array_filter(['media' => $media] + $integrityAttrs),
@@ -127,14 +132,15 @@ final class AssetProcessingService
         }
 
         // 2. Resolve source content and determine whether it is file-based.
-        [$content, $absoluteSrc, $isFileBased] = self::resolveSource($srcArg, $inlineContent);
+        [$content, $absoluteSrc, $isFileBased] = $this->resolveSource($srcArg, $inlineContent);
 
         if ($content === null) {
             return; // No content, nothing to do.
         }
 
         // 3. Build a stable identifier.
-        $identifier = self::buildIdentifier(
+        $identifier = $this->buildIdentifier(
+            $request,
             is_string($arguments['identifier'] ?? null) ? (string)$arguments['identifier'] : null,
             $srcArg,
             $content,
@@ -143,43 +149,43 @@ final class AssetProcessingService
 
         // 4. Determine minification setting.
         $minifyArg = $arguments['minify'] ?? null;
-        $shouldMinify = self::resolveFlag('minify', is_bool($minifyArg) ? $minifyArg : null, 'css');
+        $shouldMinify = $this->resolveFlag($request, 'minify', is_bool($minifyArg) ? $minifyArg : null, 'css');
 
         // 5. Check cache.
-        $cacheKey = $cache->buildCssKey($identifier, $shouldMinify);
-        if ($cache->has($cacheKey)) {
-            $cached = $cache->get($cacheKey);
+        $cacheKey = $this->cache->buildCssKey($identifier, $shouldMinify);
+        if ($this->cache->has($cacheKey)) {
+            $cached = $this->cache->get($cacheKey);
             if (is_string($cached)) {
                 $processed = $cached;
             } else {
                 // Fallback to recompute if cache holds unexpected type
-                $processed = $shouldMinify ? self::minifyCss($content, $absoluteSrc) : $content;
+                $processed = $shouldMinify ? $this->minifyCss($content, $absoluteSrc) : $content;
                 /** @var AfterCssProcessedEvent $event */
-                $event = $dispatcher->dispatch(
+                $event = $this->dispatcher->dispatch(
                     new AfterCssProcessedEvent($identifier, $processed, $arguments),
                 );
                 $processed = $event->getProcessedCss();
-                $cache->set($cacheKey, $processed, ['maispace_assets_css']);
+                $this->cache->set($cacheKey, $processed, ['maispace_assets_css']);
             }
         } else {
             // 6. Minify if requested.
-            $processed = $shouldMinify ? self::minifyCss($content, $absoluteSrc) : $content;
+            $processed = $shouldMinify ? $this->minifyCss($content, $absoluteSrc) : $content;
             // 7. Dispatch event (listeners may modify $processed).
             /** @var AfterCssProcessedEvent $event */
-            $event = $dispatcher->dispatch(
+            $event = $this->dispatcher->dispatch(
                 new AfterCssProcessedEvent($identifier, $processed, $arguments),
             );
             $processed = $event->getProcessedCss();
             // 8. Store in cache.
-            $cache->set($cacheKey, $processed, ['maispace_assets_css']);
+            $this->cache->set($cacheKey, $processed, ['maispace_assets_css']);
         }
 
         // 9. Register with AssetCollector.
-        $nonce = self::resolveNonce($arguments);
+        $nonce = $this->resolveNonce($request, $arguments);
 
         if ($isInline) {
             $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
-            $collector->addInlineStyleSheet(
+            $this->collector->addInlineStyleSheet(
                 $identifier,
                 $processed,
                 $inlineAttrs,
@@ -190,22 +196,22 @@ final class AssetProcessingService
         }
 
         // Write to typo3temp/ and get the public-relative path.
-        $publicPath = self::writeToTemp($processed, $identifier, 'css');
+        $publicPath = $this->writeToTemp($request, $processed, $identifier, 'css');
         if ($publicPath === null) {
-            $logger->error('maispace_assets: Could not write CSS file for identifier ' . $identifier);
+            $this->logger->error('maispace_assets: Could not write CSS file for identifier ' . $identifier);
 
             return;
         }
 
         // Build SRI integrity attributes when requested.
-        $integrityAttrs = self::buildIntegrityAttrs($arguments, $processed);
+        $integrityAttrs = $this->buildIntegrityAttrs($arguments, $processed);
 
         if ($isDeferred) {
             // Deferred non-blocking load via media="print" onload swap trick.
             // The browser loads the stylesheet without blocking render, then the onload
             // handler switches media to "all", applying the styles.
             // A <noscript> fallback is appended via the deferred attribute handling below.
-            $collector->addStyleSheet(
+            $this->collector->addStyleSheet(
                 $identifier,
                 $publicPath,
                 array_filter([
@@ -215,14 +221,14 @@ final class AssetProcessingService
                 ['priority' => false], // deferred CSS is never in <head>
             );
             // Noscript fallback — registered as a separate inline block.
-            $collector->addInlineStyleSheet(
+            $this->collector->addInlineStyleSheet(
                 $identifier . '_noscript',
                 '<noscript><link rel="stylesheet" href="' . htmlspecialchars($publicPath) . '"></noscript>',
                 [],
                 ['priority' => false],
             );
         } else {
-            $collector->addStyleSheet(
+            $this->collector->addStyleSheet(
                 $identifier,
                 $publicPath,
                 array_filter(['media' => $media] + $integrityAttrs),
@@ -234,16 +240,12 @@ final class AssetProcessingService
     /**
      * Process a JS asset and register it with TYPO3's AssetCollector.
      *
-     * @param array<string, mixed> $arguments     ViewHelper arguments (identifier, src, priority, minify, defer, async, type)
-     * @param string|null          $inlineContent Content captured from the ViewHelper's child nodes
+     * @param ServerRequestInterface $request      The current PSR-7 request
+     * @param array<string, mixed>   $arguments    ViewHelper arguments (identifier, src, priority, minify, defer, async, type)
+     * @param string|null            $inlineContent Content captured from the ViewHelper's child nodes
      */
-    public static function handleJs(array $arguments, ?string $inlineContent): void
+    public function handleJs(ServerRequestInterface $request, array $arguments, ?string $inlineContent): void
     {
-        $cache = self::cache();
-        $dispatcher = self::dispatcher();
-        $logger = self::logger();
-        $collector = self::collector();
-
         $type = $arguments['type'] ?? null;
         $isImportMap = ($type === 'importmap');
 
@@ -254,18 +256,19 @@ final class AssetProcessingService
             if ($content === '') {
                 return;
             }
-            $identifier = self::buildIdentifier(
+            $identifier = $this->buildIdentifier(
+                $request,
                 is_string($arguments['identifier'] ?? null) ? (string)$arguments['identifier'] : null,
                 null,
                 $content,
                 'js',
             );
-            $nonce = self::resolveNonce($arguments);
+            $nonce = $this->resolveNonce($request, $arguments);
             $inlineAttrs = array_filter([
                 'type'  => 'importmap',
                 'nonce' => $nonce,
             ]);
-            $collector->addInlineJavaScript(
+            $this->collector->addInlineJavaScript(
                 $identifier,
                 $content,
                 $inlineAttrs,
@@ -277,7 +280,7 @@ final class AssetProcessingService
 
         $srcArg = isset($arguments['src']) && is_string($arguments['src']) ? $arguments['src'] : null;
         $deferArg = $arguments['defer'] ?? null;
-        $useDefer = self::resolveFlag('defer', is_bool($deferArg) ? $deferArg : null, 'js');
+        $useDefer = $this->resolveFlag($request, 'defer', is_bool($deferArg) ? $deferArg : null, 'js');
         $useAsync = (bool)($arguments['async'] ?? false);
         $useNoModule = (bool)($arguments['nomodule'] ?? false);
         $isPriority = (bool)($arguments['priority'] ?? false);
@@ -289,21 +292,22 @@ final class AssetProcessingService
         }
 
         // External URL — bypass all local file processing entirely.
-        if ($srcArg !== null && self::isExternalUrl($srcArg)) {
-            $identifier = self::buildIdentifier(
+        if ($srcArg !== null && $this->isExternalUrl($srcArg)) {
+            $identifier = $this->buildIdentifier(
+                $request,
                 is_string($arguments['identifier'] ?? null) ? (string)$arguments['identifier'] : null,
                 $srcArg,
                 $srcArg,
                 'js'
             );
-            $integrityAttrs = self::buildIntegrityAttrsForExternal($arguments);
+            $integrityAttrs = $this->buildIntegrityAttrsForExternal($arguments);
             $attributes = array_filter([
                 'defer'    => $useDefer ? 'defer' : null,
                 'async'    => $useAsync ? 'async' : null,
                 'nomodule' => $useNoModule ? 'nomodule' : null,
                 'type'     => $type,
             ] + $integrityAttrs);
-            $collector->addJavaScript(
+            $this->collector->addJavaScript(
                 $identifier,
                 $srcArg,
                 $attributes,
@@ -313,53 +317,54 @@ final class AssetProcessingService
             return;
         }
 
-        [$content, $absoluteSrc, $isFileBased] = self::resolveSource($srcArg, $inlineContent);
+        [$content, $absoluteSrc, $isFileBased] = $this->resolveSource($srcArg, $inlineContent);
 
         if ($content === null) {
             return;
         }
 
-        $identifier = self::buildIdentifier(
+        $identifier = $this->buildIdentifier(
+            $request,
             is_string($arguments['identifier'] ?? null) ? (string)$arguments['identifier'] : null,
             $srcArg,
             $content,
             'js'
         );
         $minifyArgJs = $arguments['minify'] ?? null;
-        $shouldMinify = self::resolveFlag('minify', is_bool($minifyArgJs) ? $minifyArgJs : null, 'js');
+        $shouldMinify = $this->resolveFlag($request, 'minify', is_bool($minifyArgJs) ? $minifyArgJs : null, 'js');
 
-        $cacheKey = $cache->buildJsKey($identifier, $shouldMinify);
-        if ($cache->has($cacheKey)) {
-            $cached = $cache->get($cacheKey);
+        $cacheKey = $this->cache->buildJsKey($identifier, $shouldMinify);
+        if ($this->cache->has($cacheKey)) {
+            $cached = $this->cache->get($cacheKey);
             if (is_string($cached)) {
                 $processed = $cached;
             } else {
-                $processed = $shouldMinify ? self::minifyJs($content, $absoluteSrc) : $content;
+                $processed = $shouldMinify ? $this->minifyJs($content, $absoluteSrc) : $content;
                 /** @var AfterJsProcessedEvent $event */
-                $event = $dispatcher->dispatch(
+                $event = $this->dispatcher->dispatch(
                     new AfterJsProcessedEvent($identifier, $processed, $arguments),
                 );
                 $processed = $event->getProcessedJs();
-                $cache->set($cacheKey, $processed, ['maispace_assets_js']);
+                $this->cache->set($cacheKey, $processed, ['maispace_assets_js']);
             }
         } else {
-            $processed = $shouldMinify ? self::minifyJs($content, $absoluteSrc) : $content;
+            $processed = $shouldMinify ? $this->minifyJs($content, $absoluteSrc) : $content;
 
             /** @var AfterJsProcessedEvent $event */
-            $event = $dispatcher->dispatch(
+            $event = $this->dispatcher->dispatch(
                 new AfterJsProcessedEvent($identifier, $processed, $arguments),
             );
             $processed = $event->getProcessedJs();
 
-            $cache->set($cacheKey, $processed, ['maispace_assets_js']);
+            $this->cache->set($cacheKey, $processed, ['maispace_assets_js']);
         }
 
-        $nonce = self::resolveNonce($arguments);
+        $nonce = $this->resolveNonce($request, $arguments);
 
         // Inline JS.
         if ($srcArg === null) {
             $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
-            $collector->addInlineJavaScript(
+            $this->collector->addInlineJavaScript(
                 $identifier,
                 $processed,
                 $inlineAttrs,
@@ -370,15 +375,15 @@ final class AssetProcessingService
         }
 
         // File-based JS.
-        $publicPath = self::writeToTemp($processed, $identifier, 'js');
+        $publicPath = $this->writeToTemp($request, $processed, $identifier, 'js');
         if ($publicPath === null) {
-            $logger->error('maispace_assets: Could not write JS file for identifier ' . $identifier);
+            $this->logger->error('maispace_assets: Could not write JS file for identifier ' . $identifier);
 
             return;
         }
 
         // Build SRI integrity attributes when requested.
-        $integrityAttrs = self::buildIntegrityAttrs($arguments, $processed);
+        $integrityAttrs = $this->buildIntegrityAttrs($arguments, $processed);
 
         $attributes = array_filter([
             'defer'    => $useDefer ? 'defer' : null,
@@ -387,7 +392,7 @@ final class AssetProcessingService
             'type'     => $type,
         ] + $integrityAttrs);
 
-        $collector->addJavaScript(
+        $this->collector->addJavaScript(
             $identifier,
             $publicPath,
             $attributes,
@@ -398,22 +403,19 @@ final class AssetProcessingService
     /**
      * Compile SCSS to CSS, then register the result as a CSS asset.
      *
-     * @param array<string, mixed> $arguments     ViewHelper arguments (identifier, src, priority, minify, inline, importPaths)
-     * @param string|null          $inlineContent Raw SCSS captured from the ViewHelper's child nodes
+     * @param ServerRequestInterface $request      The current PSR-7 request
+     * @param array<string, mixed>   $arguments    ViewHelper arguments (identifier, src, priority, minify, inline, importPaths)
+     * @param string|null            $inlineContent Raw SCSS captured from the ViewHelper's child nodes
      */
-    public static function handleScss(array $arguments, ?string $inlineContent): void
+    public function handleScss(ServerRequestInterface $request, array $arguments, ?string $inlineContent): void
     {
-        $cache = self::cache();
-        $dispatcher = self::dispatcher();
-        $logger = self::logger();
-
         $src = isset($arguments['src']) && is_string($arguments['src']) ? $arguments['src'] : null;
         $isFileBased = $src !== null;
 
         if ($isFileBased) {
             $absoluteSrc = GeneralUtility::getFileAbsFileName($src);
             if ($absoluteSrc === '' || !is_file($absoluteSrc)) {
-                $logger->warning('maispace_assets: SCSS file not found: ' . $src);
+                $this->logger->warning('maispace_assets: SCSS file not found: ' . $src);
 
                 return;
             }
@@ -429,7 +431,8 @@ final class AssetProcessingService
             return;
         }
 
-        $identifier = self::buildIdentifier(
+        $identifier = $this->buildIdentifier(
+            $request,
             is_string($arguments['identifier'] ?? null) ? (string)$arguments['identifier'] : null,
             $src,
             $rawScss,
@@ -437,11 +440,11 @@ final class AssetProcessingService
         );
 
         $minifyArgScss = $arguments['minify'] ?? null;
-        $shouldMinify = self::resolveFlag('minify', is_bool($minifyArgScss) ? $minifyArgScss : null, 'scss');
+        $shouldMinify = $this->resolveFlag($request, 'minify', is_bool($minifyArgScss) ? $minifyArgScss : null, 'scss');
 
-        $cacheKey = $cache->buildScssKey($identifier, $fileMtime);
-        if ($cache->has($cacheKey)) {
-            $compiledCss = $cache->get($cacheKey);
+        $cacheKey = $this->cache->buildScssKey($identifier, $fileMtime);
+        if ($this->cache->has($cacheKey)) {
+            $compiledCss = $this->cache->get($cacheKey);
             if (!is_string($compiledCss)) {
                 $compiledCss = '';
             }
@@ -455,7 +458,7 @@ final class AssetProcessingService
             }
 
             // Add TypoScript default import paths.
-            $tsDefaultRaw = self::getTypoScriptSetting('scss.defaultImportPaths', '');
+            $tsDefaultRaw = $this->getTypoScriptSetting($request, 'scss.defaultImportPaths', '');
             $tsDefault = is_string($tsDefaultRaw) ? trim($tsDefaultRaw) : '';
             if ($tsDefault !== '') {
                 $importPaths = array_merge(
@@ -465,16 +468,14 @@ final class AssetProcessingService
             }
 
             try {
-                /** @var ScssCompilerService $compiler */
-                $compiler = GeneralUtility::makeInstance(ScssCompilerService::class);
-                $compiledCss = $compiler->compile(
+                $compiledCss = $this->scssCompiler->compile(
                     $rawScss,
                     $importPaths,
                     $shouldMinify,
                     $absoluteSrc,
                 );
             } catch (\ScssPhp\ScssPhp\Exception\SassException $e) {
-                $logger->error(
+                $this->logger->error(
                     'maispace_assets: SCSS compilation failed for "' . $identifier . '": ' . $e->getMessage(),
                 );
 
@@ -482,14 +483,14 @@ final class AssetProcessingService
             }
 
             /** @var AfterScssCompiledEvent $event */
-            $event = $dispatcher->dispatch(
+            $event = $this->dispatcher->dispatch(
                 new AfterScssCompiledEvent($identifier, $rawScss, $compiledCss, $arguments),
             );
             $compiledCss = $event->getCompiledCss();
 
-            $cacheLifetimeRaw = self::getTypoScriptSetting('scss.cacheLifetime', 0);
+            $cacheLifetimeRaw = $this->getTypoScriptSetting($request, 'scss.cacheLifetime', 0);
             $lifetime = is_int($cacheLifetimeRaw) ? $cacheLifetimeRaw : 0;
-            $cache->set($cacheKey, $compiledCss, ['maispace_assets_scss'], $lifetime);
+            $this->cache->set($cacheKey, $compiledCss, ['maispace_assets_scss'], $lifetime);
         }
 
         // Re-use CSS registration logic with the compiled output.
@@ -499,7 +500,7 @@ final class AssetProcessingService
         $cssArguments['src'] = null;
 
         // Write the compiled CSS and register it — bypass the CSS cache since SCSS has its own.
-        self::registerCompiledCss((string)$compiledCss, $identifier, $cssArguments);
+        $this->registerCompiledCss($request, (string)$compiledCss, $identifier, $cssArguments);
     }
 
     // -------------------------------------------------------------------------
@@ -510,9 +511,13 @@ final class AssetProcessingService
      * Register pre-compiled CSS (from SCSS) directly with the AssetCollector,
      * bypassing the CSS minification cache (SCSS is already handled above).
      *
-     * @param array<string, mixed> $arguments
+     * @param ServerRequestInterface $request
+     * @param string                 $css
+     * @param string                 $identifier
+     * @param array<string, mixed>   $arguments
      */
-    private static function registerCompiledCss(
+    private function registerCompiledCss(
+        ServerRequestInterface $request,
         string $css,
         string $identifier,
         array $arguments,
@@ -520,15 +525,13 @@ final class AssetProcessingService
         $isInline = (bool)($arguments['inline'] ?? false);
         $isPriority = (bool)($arguments['priority'] ?? false);
         $deferredArg = $arguments['deferred'] ?? null;
-        $isDeferred = self::resolveFlag('deferred', is_bool($deferredArg) ? $deferredArg : null, 'css');
+        $isDeferred = $this->resolveFlag($request, 'deferred', is_bool($deferredArg) ? $deferredArg : null, 'css');
         $media = is_string($arguments['media'] ?? null) ? $arguments['media'] : 'all';
-        $collector = self::collector();
-        $logger = self::logger();
 
         // Warn about option combinations that are silently ignored when inline=true.
         if ($isInline) {
             if (!empty($arguments['integrity'])) {
-                $logger->warning(
+                $this->logger->warning(
                     'maispace_assets: integrity="true" has no effect on inline SCSS'
                     . ' (identifier: ' . $identifier . ').'
                     . ' SRI integrity is only supported for file-based <link> output.'
@@ -536,7 +539,7 @@ final class AssetProcessingService
                 );
             }
             if ($media !== '' && $media !== 'all') {
-                $logger->warning(
+                $this->logger->warning(
                     'maispace_assets: media="' . $media . '" has no effect on inline SCSS'
                     . ' (identifier: ' . $identifier . ').'
                     . ' The media attribute is only applied to <link> tags.'
@@ -544,7 +547,7 @@ final class AssetProcessingService
                 );
             }
             if ($isDeferred) {
-                $logger->warning(
+                $this->logger->warning(
                     'maispace_assets: deferred="true" has no effect on inline SCSS'
                     . ' (identifier: ' . $identifier . ').'
                     . ' Deferred loading only applies to file-based <link> output.'
@@ -553,44 +556,46 @@ final class AssetProcessingService
             }
         }
 
-        $nonce = self::resolveNonce($arguments);
+        $nonce = $this->resolveNonce($request, $arguments);
 
         if ($isInline) {
             $inlineAttrs = $nonce !== null ? ['nonce' => $nonce] : [];
-            $collector->addInlineStyleSheet($identifier, $css, $inlineAttrs, ['priority' => $isPriority]);
+            $this->collector->addInlineStyleSheet($identifier, $css, $inlineAttrs, ['priority' => $isPriority]);
 
             return;
         }
 
-        $publicPath = self::writeToTemp($css, $identifier, 'css');
+        $publicPath = $this->writeToTemp($request, $css, $identifier, 'css');
         if ($publicPath === null) {
-            $logger->error('maispace_assets: Could not write compiled SCSS for identifier ' . $identifier);
+            $this->logger->error('maispace_assets: Could not write compiled SCSS for identifier ' . $identifier);
 
             return;
         }
 
-        $integrityAttrs = self::buildIntegrityAttrs($arguments, $css);
+        $absolutePath = Environment::getPublicPath() . PathUtility::getAbsoluteWebPath($publicPath);
+
+        $integrityAttrs = $this->buildIntegrityAttrs($arguments, $css);
 
         if ($isDeferred) {
-            $collector->addStyleSheet(
+            $this->collector->addStyleSheet(
                 $identifier,
-                $publicPath,
+                $absolutePath,
                 array_filter([
                     'media'  => 'print',
                     'onload' => "this.media='" . addslashes($media) . "'",
                 ] + $integrityAttrs),
                 ['priority' => false],
             );
-            $collector->addInlineStyleSheet(
+            $this->collector->addInlineStyleSheet(
                 $identifier . '_noscript',
                 '<noscript><link rel="stylesheet" href="' . htmlspecialchars($publicPath) . '"></noscript>',
                 [],
                 ['priority' => false],
             );
         } else {
-            $collector->addStyleSheet(
+            $this->collector->addStyleSheet(
                 $identifier,
-                $publicPath,
+                $absolutePath,
                 array_filter(['media' => $media] + $integrityAttrs),
                 ['priority' => $isPriority],
             );
@@ -608,17 +613,17 @@ final class AssetProcessingService
      *
      * @return array{0: string|null, 1: string|null, 2: bool}
      */
-    private static function resolveSource(?string $src, ?string $inlineContent): array
+    private function resolveSource(?string $src, ?string $inlineContent): array
     {
         if ($src !== null) {
             // External URLs are passed through without file resolution.
-            if (self::isExternalUrl($src)) {
+            if ($this->isExternalUrl($src)) {
                 return [$src, null, false];
             }
 
             $absolute = GeneralUtility::getFileAbsFileName($src);
             if ($absolute === '' || !is_file($absolute)) {
-                self::logger()->warning('maispace_assets: Asset file not found: ' . $src);
+                $this->logger->warning('maispace_assets: Asset file not found: ' . $src);
 
                 return [null, null, false];
             }
@@ -638,7 +643,7 @@ final class AssetProcessingService
     /**
      * Return true when the given src is an external URL (http, https, or protocol-relative //).
      */
-    private static function isExternalUrl(string $src): bool
+    private function isExternalUrl(string $src): bool
     {
         return str_starts_with($src, 'http://') || str_starts_with($src, 'https://') || str_starts_with($src, '//');
     }
@@ -654,7 +659,7 @@ final class AssetProcessingService
      *
      * @return array<string, string>
      */
-    private static function buildIntegrityAttrsForExternal(array $arguments): array
+    private function buildIntegrityAttrsForExternal(array $arguments): array
     {
         $integrityValue = $arguments['integrityValue'] ?? null;
         if (!is_string($integrityValue) || $integrityValue === '') {
@@ -679,7 +684,8 @@ final class AssetProcessingService
      * Otherwise the identifier is derived from a hash of the source path or content,
      * so the same input always maps to the same identifier — preventing orphaned files.
      */
-    private static function buildIdentifier(
+    private function buildIdentifier(
+        ServerRequestInterface $request,
         ?string $explicit,
         ?string $src,
         string $content,
@@ -689,7 +695,7 @@ final class AssetProcessingService
             return $explicit;
         }
 
-        $prefixRaw = self::getTypoScriptSetting($type . '.identifierPrefix', 'maispace_');
+        $prefixRaw = $this->getTypoScriptSetting($request, $type . '.identifierPrefix', 'maispace_');
         $prefix = is_string($prefixRaw) ? $prefixRaw : 'maispace_';
         $hash = $src !== null ? md5($src) : md5($content);
 
@@ -702,13 +708,13 @@ final class AssetProcessingService
      *
      * A null argument means "use TypoScript default".
      */
-    private static function resolveFlag(string $setting, ?bool $argumentValue, string $section): bool
+    private function resolveFlag(ServerRequestInterface $request, string $setting, ?bool $argumentValue, string $section): bool
     {
         if ($argumentValue !== null) {
             return $argumentValue;
         }
 
-        return (bool)self::getTypoScriptSetting($section . '.' . $setting, false);
+        return (bool)$this->getTypoScriptSetting($request, $section . '.' . $setting, false);
     }
 
     /**
@@ -717,7 +723,7 @@ final class AssetProcessingService
      * Resolution order:
      *  1. Explicit `nonce` ViewHelper argument — use as-is.
      *  2. TYPO3's built-in per-request nonce (TYPO3 12.4+, when CSP is enabled in Install Tool).
-     *     Accessed via `$GLOBALS['TYPO3_REQUEST']->getAttribute('nonce')`. Cast to string.
+     *     Accessed via the PSR-7 request's 'nonce' attribute.
      *  3. null — no nonce attribute is added.
      *
      * This means that when TYPO3's CSP is enabled, inline assets automatically receive the
@@ -728,9 +734,10 @@ final class AssetProcessingService
      * External file assets use SRI `integrity` instead; they do not require a nonce.
      */
     /**
-     * @param array<string, mixed> $arguments
+     * @param ServerRequestInterface $request
+     * @param array<string, mixed>   $arguments
      */
-    private static function resolveNonce(array $arguments): ?string
+    private function resolveNonce(ServerRequestInterface $request, array $arguments): ?string
     {
         // 1. Explicit argument.
         $explicit = $arguments['nonce'] ?? null;
@@ -739,11 +746,6 @@ final class AssetProcessingService
         }
 
         // 2. TYPO3's built-in request nonce (TYPO3 12.4+).
-        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        if (!$request instanceof ServerRequestInterface) {
-            return null;
-        }
-
         $nonceAttr = $request->getAttribute('nonce');
         if ($nonceAttr instanceof \TYPO3\CMS\Core\Security\ContentSecurityPolicy\ConsumableNonce) {
             $nonce = (string)$nonceAttr; // implements Stringable
@@ -765,7 +767,7 @@ final class AssetProcessingService
      *
      * @return array<string, string> Empty array when integrity is not requested
      */
-    private static function buildIntegrityAttrs(array $arguments, string $content): array
+    private function buildIntegrityAttrs(array $arguments, string $content): array
     {
         if (empty($arguments['integrity'])) {
             return [];
@@ -787,7 +789,7 @@ final class AssetProcessingService
      *
      * When $absolutePath is provided, the minifier can fix relative URLs in the CSS.
      */
-    private static function minifyCss(string $css, ?string $absolutePath = null): string
+    private function minifyCss(string $css, ?string $absolutePath = null): string
     {
         $minifier = new Minify\CSS();
         if ($absolutePath !== null) {
@@ -802,7 +804,7 @@ final class AssetProcessingService
     /**
      * Minify JS content using matthiasmullie/minify.
      */
-    private static function minifyJs(string $js, ?string $absolutePath = null): string
+    private function minifyJs(string $js, ?string $absolutePath = null): string
     {
         $minifier = new Minify\JS();
         if ($absolutePath !== null) {
@@ -820,15 +822,17 @@ final class AssetProcessingService
      * Returns the public-relative path (suitable for AssetCollector) on success,
      * or null on failure.
      */
-    private static function writeToTemp(string $content, string $identifier, string $type): ?string
+    private function writeToTemp(ServerRequestInterface $request, string $content, string $identifier, string $type): ?string
     {
-        $outputDirSetting = self::getTypoScriptSetting($type . '.outputDir', 'typo3temp/assets/maispace_assets/' . $type . '/');
-        $outputDir = ltrim(
-            is_string($outputDirSetting) ? $outputDirSetting : 'typo3temp/assets/maispace_assets/' . $type . '/',
-            '/',
-        );
+        $defaultOutputDir = 'typo3temp/assets/maispace_assets/' . $type . '/';
+        $outputDirSetting = $this->getTypoScriptSetting($request, $type . '.outputDir', $defaultOutputDir);
 
-        $absoluteDir = Environment::getPublicPath() . '/' . $outputDir;
+        $outputDir = trim(is_string($outputDirSetting) ? $outputDirSetting : $defaultOutputDir, '/');
+        if ($outputDir === '') {
+            $outputDir = trim($defaultOutputDir, '/');
+        }
+
+        $absoluteDir = Environment::getPublicPath() . '/' . $outputDir . '/';
         if (!is_dir($absoluteDir)) {
             GeneralUtility::mkdir_deep($absoluteDir);
         }
@@ -842,8 +846,7 @@ final class AssetProcessingService
 
         GeneralUtility::fixPermissions($absoluteFile);
 
-        // Return a root-relative path.
-        return PathUtility::getAbsoluteWebPath($absoluteFile);
+        return $this->resolveWebPath($absoluteFile);
     }
 
     /**
@@ -851,16 +854,11 @@ final class AssetProcessingService
      *
      * Returns $default if the setting is not configured.
      *
-     * Example: getTypoScriptSetting('css.minify', false)
+     * Example: getTypoScriptSetting($request, 'css.minify', false)
      *   reads plugin.tx_maispace_assets.css.minify
      */
-    private static function getTypoScriptSetting(string $dotPath, mixed $default): mixed
+    private function getTypoScriptSetting(ServerRequestInterface $request, string $dotPath, mixed $default): mixed
     {
-        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        if (!$request instanceof ServerRequestInterface) {
-            return $default;
-        }
-
         /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $frontendTypoScript */
         $frontendTypoScript = $request->getAttribute('frontend.typoscript');
         if ($frontendTypoScript === null) {
@@ -895,28 +893,22 @@ final class AssetProcessingService
         return $default;
     }
 
-    // -------------------------------------------------------------------------
-    // Dependency resolution via GeneralUtility::makeInstance
-    // -------------------------------------------------------------------------
-
-    private static function cache(): AssetCacheManager
+    /**
+     * Resolve an absolute filesystem path to a web-relative URL.
+     *
+     * Handles site-relative paths (including TYPO3_SITE_PATH) and ensures
+     * no double slashes are introduced at the join point.
+     */
+    private function resolveWebPath(string $absolutePath): string
     {
-        return GeneralUtility::makeInstance(AssetCacheManager::class);
-    }
+        $publicPath = Environment::getPublicPath();
+        if (str_starts_with($absolutePath, $publicPath)) {
+            $relativePath = ltrim(substr($absolutePath, strlen($publicPath)), '/\\');
+            $sitePath = Environment::isCli() ? '/' : (string)GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
 
-    private static function dispatcher(): EventDispatcherInterface
-    {
-        return GeneralUtility::makeInstance(EventDispatcherInterface::class);
-    }
+            return $sitePath . $relativePath;
+        }
 
-    private static function collector(): AssetCollector
-    {
-        return GeneralUtility::makeInstance(AssetCollector::class);
-    }
-
-    private static function logger(): LoggerInterface
-    {
-        return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class)
-            ->getLogger(__CLASS__);
+        return PathUtility::getAbsoluteWebPath($absolutePath);
     }
 }

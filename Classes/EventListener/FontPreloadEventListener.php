@@ -18,9 +18,8 @@ use TYPO3\CMS\Core\Site\Entity\Site;
  *
  * Site scoping
  * ============
- * The current site identifier is read from `$GLOBALS['TYPO3_REQUEST']` (populated by
- * TYPO3's site-resolver middleware). Fonts with a `sites` restriction are only emitted
- * when the current request's site matches.
+ * The current site identifier is read from the current request (via RequestStack).
+ * Fonts with a `sites` restriction are only emitted when the current request's site matches.
  *
  * TypoScript kill-switch
  * ======================
@@ -48,7 +47,7 @@ final class FontPreloadEventListener
             }
         }
 
-        $globalPreloadEnabled = $this->resolveGlobalPreloadSetting($request instanceof ServerRequestInterface ? $request : null);
+        $globalPreloadEnabled = $this->resolveGlobalPreloadSetting($request);
 
         $this->fontRegistry->emitPreloadHeaders($siteIdentifier, $globalPreloadEnabled);
     }

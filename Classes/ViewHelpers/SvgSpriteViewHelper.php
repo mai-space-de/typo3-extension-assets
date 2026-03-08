@@ -4,6 +4,9 @@ declare(strict_types = 1);
 
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
+use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
+use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -44,7 +47,9 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  */
 final class SvgSpriteViewHelper extends AbstractViewHelper
 {
-    private const DEFAULT_ROUTE_PATH = '/maispace/sprite.svg';
+    use TypoScriptSettingTrait;
+
+    private const DEFAULT_ROUTE_PATH = 'maispace/sprite.svg';
 
     /** Disable output escaping — this ViewHelper returns raw SVG markup. */
     protected $escapeOutput = false;
@@ -124,10 +129,10 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
         }
 
         $srcArg = $this->arguments['src'] ?? null;
-        $spriteUrl = self::resolveSpriteSrc(is_string($srcArg) ? $srcArg : null);
+        $spriteUrl = $this->resolveSpriteSrc(is_string($srcArg) ? $srcArg : null);
         $href = $spriteUrl . '#' . htmlspecialchars($symbolId, ENT_XML1);
 
-        $attrs = self::buildSvgAttributes($this->arguments);
+        $attrs = $this->buildSvgAttributes($this->arguments);
 
         $titleTag = '';
         $titleArg = is_string($this->arguments['title'] ?? null) ? $this->arguments['title'] : '';
@@ -151,30 +156,18 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
      * Resolve the sprite document URL.
      * Uses the explicit `src` argument, then the TypoScript setting, then the default.
      */
-    private static function resolveSpriteSrc(?string $explicit): string
+    private function resolveSpriteSrc(?string $explicit): string
     {
         if ($explicit !== null && $explicit !== '') {
             return rtrim($explicit, '#');
         }
 
-        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        if ($request instanceof \Psr\Http\Message\ServerRequestInterface) {
-            /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $fts */
-            $fts = $request->getAttribute('frontend.typoscript');
-            if ($fts !== null) {
-                /** @var array<string, mixed> $setup */
-                $setup = $fts->getSetupArray();
-                $plugin = is_array($setup['plugin.'] ?? null) ? $setup['plugin.'] : [];
-                $txAssets = is_array($plugin['tx_maispace_assets.'] ?? null) ? $plugin['tx_maispace_assets.'] : [];
-                $svgSprite = is_array($txAssets['svgSprite.'] ?? null) ? $txAssets['svgSprite.'] : [];
-                $routePath = $svgSprite['routePath'] ?? '';
-                if (is_string($routePath) && $routePath !== '') {
-                    return '/' . ltrim(rtrim($routePath, '/'), '/');
-                }
-            }
-        }
+        $routePathSetting = $this->getTypoScriptSetting('svgSprite.routePath', self::DEFAULT_ROUTE_PATH);
+        $routePath = is_string($routePathSetting) ? trim($routePathSetting, '/') : self::DEFAULT_ROUTE_PATH;
 
-        return self::DEFAULT_ROUTE_PATH;
+        $sitePath = Environment::isCli() ? '/' : (string)GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
+
+        return $sitePath . $routePath;
     }
 
     /**
@@ -187,7 +180,7 @@ final class SvgSpriteViewHelper extends AbstractViewHelper
      *
      * @param array<string, mixed> $arguments
      */
-    private static function buildSvgAttributes(array $arguments): string
+    private function buildSvgAttributes(array $arguments): string
     {
         $attrs = [];
 

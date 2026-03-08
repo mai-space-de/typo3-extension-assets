@@ -64,7 +64,7 @@ final class ScssCompilerService
             $compiler->setImportPaths($resolvedPaths);
         }
 
-        return $compiler->compileString($scssContent)->getCss();
+        return $compiler->compileString($scssContent, $sourceFilePath)->getCss();
     }
 
     /**

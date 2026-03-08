@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\Registry;
 
 use Psr\Log\LoggerInterface;
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
@@ -69,21 +70,13 @@ final class FontRegistry implements SingletonInterface
      *     sites?: array<string>
      * }>
      */
-    /**
-     * @var array<string, array{
-     *     src: string,
-     *     publicUrl: string,
-     *     type: string,
-     *     preload: bool,
-     *     sites?: array<string>
-     * }>
-     */
     private array $fonts = [];
 
     private bool $discovered = false;
 
     public function __construct(
         private readonly LoggerInterface $logger,
+        private readonly PageRenderer $pageRenderer,
     ) {
     }
 
@@ -108,8 +101,6 @@ final class FontRegistry implements SingletonInterface
 
         $this->discover();
 
-        $pageRenderer = GeneralUtility::makeInstance(PageRenderer::class);
-
         foreach ($this->fonts as $fonts) {
             if (!$this->isApplicable($fonts, $siteIdentifier)) {
                 continue;
@@ -125,7 +116,7 @@ final class FontRegistry implements SingletonInterface
                 htmlspecialchars($fonts['type'], ENT_QUOTES),
             );
 
-            $pageRenderer->addHeaderData($tag);
+            $this->pageRenderer->addHeaderData($tag);
         }
     }
 
@@ -212,7 +203,15 @@ final class FontRegistry implements SingletonInterface
                     continue;
                 }
 
-                $publicUrl = PathUtility::getAbsoluteWebPath($absolutePath);
+                $publicPath = Environment::getPublicPath();
+                if (str_starts_with($absolutePath, $publicPath)) {
+                    $relativePath = ltrim(substr($absolutePath, strlen($publicPath)), '/\\');
+                    $sitePath = Environment::isCli() ? '/' : (string)GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
+                    $publicUrl = $sitePath . $relativePath;
+                } else {
+                    $publicUrl = PathUtility::getAbsoluteWebPath($absolutePath);
+                }
+
                 $type = is_string($config['type'] ?? null) ? (string)$config['type'] : $this->detectMimeType($absolutePath);
 
                 if ($type === '') {

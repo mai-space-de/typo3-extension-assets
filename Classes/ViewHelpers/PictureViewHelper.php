@@ -7,6 +7,7 @@ namespace Maispace\MaispaceAssets\ViewHelpers;
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -87,6 +88,11 @@ final class PictureViewHelper extends AbstractViewHelper
 
     /** Allow child ViewHelpers (SourceViewHelper) to render unescaped. */
     protected $escapeChildren = false;
+
+    public function __construct(
+        protected readonly ImageRenderingService $imageRenderingService,
+        protected readonly ImageService $imageService,
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -266,16 +272,13 @@ final class PictureViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        /** @var ImageRenderingService $service */
-        $service = GeneralUtility::makeInstance(ImageRenderingService::class);
-
-        $file = $service->resolveImage($this->arguments['image']);
+        $file = $this->imageRenderingService->resolveImage($this->arguments['image']);
         if ($file === null) {
             return '';
         }
 
         // Resolve lazy loading settings (argument → TypoScript fallback)
-        [$lazyloading, $lazyloadWithClass] = self::resolveLazyArguments($this->arguments);
+        [$lazyloading, $lazyloadWithClass] = $this->resolveLazyArguments($this->arguments);
 
         // Share resolved file + lazy settings with child SourceViewHelpers.
         $varContainer = $this->renderingContext->getViewHelperVariableContainer();
@@ -301,30 +304,30 @@ final class PictureViewHelper extends AbstractViewHelper
 
         // Resolve alternative formats for the fallback area (catch-all sources + img).
         $formatsRaw = $this->arguments['formats'] ?? null;
-        $formats = self::resolveAlternativeFormats(is_string($formatsRaw) ? $formatsRaw : null);
+        $formats = $this->resolveAlternativeFormats(is_string($formatsRaw) ? $formatsRaw : null);
 
         // Render format-alternative catch-all <source> tags before the fallback <img>.
         $fallbackSourcesHtml = '';
         if ($formats !== []) {
-            $alternatives = $service->processImageAlternatives($file, $width, $height, $formats, $quality);
+            $alternatives = $this->imageRenderingService->processImageAlternatives($file, $width, $height, $formats, $quality);
             foreach ($alternatives as $altProcessed) {
-                $fallbackSourcesHtml .= $service->renderSourceTag($altProcessed, null);
+                $fallbackSourcesHtml .= $this->imageRenderingService->renderSourceTag($altProcessed, null);
             }
 
             // Original-format catch-all <source> (browser fallback within <picture>).
             if ((bool)($this->arguments['fallback'] ?? true)) {
-                $originalProcessed = $service->processImage($file, $width, $height, '', $quality);
-                $fallbackSourcesHtml .= $service->renderSourceTag($originalProcessed, null);
+                $originalProcessed = $this->imageRenderingService->processImage($file, $width, $height, '', $quality);
+                $fallbackSourcesHtml .= $this->imageRenderingService->renderSourceTag($originalProcessed, null);
             }
         }
 
         // Resolve forced output format for the fallback <img>.
-        $fileExtension = self::resolveFileExtension($this->arguments);
+        $fileExtension = $this->resolveFileExtension($this->arguments);
 
         // Build fallback <img>.
-        $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
+        $processed = $this->imageRenderingService->processImage($file, $width, $height, $fileExtension, $quality);
         $altRaw = $this->arguments['alt'] ?? '';
-        $imgHtml = $service->renderImgTag($processed, [
+        $imgHtml = $this->imageRenderingService->renderImgTag($processed, [
             'alt'                  => is_string($altRaw) ? $altRaw : '',
             'class'                => is_string($this->arguments['imgClass'] ?? null) ? $this->arguments['imgClass'] : null,
             'id'                   => is_string($this->arguments['imgId'] ?? null) ? $this->arguments['imgId'] : null,
@@ -334,13 +337,12 @@ final class PictureViewHelper extends AbstractViewHelper
             'fetchPriority'        => is_string($this->arguments['fetchPriority'] ?? null) ? $this->arguments['fetchPriority'] : null,
             'decoding'             => is_string($this->arguments['imgDecoding'] ?? null) ? $this->arguments['imgDecoding'] : null,
             'crossorigin'          => is_string($this->arguments['imgCrossorigin'] ?? null) ? $this->arguments['imgCrossorigin'] : null,
-            'additionalAttributes' => self::resolveStringArray($this->arguments['imgAdditionalAttributes'] ?? []),
+            'additionalAttributes' => $this->resolveStringArray($this->arguments['imgAdditionalAttributes'] ?? []),
         ]);
 
         // Optionally preload the fallback image.
         if ((bool)($this->arguments['preload'] ?? false)) {
-            $imageService = GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Service\ImageService::class);
-            $url = $imageService->getImageUri($processed, true);
+            $url = $this->imageService->getImageUri($processed, true);
             $preloadMedia = is_string($this->arguments['preloadMedia'] ?? null) && $this->arguments['preloadMedia'] !== ''
                 ? $this->arguments['preloadMedia']
                 : null;
@@ -348,8 +350,8 @@ final class PictureViewHelper extends AbstractViewHelper
             $fetchPriorityAttr = (is_string($fetchPriorityVal) && in_array($fetchPriorityVal, ['high', 'low', 'auto'], true))
                 ? $fetchPriorityVal
                 : null;
-            $mimeType = $service->detectMimeType($processed) ?: null;
-            $service->addImagePreloadHeader(
+            $mimeType = $this->imageRenderingService->detectMimeType($processed) ?: null;
+            $this->imageRenderingService->addImagePreloadHeader(
                 $url,
                 $preloadMedia,
                 $fetchPriorityAttr,
@@ -358,7 +360,7 @@ final class PictureViewHelper extends AbstractViewHelper
         }
 
         // Build <picture> element.
-        $pictureAttrs = self::buildPictureAttributes($this->arguments);
+        $pictureAttrs = $this->buildPictureAttributes($this->arguments);
 
         return '<picture' . $pictureAttrs . '>'
             . $sourcesHtml
@@ -378,14 +380,14 @@ final class PictureViewHelper extends AbstractViewHelper
      *
      * @param array<string, mixed> $arguments
      */
-    private static function resolveFileExtension(array $arguments): string
+    private function resolveFileExtension(array $arguments): string
     {
         $arg = $arguments['fileExtension'] ?? null;
         if (is_string($arg) && $arg !== '') {
             return $arg;
         }
 
-        $ts = self::getTypoScriptSetting('image.forceFormat', '');
+        $ts = $this->getTypoScriptSetting('image.forceFormat', '');
 
         return is_string($ts) ? $ts : '';
     }
@@ -395,14 +397,14 @@ final class PictureViewHelper extends AbstractViewHelper
      *
      * @return array{0: bool, 1: string|null} [isLazy, lazyClass|null]
      */
-    private static function resolveLazyArguments(array $arguments): array
+    private function resolveLazyArguments(array $arguments): array
     {
         $lazyloading = $arguments['lazyloading'] ?? null;
         $lazyloadWithClass = $arguments['lazyloadWithClass'] ?? null;
 
         if ($lazyloading === null && $lazyloadWithClass === null) {
-            $tsLazy = self::getTypoScriptSetting('image.lazyloading', null);
-            $tsLazyClass = self::getTypoScriptSetting('image.lazyloadWithClass', null);
+            $tsLazy = $this->getTypoScriptSetting('image.lazyloading', null);
+            $tsLazyClass = $this->getTypoScriptSetting('image.lazyloadWithClass', null);
 
             $lazyloading = $tsLazy !== null ? (bool)$tsLazy : false;
             $lazyloadWithClass = is_string($tsLazyClass) && $tsLazyClass !== '' ? $tsLazyClass : null;
@@ -420,12 +422,12 @@ final class PictureViewHelper extends AbstractViewHelper
      *
      * @return list<string>
      */
-    private static function resolveAlternativeFormats(?string $formatsArg): array
+    private function resolveAlternativeFormats(?string $formatsArg): array
     {
         $raw = $formatsArg;
 
         if ($raw === null) {
-            $raw = self::getTypoScriptSetting('image.alternativeFormats', null);
+            $raw = $this->getTypoScriptSetting('image.alternativeFormats', null);
         }
 
         if (!is_string($raw) || $raw === '') {
@@ -442,7 +444,7 @@ final class PictureViewHelper extends AbstractViewHelper
      *
      * @return array<string, string>
      */
-    private static function resolveStringArray(mixed $input): array
+    private function resolveStringArray(mixed $input): array
     {
         if (!is_array($input)) {
             return [];
@@ -460,7 +462,7 @@ final class PictureViewHelper extends AbstractViewHelper
     /**
      * @param array<string, mixed> $arguments
      */
-    private static function buildPictureAttributes(array $arguments): string
+    private function buildPictureAttributes(array $arguments): string
     {
         $attrs = '';
         $classArg = is_string($arguments['class'] ?? null) ? $arguments['class'] : '';
@@ -477,5 +479,4 @@ final class PictureViewHelper extends AbstractViewHelper
 
         return $attrs;
     }
-
 }

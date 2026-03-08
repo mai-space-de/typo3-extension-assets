@@ -81,6 +81,10 @@ final class SourceViewHelper extends AbstractViewHelper
     /** Disable output escaping — this ViewHelper returns raw HTML. */
     protected $escapeOutput = false;
 
+    public function __construct(
+        protected readonly ImageRenderingService $imageRenderingService,
+    ) {}
+
     public function initializeArguments(): void
     {
         $this->registerArgument(
@@ -183,14 +187,12 @@ final class SourceViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        /** @var ImageRenderingService $service */
-        $service = GeneralUtility::makeInstance(ImageRenderingService::class);
         $varContainer = $this->renderingContext->getViewHelperVariableContainer();
 
         // Resolve the image: explicit override or inherited from parent PictureViewHelper.
         $imageArg = $this->arguments['image'] ?? null;
         if ($imageArg !== null) {
-            $file = $service->resolveImage($imageArg);
+            $file = $this->imageRenderingService->resolveImage($imageArg);
         } else {
             /** @var \TYPO3\CMS\Core\Resource\File|\TYPO3\CMS\Core\Resource\FileReference|null $file */
             $file = $varContainer->get(PictureViewHelper::class, PictureViewHelper::VAR_FILE);
@@ -211,7 +213,7 @@ final class SourceViewHelper extends AbstractViewHelper
 
         // Resolve alternative formats: argument → TypoScript default.
         $formatsRaw = $this->arguments['formats'] ?? null;
-        $formats = self::resolveAlternativeFormats(is_string($formatsRaw) ? $formatsRaw : null);
+        $formats = $this->resolveAlternativeFormats(is_string($formatsRaw) ? $formatsRaw : null);
 
         // Build optional srcset string (multi-width responsive descriptor).
         $srcsetWidths = $this->arguments['srcset'] ?? null;
@@ -221,40 +223,40 @@ final class SourceViewHelper extends AbstractViewHelper
 
         // No format alternatives: render a single <source> tag (classic behaviour).
         if ($formats === []) {
-            $fileExtension = self::resolveFileExtension($this->arguments);
-            $processed = $service->processImage($file, $width, $height, $fileExtension, $quality);
+            $fileExtension = $this->resolveFileExtension($this->arguments);
+            $processed = $this->imageRenderingService->processImage($file, $width, $height, $fileExtension, $quality);
 
             $srcsetString = null;
             if (is_string($srcsetWidths) && $srcsetWidths !== '') {
-                $srcsetString = $service->buildSrcsetString($file, $srcsetWidths, $height, $fileExtension, $quality);
+                $srcsetString = $this->imageRenderingService->buildSrcsetString($file, $srcsetWidths, $height, $fileExtension, $quality);
             }
 
             $typeArg = is_string($this->arguments['type'] ?? null) ? $this->arguments['type'] : null;
 
-            return $service->renderSourceTag($processed, $media, $typeArg, $srcsetString, $sizes);
+            return $this->imageRenderingService->renderSourceTag($processed, $media, $typeArg, $srcsetString, $sizes);
         }
 
         // Format alternatives: render one <source> per alternative format, then the fallback.
         $html = '';
 
-        $alternatives = $service->processImageAlternatives($file, $width, $height, $formats, $quality);
+        $alternatives = $this->imageRenderingService->processImageAlternatives($file, $width, $height, $formats, $quality);
         foreach ($alternatives as $fmt => $processed) {
             $srcsetString = null;
             if (is_string($srcsetWidths) && $srcsetWidths !== '') {
-                $srcsetString = $service->buildSrcsetString($file, $srcsetWidths, $height, $fmt, $quality);
+                $srcsetString = $this->imageRenderingService->buildSrcsetString($file, $srcsetWidths, $height, $fmt, $quality);
             }
-            $html .= $service->renderSourceTag($processed, $media, null, $srcsetString, $sizes);
+            $html .= $this->imageRenderingService->renderSourceTag($processed, $media, null, $srcsetString, $sizes);
         }
 
         // Fallback <source> in the original/default format (no fileExtension override).
         if ((bool)($this->arguments['fallback'] ?? true)) {
-            $fallbackProcessed = $service->processImage($file, $width, $height, '', $quality);
+            $fallbackProcessed = $this->imageRenderingService->processImage($file, $width, $height, '', $quality);
             $fallbackSrcset = null;
             if (is_string($srcsetWidths) && $srcsetWidths !== '') {
-                $fallbackSrcset = $service->buildSrcsetString($file, $srcsetWidths, $height, '', $quality);
+                $fallbackSrcset = $this->imageRenderingService->buildSrcsetString($file, $srcsetWidths, $height, '', $quality);
             }
             $typeArg = is_string($this->arguments['type'] ?? null) ? $this->arguments['type'] : null;
-            $html .= $service->renderSourceTag($fallbackProcessed, $media, $typeArg, $fallbackSrcset, $sizes);
+            $html .= $this->imageRenderingService->renderSourceTag($fallbackProcessed, $media, $typeArg, $fallbackSrcset, $sizes);
         }
 
         return $html;
@@ -271,14 +273,14 @@ final class SourceViewHelper extends AbstractViewHelper
      *
      * @param array<string, mixed> $arguments
      */
-    private static function resolveFileExtension(array $arguments): string
+    private function resolveFileExtension(array $arguments): string
     {
         $arg = $arguments['fileExtension'] ?? null;
         if (is_string($arg) && $arg !== '') {
             return $arg;
         }
 
-        $ts = self::getTypoScriptSetting('image.forceFormat', '');
+        $ts = $this->getTypoScriptSetting('image.forceFormat', '');
 
         return is_string($ts) ? $ts : '';
     }
@@ -291,12 +293,12 @@ final class SourceViewHelper extends AbstractViewHelper
      *
      * @return list<string>
      */
-    private static function resolveAlternativeFormats(?string $formatsArg): array
+    private function resolveAlternativeFormats(?string $formatsArg): array
     {
         $raw = $formatsArg;
 
         if ($raw === null) {
-            $raw = self::getTypoScriptSetting('image.alternativeFormats', null);
+            $raw = $this->getTypoScriptSetting('image.alternativeFormats', null);
         }
 
         if (!is_string($raw) || $raw === '') {
@@ -307,5 +309,4 @@ final class SourceViewHelper extends AbstractViewHelper
 
         return array_values(array_map('strtolower', $formats));
     }
-
 }

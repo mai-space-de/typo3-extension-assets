@@ -51,6 +51,10 @@ final class HintViewHelper extends AbstractViewHelper
     /** This ViewHelper produces no output of its own — it only injects into <head>. */
     protected $escapeOutput = false;
 
+    public function __construct(
+        protected readonly PageRenderer $pageRenderer,
+    ) {}
+
     public function initializeArguments(): void
     {
         $this->registerArgument(
@@ -162,7 +166,7 @@ final class HintViewHelper extends AbstractViewHelper
         }
         $tag .= '>';
 
-        GeneralUtility::makeInstance(PageRenderer::class)->addHeaderData($tag);
+        $this->pageRenderer->addHeaderData($tag);
 
         return '';
     }

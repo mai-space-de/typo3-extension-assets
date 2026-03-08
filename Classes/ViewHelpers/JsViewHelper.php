@@ -125,9 +125,15 @@ final class JsViewHelper extends AbstractAssetViewHelper
         );
     }
 
-    public function render(): void
+    public function render(): string
     {
         $inlineContent = $this->renderChildren();
-        AssetProcessingService::handleJs($this->arguments, is_string($inlineContent) ? $inlineContent : null);
+        $this->assetProcessingService->handleJs(
+            $this->renderingContext->getRequest(),
+            $this->arguments,
+            is_string($inlineContent) ? $inlineContent : null
+        );
+
+        return '';
     }
 }

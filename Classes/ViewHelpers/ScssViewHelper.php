@@ -119,9 +119,15 @@ final class ScssViewHelper extends AbstractAssetViewHelper
         );
     }
 
-    public function render(): void
+    public function render(): string
     {
         $inlineContent = $this->renderChildren();
-        AssetProcessingService::handleScss($this->arguments, is_string($inlineContent) ? $inlineContent : null);
+        $this->assetProcessingService->handleScss(
+            $this->renderingContext->getRequest(),
+            $this->arguments,
+            is_string($inlineContent) ? $inlineContent : null
+        );
+
+        return '';
     }
 }

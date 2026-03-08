@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Maispace\MaispaceAssets\Cache\AssetCacheManager;
+use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
@@ -49,6 +50,11 @@ final class SvgInlineViewHelper extends AbstractViewHelper
 {
     /** Disable output escaping — this ViewHelper returns raw SVG markup. */
     protected $escapeOutput = false;
+
+    public function __construct(
+        protected readonly AssetCacheManager $cache,
+        protected readonly LoggerInterface $logger,
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -138,19 +144,16 @@ final class SvgInlineViewHelper extends AbstractViewHelper
             serialize($this->arguments['additionalAttributes'] ?? []),
         ]));
 
-        /** @var AssetCacheManager $cache */
-        $cache = GeneralUtility::makeInstance(AssetCacheManager::class);
-
-        if ($cache->has($cacheKey)) {
-            $cached = $cache->get($cacheKey);
+        if ($this->cache->has($cacheKey)) {
+            $cached = $this->cache->get($cacheKey);
 
             return is_string($cached) ? $cached : '';
         }
 
-        $result = self::buildSvgMarkup($this->arguments, $src);
+        $result = $this->buildSvgMarkup($this->arguments, $src);
 
         if ($result !== '') {
-            $cache->set($cacheKey, $result, ['maispace_assets_svg']);
+            $this->cache->set($cacheKey, $result, ['maispace_assets_svg']);
         }
 
         return $result;
@@ -163,13 +166,11 @@ final class SvgInlineViewHelper extends AbstractViewHelper
     /**
      * @param array<string, mixed> $arguments
      */
-    private static function buildSvgMarkup(array $arguments, string $src): string
+    private function buildSvgMarkup(array $arguments, string $src): string
     {
         $absolutePath = GeneralUtility::getFileAbsFileName($src);
         if ($absolutePath === '' || !is_file($absolutePath)) {
-            GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class)
-                ->getLogger(__CLASS__)
-                ->warning('maispace_assets: SVG file not found: ' . $src);
+            $this->logger->warning('maispace_assets: SVG file not found: ' . $src);
 
             return '';
         }
@@ -189,9 +190,7 @@ final class SvgInlineViewHelper extends AbstractViewHelper
         libxml_use_internal_errors($previous);
 
         if (!$loaded) {
-            GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class)
-                ->getLogger(__CLASS__)
-                ->warning('maispace_assets: Could not parse SVG file: ' . $src);
+            $this->logger->warning('maispace_assets: Could not parse SVG file: ' . $src);
 
             return '';
         }
