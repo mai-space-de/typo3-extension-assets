@@ -11,6 +11,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Extbase\Service\ImageService;
 
 /**
@@ -33,6 +34,7 @@ final class ImageRenderingServiceTest extends TestCase
             $this->imageService,
             $this->createMock(LoggerInterface::class),
             $this->createMock(EventDispatcherInterface::class),
+            $this->createMock(ResourceFactory::class),
             $this->pageRenderer,
         );
     }

@@ -37,10 +37,11 @@ final class FontPreloadEventListener
 
     public function __invoke(BeforeStylesheetsRenderingEvent $event): void
     {
-        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $rawRequest = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $request = $rawRequest instanceof ServerRequestInterface ? $rawRequest : null;
 
         $siteIdentifier = null;
-        if ($request instanceof ServerRequestInterface) {
+        if ($request !== null) {
             $site = $request->getAttribute('site');
             if ($site instanceof Site) {
                 $siteIdentifier = $site->getIdentifier();

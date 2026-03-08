@@ -54,7 +54,8 @@ final class SvgInlineViewHelper extends AbstractViewHelper
     public function __construct(
         protected readonly AssetCacheManager $cache,
         protected readonly LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     public function initializeArguments(): void
     {

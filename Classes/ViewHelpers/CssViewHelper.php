@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
+use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
 
 /**
  * Include a CSS asset from a file path or inline Fluid content.
@@ -111,9 +112,16 @@ final class CssViewHelper extends AbstractAssetViewHelper
 
     public function render(): string
     {
+        /** @var RenderingContext $renderingContext */
+        $renderingContext = $this->renderingContext;
+        $request = $renderingContext->getRequest();
+        if ($request === null) {
+            return '';
+        }
+
         $inlineContent = $this->renderChildren();
         $this->assetProcessingService->handleCss(
-            $this->renderingContext->getRequest(),
+            $request,
             $this->arguments,
             is_string($inlineContent) ? $inlineContent : null
         );

@@ -42,7 +42,8 @@ final class AssetProcessingService
         private readonly AssetCollector $collector,
         private readonly LoggerInterface $logger,
         private readonly ScssCompilerService $scssCompiler,
-    ) {}
+    ) {
+    }
 
     // -------------------------------------------------------------------------
     // Public entry points (called from ViewHelpers)
@@ -51,8 +52,8 @@ final class AssetProcessingService
     /**
      * Process a CSS asset and register it with TYPO3's AssetCollector.
      *
-     * @param ServerRequestInterface $request      The current PSR-7 request
-     * @param array<string, mixed>   $arguments    ViewHelper arguments (identifier, src, priority, minify, inline, deferred, media)
+     * @param ServerRequestInterface $request       The current PSR-7 request
+     * @param array<string, mixed>   $arguments     ViewHelper arguments (identifier, src, priority, minify, inline, deferred, media)
      * @param string|null            $inlineContent Content captured from the ViewHelper's child nodes
      */
     public function handleCss(ServerRequestInterface $request, array $arguments, ?string $inlineContent = null): void
@@ -240,8 +241,8 @@ final class AssetProcessingService
     /**
      * Process a JS asset and register it with TYPO3's AssetCollector.
      *
-     * @param ServerRequestInterface $request      The current PSR-7 request
-     * @param array<string, mixed>   $arguments    ViewHelper arguments (identifier, src, priority, minify, defer, async, type)
+     * @param ServerRequestInterface $request       The current PSR-7 request
+     * @param array<string, mixed>   $arguments     ViewHelper arguments (identifier, src, priority, minify, defer, async, type)
      * @param string|null            $inlineContent Content captured from the ViewHelper's child nodes
      */
     public function handleJs(ServerRequestInterface $request, array $arguments, ?string $inlineContent): void
@@ -403,8 +404,8 @@ final class AssetProcessingService
     /**
      * Compile SCSS to CSS, then register the result as a CSS asset.
      *
-     * @param ServerRequestInterface $request      The current PSR-7 request
-     * @param array<string, mixed>   $arguments    ViewHelper arguments (identifier, src, priority, minify, inline, importPaths)
+     * @param ServerRequestInterface $request       The current PSR-7 request
+     * @param array<string, mixed>   $arguments     ViewHelper arguments (identifier, src, priority, minify, inline, importPaths)
      * @param string|null            $inlineContent Raw SCSS captured from the ViewHelper's child nodes
      */
     public function handleScss(ServerRequestInterface $request, array $arguments, ?string $inlineContent): void
@@ -511,10 +512,7 @@ final class AssetProcessingService
      * Register pre-compiled CSS (from SCSS) directly with the AssetCollector,
      * bypassing the CSS minification cache (SCSS is already handled above).
      *
-     * @param ServerRequestInterface $request
-     * @param string                 $css
-     * @param string                 $identifier
-     * @param array<string, mixed>   $arguments
+     * @param array<string, mixed> $arguments
      */
     private function registerCompiledCss(
         ServerRequestInterface $request,
@@ -734,8 +732,7 @@ final class AssetProcessingService
      * External file assets use SRI `integrity` instead; they do not require a nonce.
      */
     /**
-     * @param ServerRequestInterface $request
-     * @param array<string, mixed>   $arguments
+     * @param array<string, mixed> $arguments
      */
     private function resolveNonce(ServerRequestInterface $request, array $arguments): ?string
     {

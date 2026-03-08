@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
+use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
 
 /**
  * Compile SCSS to CSS server-side and include the result as a CSS asset.
@@ -121,9 +122,16 @@ final class ScssViewHelper extends AbstractAssetViewHelper
 
     public function render(): string
     {
+        /** @var RenderingContext $renderingContext */
+        $renderingContext = $this->renderingContext;
+        $request = $renderingContext->getRequest();
+        if ($request === null) {
+            return '';
+        }
+
         $inlineContent = $this->renderChildren();
         $this->assetProcessingService->handleScss(
-            $this->renderingContext->getRequest(),
+            $request,
             $this->arguments,
             is_string($inlineContent) ? $inlineContent : null
         );

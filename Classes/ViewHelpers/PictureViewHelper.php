@@ -6,7 +6,6 @@ namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
@@ -92,7 +91,8 @@ final class PictureViewHelper extends AbstractViewHelper
     public function __construct(
         protected readonly ImageRenderingService $imageRenderingService,
         protected readonly ImageService $imageService,
-    ) {}
+    ) {
+    }
 
     public function initializeArguments(): void
     {
