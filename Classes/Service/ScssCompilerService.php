@@ -28,7 +28,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *   unnecessary whitespace. This is functionally equivalent to a CSS minifier pass and
  *   avoids a redundant double-pass through matthiasmullie/minify for SCSS output.
  */
-final class ScssCompilerService
+class ScssCompilerService
 {
     /**
      * Compile a raw SCSS string to CSS.

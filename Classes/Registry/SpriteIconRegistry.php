@@ -7,6 +7,9 @@ namespace Maispace\MaispaceAssets\Registry;
 use Maispace\MaispaceAssets\Cache\AssetCacheManager;
 use Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent;
 use Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent;
+use Maispace\MaispaceAssets\Exception\AssetCompilationException;
+use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
+use Maispace\MaispaceAssets\Exception\InvalidAssetConfigurationException;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\SingletonInterface;
@@ -177,32 +180,32 @@ final class SpriteIconRegistry implements SingletonInterface
             $icons = require $file;
 
             if (!is_array($icons)) {
-                $this->logger->warning(
-                    'maispace_assets: SpriteIcons.php in extension "' . $extKey . '" did not return an array.',
-                );
-                continue;
+                $message = 'maispace_assets: SpriteIcons.php in extension "' . $extKey . '" did not return an array.';
+                $this->logger->warning($message);
+
+                throw new InvalidAssetConfigurationException($message);
             }
 
             foreach ($icons as $symbolId => $config) {
                 if (!is_string($symbolId) || $symbolId === '') {
-                    $this->logger->warning(
-                        'maispace_assets: Skipping invalid symbol key in "' . $extKey . '/Configuration/SpriteIcons.php".',
-                    );
-                    continue;
+                    $message = 'maispace_assets: Invalid (non-string or empty) symbol key in "' . $extKey . '/Configuration/SpriteIcons.php".';
+                    $this->logger->warning($message);
+
+                    throw new InvalidAssetConfigurationException($message);
                 }
 
                 if (!is_array($config)) {
-                    $this->logger->warning(
-                        'maispace_assets: Symbol entry for "' . $symbolId . '" in "' . $extKey . '" is not an array.',
-                    );
-                    continue;
+                    $message = 'maispace_assets: Symbol entry for "' . $symbolId . '" in "' . $extKey . '" must be an array, got ' . gettype($config) . '.';
+                    $this->logger->warning($message);
+
+                    throw new InvalidAssetConfigurationException($message);
                 }
 
                 if (!isset($config['src']) || !is_string($config['src'])) {
-                    $this->logger->warning(
-                        'maispace_assets: Symbol "' . $symbolId . '" in "' . $extKey . '" is missing required "src" key.',
-                    );
-                    continue;
+                    $message = 'maispace_assets: Symbol "' . $symbolId . '" in "' . $extKey . '" is missing the required "src" key (must be a non-empty string path to an SVG file).';
+                    $this->logger->warning($message);
+
+                    throw new InvalidAssetConfigurationException($message);
                 }
 
                 /** @var array<string, mixed> $config */
@@ -222,19 +225,19 @@ final class SpriteIconRegistry implements SingletonInterface
                     ? GeneralUtility::getFileAbsFileName($resolvedConfig['src'])
                     : '';
                 if ($absoluteSrc === '' || !is_file($absoluteSrc)) {
-                    $srcForWarning = is_string($resolvedConfig['src'] ?? null) ? $resolvedConfig['src'] : '';
-                    $this->logger->warning(
-                        'maispace_assets: SVG file not found for symbol "' . $resolvedSymbolId . '": ' . $srcForWarning,
-                    );
-                    continue;
+                    $srcForMessage = is_string($resolvedConfig['src'] ?? null) ? $resolvedConfig['src'] : '';
+                    $message = 'maispace_assets: SVG file not found for symbol "' . $resolvedSymbolId . '": "' . $srcForMessage . '". Verify the EXT: path is correct.';
+                    $this->logger->warning($message);
+
+                    throw new AssetFileNotFoundException($message);
                 }
 
                 // Ensure 'src' remains a string after event processing
                 if (!isset($resolvedConfig['src']) || !is_string($resolvedConfig['src'])) {
-                    $this->logger->warning(
-                        'maispace_assets: Invalid "src" after event processing for symbol "' . $resolvedSymbolId . '".',
-                    );
-                    continue;
+                    $message = 'maispace_assets: Symbol "' . $resolvedSymbolId . '" has an invalid "src" after event processing — a BeforeSpriteSymbolRegisteredEvent listener removed or corrupted the "src" key.';
+                    $this->logger->warning($message);
+
+                    throw new InvalidAssetConfigurationException($message);
                 }
 
                 // Later registrations win — allows site packages to override vendor icons.
@@ -317,10 +320,10 @@ final class SpriteIconRegistry implements SingletonInterface
         foreach ($symbols as $symbolId => $config) {
             $svgContent = @file_get_contents($config['absoluteSrc']);
             if ($svgContent === false) {
-                $this->logger->error(
-                    'maispace_assets: Could not read SVG file for symbol "' . $symbolId . '": ' . $config['absoluteSrc'],
-                );
-                continue;
+                $message = 'maispace_assets: Could not read SVG file for symbol "' . $symbolId . '": "' . $config['absoluteSrc'] . '". Check file read permissions.';
+                $this->logger->error($message);
+
+                throw new AssetFileNotFoundException($message);
             }
 
             $symbol = $this->extractSymbol($svgContent, $symbolId);
@@ -366,9 +369,10 @@ final class SpriteIconRegistry implements SingletonInterface
 
         // Extract the inner content between <svg ...> and </svg>.
         if (!preg_match('/<svg[^>]*>(.*)<\/svg>/is', $svgContent, $m)) {
-            $this->logger->warning('maispace_assets: Could not parse SVG structure for symbol "' . $symbolId . '".');
+            $message = 'maispace_assets: Could not parse SVG structure for symbol "' . $symbolId . '". The file must contain a valid <svg>…</svg> element.';
+            $this->logger->warning($message);
 
-            return '';
+            throw new AssetCompilationException($message);
         }
 
         $innerContent = trim($m[1]);

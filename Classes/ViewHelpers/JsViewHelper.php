@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
+use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
 
 /**
  * Include a JavaScript asset from a file path or inline Fluid content.
@@ -127,9 +128,16 @@ final class JsViewHelper extends AbstractAssetViewHelper
 
     public function render(): string
     {
+        /** @var RenderingContext $renderingContext */
+        $renderingContext = $this->renderingContext;
+        $request = $renderingContext->getRequest();
+        if ($request === null) {
+            throw new \RuntimeException('maispace_assets: <mai:js> requires an HTTP request in the rendering context. This ViewHelper cannot be used in CLI or backend contexts without a request.', 1_700_000_002);
+        }
+
         $inlineContent = $this->renderChildren();
         $this->assetProcessingService->handleJs(
-            $this->renderingContext->getRequest(),
+            $request,
             $this->arguments,
             is_string($inlineContent) ? $inlineContent : null
         );

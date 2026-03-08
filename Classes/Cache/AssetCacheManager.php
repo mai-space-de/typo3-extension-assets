@@ -20,7 +20,7 @@ use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
  *             sha1(identifier + content hash) for inline
  * - SVG:      sha1(sorted symbol IDs)
  */
-final class AssetCacheManager
+class AssetCacheManager
 {
     private FrontendInterface $cache;
 

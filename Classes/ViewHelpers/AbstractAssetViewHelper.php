@@ -20,7 +20,8 @@ abstract class AbstractAssetViewHelper extends AbstractViewHelper
 {
     public function __construct(
         protected readonly AssetProcessingService $assetProcessingService,
-    ) {}
+    ) {
+    }
 
     public function initializeArguments(): void
     {

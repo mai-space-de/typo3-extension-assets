@@ -6,7 +6,6 @@ namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use Maispace\MaispaceAssets\Service\ImageRenderingService;
 use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
@@ -92,7 +91,8 @@ final class PictureViewHelper extends AbstractViewHelper
     public function __construct(
         protected readonly ImageRenderingService $imageRenderingService,
         protected readonly ImageService $imageService,
-    ) {}
+    ) {
+    }
 
     public function initializeArguments(): void
     {
@@ -273,9 +273,6 @@ final class PictureViewHelper extends AbstractViewHelper
     public function render(): string
     {
         $file = $this->imageRenderingService->resolveImage($this->arguments['image']);
-        if ($file === null) {
-            return '';
-        }
 
         // Resolve lazy loading settings (argument → TypoScript fallback)
         [$lazyloading, $lazyloadWithClass] = $this->resolveLazyArguments($this->arguments);

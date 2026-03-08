@@ -5,7 +5,6 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\ViewHelpers;
 
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -53,7 +52,8 @@ final class HintViewHelper extends AbstractViewHelper
 
     public function __construct(
         protected readonly PageRenderer $pageRenderer,
-    ) {}
+    ) {
+    }
 
     public function initializeArguments(): void
     {

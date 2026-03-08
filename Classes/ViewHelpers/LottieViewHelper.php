@@ -69,7 +69,8 @@ final class LottieViewHelper extends AbstractViewHelper
     public function __construct(
         protected readonly AssetCollector $collector,
         protected readonly LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     public function initializeArguments(): void
     {

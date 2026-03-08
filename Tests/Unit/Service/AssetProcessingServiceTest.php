@@ -5,13 +5,14 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\Tests\Unit\Service;
 
 use Maispace\MaispaceAssets\Cache\AssetCacheManager;
+use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
 use Maispace\MaispaceAssets\Service\ScssCompilerService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
-use TYPO3\CMS\Core\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Page\AssetCollector;
 
 /**
@@ -182,6 +183,65 @@ final class AssetProcessingServiceTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // resolveSource — AssetFileNotFoundException for missing local files
+    // -------------------------------------------------------------------------
+
+    public function testResolveSourceThrowsForNonExistentLocalPath(): void
+    {
+        $this->expectException(AssetFileNotFoundException::class);
+        $this->expectExceptionMessageMatches('/Asset file not found/');
+
+        $this->callResolveSource('/absolutely/nonexistent/style.css', null);
+    }
+
+    public function testResolveSourceThrowsForNonExistentExtNotationPath(): void
+    {
+        $this->expectException(AssetFileNotFoundException::class);
+        $this->expectExceptionMessageMatches('/Asset file not found/');
+
+        // EXT: paths that don't exist resolve to '' by GeneralUtility::getFileAbsFileName.
+        $this->callResolveSource('EXT:nonexistent_ext/style.css', null);
+    }
+
+    public function testResolveSourceDoesNotThrowForExternalUrl(): void
+    {
+        // External URLs bypass file-system resolution — no exception expected.
+        [$content, $absolute, $isFileBased] = $this->callResolveSource('https://cdn.example.com/style.css', null);
+
+        self::assertSame('https://cdn.example.com/style.css', $content);
+        self::assertNull($absolute);
+        self::assertFalse($isFileBased);
+    }
+
+    public function testResolveSourceReturnsNullTupleForEmptyInlineContent(): void
+    {
+        [$content, $absolute, $isFileBased] = $this->callResolveSource(null, '   ');
+
+        self::assertNull($content);
+        self::assertNull($absolute);
+        self::assertFalse($isFileBased);
+    }
+
+    public function testResolveSourceReturnsInlineContentWhenSrcIsNull(): void
+    {
+        [$content, $absolute, $isFileBased] = $this->callResolveSource(null, 'body { color: red; }');
+
+        self::assertSame('body { color: red; }', $content);
+        self::assertNull($absolute);
+        self::assertFalse($isFileBased);
+    }
+
+    public function testExceptionMessageContainsSrcPath(): void
+    {
+        try {
+            $this->callResolveSource('/does/not/exist.css', null);
+            self::fail('Expected AssetFileNotFoundException was not thrown.');
+        } catch (AssetFileNotFoundException $e) {
+            self::assertStringContainsString('/does/not/exist.css', $e->getMessage());
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Reflection helpers
     // -------------------------------------------------------------------------
 
@@ -232,5 +292,16 @@ final class AssetProcessingServiceTest extends TestCase
         $request = $this->createMock(ServerRequestInterface::class);
 
         return $method->invoke($this->createService(), $request, $setting, $argumentValue, $section);
+    }
+
+    /**
+     * @return array{0: string|null, 1: string|null, 2: bool}
+     */
+    private function callResolveSource(?string $src, ?string $inlineContent): array
+    {
+        $method = new \ReflectionMethod(AssetProcessingService::class, 'resolveSource');
+        $method->setAccessible(true);
+
+        return $method->invoke($this->createService(), $src, $inlineContent);
     }
 }

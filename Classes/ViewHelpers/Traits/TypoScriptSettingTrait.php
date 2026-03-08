@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\ViewHelpers\Traits;
 
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
 
 /**
  * Provides read-only access to the extension's TypoScript settings.
@@ -30,7 +31,9 @@ trait TypoScriptSettingTrait
      */
     private function getTypoScriptSetting(string $dotPath, mixed $default): mixed
     {
-        $request = $this->renderingContext->getRequest();
+        /** @var RenderingContext $renderingContext */
+        $renderingContext = $this->renderingContext;
+        $request = $renderingContext->getRequest();
         if (!$request instanceof ServerRequestInterface) {
             return $default;
         }
