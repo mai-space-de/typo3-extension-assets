@@ -5,7 +5,6 @@ declare(strict_types = 1);
 namespace Maispace\MaispaceAssets\Tests\Unit\Service;
 
 use Maispace\MaispaceAssets\Cache\AssetCacheManager;
-use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
 use Maispace\MaispaceAssets\Service\AssetProcessingService;
 use Maispace\MaispaceAssets\Service\ScssCompilerService;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -183,24 +182,26 @@ final class AssetProcessingServiceTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // resolveSource — AssetFileNotFoundException for missing local files
+    // resolveSource — returns [null, null, false] for missing local files
     // -------------------------------------------------------------------------
 
-    public function testResolveSourceThrowsForNonExistentLocalPath(): void
+    public function testResolveSourceReturnsNullTupleForNonExistentLocalPath(): void
     {
-        $this->expectException(AssetFileNotFoundException::class);
-        $this->expectExceptionMessageMatches('/Asset file not found/');
+        [$content, $absolute, $isFileBased] = $this->callResolveSource('/absolutely/nonexistent/style.css', null);
 
-        $this->callResolveSource('/absolutely/nonexistent/style.css', null);
+        self::assertNull($content);
+        self::assertNull($absolute);
+        self::assertFalse($isFileBased);
     }
 
-    public function testResolveSourceThrowsForNonExistentExtNotationPath(): void
+    public function testResolveSourceReturnsNullTupleForNonExistentExtNotationPath(): void
     {
-        $this->expectException(AssetFileNotFoundException::class);
-        $this->expectExceptionMessageMatches('/Asset file not found/');
-
         // EXT: paths that don't exist resolve to '' by GeneralUtility::getFileAbsFileName.
-        $this->callResolveSource('EXT:nonexistent_ext/style.css', null);
+        [$content, $absolute, $isFileBased] = $this->callResolveSource('EXT:nonexistent_ext/style.css', null);
+
+        self::assertNull($content);
+        self::assertNull($absolute);
+        self::assertFalse($isFileBased);
     }
 
     public function testResolveSourceDoesNotThrowForExternalUrl(): void
@@ -231,14 +232,13 @@ final class AssetProcessingServiceTest extends TestCase
         self::assertFalse($isFileBased);
     }
 
-    public function testExceptionMessageContainsSrcPath(): void
+    public function testResolveSourceReturnsNullTupleForArbitraryNonExistentPath(): void
     {
-        try {
-            $this->callResolveSource('/does/not/exist.css', null);
-            self::fail('Expected AssetFileNotFoundException was not thrown.');
-        } catch (AssetFileNotFoundException $e) {
-            self::assertStringContainsString('/does/not/exist.css', $e->getMessage());
-        }
+        [$content, $absolute, $isFileBased] = $this->callResolveSource('/does/not/exist.css', null);
+
+        self::assertNull($content);
+        self::assertNull($absolute);
+        self::assertFalse($isFileBased);
     }
 
     // -------------------------------------------------------------------------
