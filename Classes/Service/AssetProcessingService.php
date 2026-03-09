@@ -606,7 +606,8 @@ final class AssetProcessingService
      * Resolve the asset source content and absolute file path.
      *
      * Returns [content, absolutePath|null, isFileBased].
-     * Returns [null, null, false] when both src and inlineContent are empty (no-op).
+     * Returns [null, null, false] when both src and inlineContent are empty (no-op),
+     * or when the referenced local file cannot be found (a warning is logged in that case).
      *
      * External URLs (http/https/protocol-relative) are returned as [url, null, false]
      * so callers can detect them with isExternalUrl() and bypass local file processing.
