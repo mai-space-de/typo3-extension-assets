@@ -845,8 +845,53 @@ final class AssetProcessingService
         }
 
         GeneralUtility::fixPermissions($absoluteFile);
+        $this->writeCompressedVariants($request, $content, $absoluteFile);
 
         return $this->resolveWebPath($absoluteFile);
+    }
+
+    /**
+     * Write Brotli (.br) and/or gzip (.gz) pre-compressed variants of a static asset file.
+     *
+     * The plain file must already exist at $absoluteFile before this is called.
+     * A web server configured for static compression serving will pick these up
+     * automatically and deliver them to clients that announce the encoding in their
+     * Accept-Encoding request header:
+     *
+     *  - Nginx: `brotli_static on;` + `gzip_static on;`
+     *  - Apache: content-negotiation / mod_rewrite with `RewriteRule … %{REQUEST_FILENAME}.br`
+     *
+     * Compression is controlled via TypoScript:
+     *   plugin.tx_maispace_assets.compression.enable   (master switch)
+     *   plugin.tx_maispace_assets.compression.brotli   (requires PHP brotli ext)
+     *   plugin.tx_maispace_assets.compression.gzip     (uses built-in gzencode)
+     */
+    private function writeCompressedVariants(ServerRequestInterface $request, string $content, string $absoluteFile): void
+    {
+        if (!(bool)$this->getTypoScriptSetting($request, 'compression.enable', true)) {
+            return;
+        }
+
+        if ((bool)$this->getTypoScriptSetting($request, 'compression.brotli', true)
+            && function_exists('brotli_compress')
+        ) {
+            // 11 = maximum quality; 1 = BROTLI_TEXT mode (optimal for CSS/JS).
+            $br = brotli_compress($content, 11, 1);
+            if ($br !== false) {
+                GeneralUtility::writeFile($absoluteFile . '.br', $br, true);
+                GeneralUtility::fixPermissions($absoluteFile . '.br');
+            }
+        }
+
+        if ((bool)$this->getTypoScriptSetting($request, 'compression.gzip', true)
+            && function_exists('gzencode')
+        ) {
+            $gz = gzencode($content, 9);
+            if ($gz !== false) {
+                GeneralUtility::writeFile($absoluteFile . '.gz', $gz, true);
+                GeneralUtility::fixPermissions($absoluteFile . '.gz');
+            }
+        }
     }
 
     /**

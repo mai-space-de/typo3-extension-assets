@@ -141,6 +141,38 @@ plugin.tx_maispace_assets {
     }
 
     # =========================================================================
+    # Compression settings
+    # =========================================================================
+    compression {
+        # Enable pre-compression of processed CSS/JS files and runtime compression
+        # of the SVG sprite response.
+        #
+        # For CSS/JS files, compressed variants (.br, .gz) are written alongside the
+        # plain file so that a web server configured with static compression serving
+        # (Nginx: brotli_static + gzip_static, Apache: mod_negotiation / mod_rewrite)
+        # can deliver them without PHP overhead.
+        #
+        # For the SVG sprite, compression is applied at runtime to the HTTP response.
+        #
+        # 1 = enabled (default), 0 = disabled.
+        enable = 1
+
+        # Enable Brotli compression.
+        # Requires the PHP brotli extension (https://pecl.php.net/package/brotli).
+        # When enabled and the extension is available, Brotli is used as the primary
+        # compression algorithm (best ratio for text assets). When unavailable,
+        # the extension silently skips Brotli and falls back to gzip if enabled.
+        # 1 = enabled (default), 0 = disabled.
+        brotli = 1
+
+        # Enable gzip compression.
+        # Uses PHP's built-in gzencode() (zlib). Applied as fallback when the client
+        # does not support Brotli, or when Brotli is disabled or unavailable.
+        # 1 = enabled (default), 0 = disabled.
+        gzip = 1
+    }
+
+    # =========================================================================
     # Critical CSS / JS inline injection
     #
     # Critical assets are extracted by the CLI command:

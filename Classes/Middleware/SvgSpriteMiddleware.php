@@ -87,6 +87,39 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
                 ->withHeader('Cache-Control', 'public, max-age=31536000, immutable');
         }
 
+        // Apply Brotli (preferred) or gzip compression to the response body when
+        // the client signals support via Accept-Encoding and compression is enabled.
+        $body = $spriteXml;
+        $contentEncoding = null;
+
+        if ($this->resolveCompressionFlag($request, 'enable', true)) {
+            $acceptEncoding = $request->getHeaderLine('Accept-Encoding');
+
+            if ($this->resolveCompressionFlag($request, 'brotli', true)
+                && function_exists('brotli_compress')
+                && str_contains($acceptEncoding, 'br')
+            ) {
+                // 11 = maximum quality; 1 = BROTLI_TEXT mode (optimal for SVG/XML).
+                $compressed = brotli_compress($spriteXml, 11, 1);
+                if ($compressed !== false) {
+                    $body = $compressed;
+                    $contentEncoding = 'br';
+                }
+            }
+
+            if ($contentEncoding === null
+                && $this->resolveCompressionFlag($request, 'gzip', true)
+                && function_exists('gzencode')
+                && str_contains($acceptEncoding, 'gzip')
+            ) {
+                $compressed = gzencode($spriteXml, 9);
+                if ($compressed !== false) {
+                    $body = $compressed;
+                    $contentEncoding = 'gzip';
+                }
+            }
+        }
+
         $response = $this->responseFactory->createResponse(200)
             ->withHeader('Content-Type', self::CONTENT_TYPE)
             ->withHeader('Cache-Control', 'public, max-age=31536000, immutable')
@@ -94,9 +127,44 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
             ->withHeader('Vary', 'Accept-Encoding')
             ->withHeader('X-Content-Type-Options', 'nosniff');
 
-        $response->getBody()->write($spriteXml);
+        if ($contentEncoding !== null) {
+            $response = $response->withHeader('Content-Encoding', $contentEncoding);
+        }
+
+        $response->getBody()->write($body);
 
         return $response;
+    }
+
+    /**
+     * Resolve a boolean flag from plugin.tx_maispace_assets.compression.{key}.
+     *
+     * Falls back to $default when TypoScript is unavailable or the key is not set.
+     */
+    private function resolveCompressionFlag(ServerRequestInterface $request, string $key, bool $default): bool
+    {
+        /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $frontendTypoScript */
+        $frontendTypoScript = $request->getAttribute('frontend.typoscript');
+        if ($frontendTypoScript === null) {
+            return $default;
+        }
+
+        /** @var array<string, mixed> $setup */
+        $setup = $frontendTypoScript->getSetupArray();
+        $plugin = $setup['plugin.'] ?? null;
+        if (!is_array($plugin)) {
+            return $default;
+        }
+        $ext = $plugin['tx_maispace_assets.'] ?? null;
+        if (!is_array($ext)) {
+            return $default;
+        }
+        $compression = $ext['compression.'] ?? null;
+        if (!is_array($compression)) {
+            return $default;
+        }
+
+        return isset($compression[$key]) ? (bool)$compression[$key] : $default;
     }
 
     /**
