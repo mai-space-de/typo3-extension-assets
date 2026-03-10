@@ -220,7 +220,7 @@ final class SvgSpriteMiddlewareTest extends TestCase
     /**
      * Run the middleware against a fake sprite request and return the response.
      *
-     * @param array<string, int> $tsCompression  Values for plugin.tx_maispace_assets.compression.*
+     * @param array<string, int> $tsCompression Values for plugin.tx_maispace_assets.compression.*
      */
     private function runProcess(
         string $acceptEncoding,
@@ -232,9 +232,11 @@ final class SvgSpriteMiddlewareTest extends TestCase
             $compressionDot[$key] = (string)$value;
         }
 
-        $typoScript = new class ($compressionDot) {
+        $typoScript = new class($compressionDot) {
             /** @param array<string, string> $compression */
-            public function __construct(private readonly array $compression) {}
+            public function __construct(private readonly array $compression)
+            {
+            }
 
             /** @return array<string, mixed> */
             public function getSetupArray(): array
@@ -301,14 +303,20 @@ final class InMemoryResponse implements ResponseInterface
 
     public string $bodyContent = '';
 
-    public function __construct(private int $status = 200) {}
+    public function __construct(private int $status = 200)
+    {
+    }
 
-    public function getStatusCode(): int { return $this->status; }
+    public function getStatusCode(): int
+    {
+        return $this->status;
+    }
 
     public function withStatus($code, $reasonPhrase = ''): static
     {
         $clone = clone $this;
         $clone->status = $code;
+
         return $clone;
     }
 
@@ -321,6 +329,7 @@ final class InMemoryResponse implements ResponseInterface
     {
         $clone = clone $this;
         $clone->headers[strtolower($name)] = (array)$value;
+
         return $clone;
     }
 
@@ -328,53 +337,119 @@ final class InMemoryResponse implements ResponseInterface
     {
         $clone = clone $this;
         $clone->headers[strtolower($name)][] = $value;
+
         return $clone;
     }
 
-    public function hasHeader($name): bool { return isset($this->headers[strtolower($name)]); }
+    public function hasHeader($name): bool
+    {
+        return isset($this->headers[strtolower($name)]);
+    }
 
-    public function getHeaders(): array { return $this->headers; }
+    public function getHeaders(): array
+    {
+        return $this->headers;
+    }
 
-    public function getHeader($name): array { return $this->headers[strtolower($name)] ?? []; }
+    public function getHeader($name): array
+    {
+        return $this->headers[strtolower($name)] ?? [];
+    }
 
     public function withoutHeader($name): static
     {
         $clone = clone $this;
         unset($clone->headers[strtolower($name)]);
+
         return $clone;
     }
 
     public function getBody(): StreamInterface
     {
         $owner = $this;
-        return new class ($owner) implements StreamInterface {
-            public function __construct(private readonly InMemoryResponse $owner) {}
+
+        return new class($owner) implements StreamInterface {
+            public function __construct(private readonly InMemoryResponse $owner)
+            {
+            }
 
             public function write($string): int
             {
                 $this->owner->bodyContent .= $string;
+
                 return strlen($string);
             }
 
-            public function __toString(): string { return $this->owner->bodyContent; }
-            public function close(): void {}
-            public function detach(): mixed { return null; }
-            public function getSize(): ?int { return strlen($this->owner->bodyContent); }
-            public function tell(): int { return 0; }
-            public function eof(): bool { return true; }
-            public function isSeekable(): bool { return false; }
-            public function seek($offset, $whence = SEEK_SET): void {}
-            public function rewind(): void {}
-            public function isWritable(): bool { return true; }
-            public function isReadable(): bool { return true; }
-            public function read($length): string { return $this->owner->bodyContent; }
-            public function getContents(): string { return $this->owner->bodyContent; }
-            public function getMetadata($key = null): mixed { return null; }
+            public function __toString(): string
+            {
+                return $this->owner->bodyContent;
+            }
+            public function close(): void
+            {
+            }
+            public function detach(): mixed
+            {
+                return null;
+            }
+            public function getSize(): ?int
+            {
+                return strlen($this->owner->bodyContent);
+            }
+            public function tell(): int
+            {
+                return 0;
+            }
+            public function eof(): bool
+            {
+                return true;
+            }
+            public function isSeekable(): bool
+            {
+                return false;
+            }
+            public function seek($offset, $whence = SEEK_SET): void
+            {
+            }
+            public function rewind(): void
+            {
+            }
+            public function isWritable(): bool
+            {
+                return true;
+            }
+            public function isReadable(): bool
+            {
+                return true;
+            }
+            public function read($length): string
+            {
+                return $this->owner->bodyContent;
+            }
+            public function getContents(): string
+            {
+                return $this->owner->bodyContent;
+            }
+            public function getMetadata($key = null): mixed
+            {
+                return null;
+            }
         };
     }
 
-    public function withBody(StreamInterface $body): static { return $this; }
-    public function getProtocolVersion(): string { return '1.1'; }
-    public function withProtocolVersion($version): static { return $this; }
-    public function getReasonPhrase(): string { return ''; }
+    public function withBody(StreamInterface $body): static
+    {
+        return $this;
+    }
+    public function getProtocolVersion(): string
+    {
+        return '1.1';
+    }
+    public function withProtocolVersion($version): static
+    {
+        return $this;
+    }
+    public function getReasonPhrase(): string
+    {
+        return '';
+    }
 }

@@ -160,7 +160,7 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
 
         foreach (explode(',', $headerValue) as $token) {
             $parts = array_map('trim', explode(';', trim($token)));
-            $coding = strtolower(array_shift($parts) ?? '');
+            $coding = strtolower(array_shift($parts));
 
             if ($coding === '') {
                 continue;

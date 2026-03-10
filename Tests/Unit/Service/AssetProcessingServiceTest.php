@@ -248,7 +248,7 @@ final class AssetProcessingServiceTest extends TestCase
     public function testWriteCompressedVariantsSkipsWhenEnableIsOff(): void
     {
         $dir = sys_get_temp_dir() . '/maispace_assets_test_' . uniqid();
-        mkdir($dir, 0777, true);
+        mkdir($dir, 0o777, true);
         $plainFile = $dir . '/test.css';
         file_put_contents($plainFile, 'body {}');
 
@@ -272,7 +272,7 @@ final class AssetProcessingServiceTest extends TestCase
         }
 
         $dir = sys_get_temp_dir() . '/maispace_assets_test_' . uniqid();
-        mkdir($dir, 0777, true);
+        mkdir($dir, 0o777, true);
         $plainFile = $dir . '/test.css';
         $content = 'body { color: red; }';
         file_put_contents($plainFile, $content);
@@ -297,7 +297,7 @@ final class AssetProcessingServiceTest extends TestCase
     public function testWriteCompressedVariantsSkipsGzipWhenDisabled(): void
     {
         $dir = sys_get_temp_dir() . '/maispace_assets_test_' . uniqid();
-        mkdir($dir, 0777, true);
+        mkdir($dir, 0o777, true);
         $plainFile = $dir . '/test.css';
         file_put_contents($plainFile, 'body {}');
 
@@ -320,7 +320,7 @@ final class AssetProcessingServiceTest extends TestCase
         }
 
         $dir = sys_get_temp_dir() . '/maispace_assets_test_' . uniqid();
-        mkdir($dir, 0777, true);
+        mkdir($dir, 0o777, true);
         $plainFile = $dir . '/test.css';
         $content = 'body {}';
         file_put_contents($plainFile, $content);
@@ -408,7 +408,7 @@ final class AssetProcessingServiceTest extends TestCase
     }
 
     /**
-     * @param array<string, string> $tsCompression  Values for plugin.tx_maispace_assets.compression.*
+     * @param array<string, string> $tsCompression Values for plugin.tx_maispace_assets.compression.*
      */
     private function callWriteCompressedVariants(
         string $absoluteFile,
@@ -420,9 +420,11 @@ final class AssetProcessingServiceTest extends TestCase
             $compressionDot[$key] = $value;
         }
 
-        $typoScript = new class ($compressionDot) {
+        $typoScript = new class($compressionDot) {
             /** @param array<string, string> $compression */
-            public function __construct(private readonly array $compression) {}
+            public function __construct(private readonly array $compression)
+            {
+            }
 
             /** @return array<string, mixed> */
             public function getSetupArray(): array
