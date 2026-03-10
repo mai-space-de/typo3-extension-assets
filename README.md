@@ -37,6 +37,8 @@ A TYPO3 extension that provides Fluid ViewHelpers for CSS, JavaScript, SCSS, ima
 | Critical CSS extraction & inlining | `maispace:assets:critical:extract` |
 | Deploy-time cache warm-up | `php vendor/bin/typo3 maispace:assets:warmup` |
 | PSR-14 events at every processing stage | `Classes/Event/` |
+| Brotli + gzip pre-compressed CSS/JS static files | `compression.enable` / `compression.brotli` / `compression.gzip` |
+| Runtime-compressed SVG sprite (Brotli → gzip → plain) | `SvgSpriteMiddleware` |
 
 ---
 
@@ -476,10 +478,100 @@ plugin.tx_maispace_assets {
         symbolIdPrefix = icon-
         cache = 1
     }
+    compression {
+        enable = 1                 # master switch (default: on)
+        brotli = 1                 # Brotli — requires PHP brotli extension
+        gzip   = 1                 # gzip fallback via gzencode()
+    }
 }
 ```
 
 **Debug mode** — all minification and deferral is automatically disabled when a backend user is logged in and `?debug=1` is in the URL (included in `setup.typoscript`, no manual setup needed).
+
+---
+
+## Compression
+
+Processed CSS and JS files are written to `typo3temp/assets/maispace_assets/` with two compressed siblings alongside the plain file:
+
+```
+typo3temp/assets/maispace_assets/css/
+├── a3f9d1…css          ← plain (always written)
+├── a3f9d1…css.br       ← Brotli, quality 11, BROTLI_TEXT mode
+└── a3f9d1…css.gz       ← gzip, level 9
+```
+
+The web server serves the appropriate variant based on the client's `Accept-Encoding` header. The SVG sprite is compressed at runtime inside `SvgSpriteMiddleware` (Brotli preferred, gzip fallback).
+
+The `brotli` PHP extension ([PECL](https://pecl.php.net/package/brotli)) is required for `.br` files. When it is absent, `.br` files are silently skipped and gzip-only output is produced — no configuration change is needed.
+
+### Web server configuration
+
+**Nginx** (requires [ngx_brotli](https://github.com/google/ngx_brotli) for `brotli_static`):
+
+```nginx
+location ~* ^/typo3temp/assets/maispace_assets/ {
+    brotli_static on;
+    gzip_static   on;
+    add_header Vary Accept-Encoding always;
+    expires max;
+    access_log off;
+}
+```
+
+**Apache** (requires `mod_rewrite` + `mod_headers`):
+
+```apache
+<Directory "/var/www/html/typo3temp/assets/maispace_assets">
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteCond %{HTTP:Accept-Encoding} \bbr\b
+        RewriteCond %{REQUEST_FILENAME}\.br  -s
+        RewriteRule ^(.+)$                   $1.br [L]
+        RewriteCond %{HTTP:Accept-Encoding} \bgzip\b
+        RewriteCond %{REQUEST_FILENAME}\.gz  -s
+        RewriteRule ^(.+)$                   $1.gz [L]
+    </IfModule>
+    <FilesMatch "\.css\.br$">
+        <IfModule mod_headers.c>
+            ForceType text/css
+            Header set    Content-Encoding br
+            Header append Vary Accept-Encoding
+        </IfModule>
+    </FilesMatch>
+    <FilesMatch "\.js\.br$">
+        <IfModule mod_headers.c>
+            ForceType application/javascript
+            Header set    Content-Encoding br
+            Header append Vary Accept-Encoding
+        </IfModule>
+    </FilesMatch>
+    <FilesMatch "\.css\.gz$">
+        <IfModule mod_headers.c>
+            ForceType text/css
+            Header set    Content-Encoding gzip
+            Header append Vary Accept-Encoding
+        </IfModule>
+    </FilesMatch>
+    <FilesMatch "\.js\.gz$">
+        <IfModule mod_headers.c>
+            ForceType application/javascript
+            Header set    Content-Encoding gzip
+            Header append Vary Accept-Encoding
+        </IfModule>
+    </FilesMatch>
+</Directory>
+```
+
+**Caddy** (built-in, no module required):
+
+```caddy
+handle /typo3temp/assets/maispace_assets/* {
+    file_server {
+        precompressed br gzip
+    }
+}
+```
 
 ---
 
