@@ -366,6 +366,44 @@ individual symbols before they are stored in the registry.
     source path, and file modification time. Any change to an SVG source file
     automatically produces a new cache entry without a manual cache flush.
 
+Compression Settings
+====================
+
+See :ref:`compression` for web server configuration snippets (Nginx, Apache, Caddy)
+and a full explanation of how pre-compressed static files and runtime sprite compression
+work together.
+
+.. confval:: plugin.tx_maispace_assets.compression.enable
+    :type: boolean
+    :Default: 1
+
+    Master switch. When ``0``, no ``.br`` / ``.gz`` files are written to disk and
+    the SVG sprite response is never compressed.
+
+.. confval:: plugin.tx_maispace_assets.compression.brotli
+    :type: boolean
+    :Default: 1
+
+    Enable Brotli compression. Requires the PHP ``brotli`` PECL extension
+    (``function_exists('brotli_compress')``). When the extension is not installed
+    this flag has no effect — Brotli is silently skipped without error.
+
+    When enabled, each processed CSS/JS asset produces an additional ``.br`` sibling
+    file (quality 11, ``BROTLI_TEXT`` mode). The SVG sprite response uses Brotli when
+    the client signals ``Accept-Encoding: br``.
+
+.. confval:: plugin.tx_maispace_assets.compression.gzip
+    :type: boolean
+    :Default: 1
+
+    Enable gzip compression using PHP's built-in ``gzencode()`` (zlib). Applied when:
+
+    * Brotli is unavailable or disabled, **or**
+    * The client does not signal ``Accept-Encoding: br`` (for the SVG sprite).
+
+    When enabled, each processed CSS/JS asset produces an additional ``.gz`` sibling
+    file (level 9).
+
 Debug Mode
 ==========
 
@@ -433,6 +471,11 @@ Full Example Configuration
             routePath = /maispace/sprite.svg
             symbolIdPrefix = icon-
             cache = 1
+        }
+        compression {
+            enable = 1
+            brotli = 1
+            gzip   = 1
         }
     }
 

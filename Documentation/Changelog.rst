@@ -6,6 +6,52 @@
 Changelog
 =========
 
+1.5.0 (2026-03-10)
+==================
+
+New Features
+------------
+
+Brotli + gzip Compression
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*  **Pre-compressed CSS/JS files** — ``AssetProcessingService`` now writes Brotli
+   (``.br``) and gzip (``.gz``) variants of every processed CSS and JS asset alongside
+   the plain file in ``typo3temp/assets/maispace_assets/``.  A web server configured for
+   static compression serving (Nginx: ``brotli_static`` + ``gzip_static``; Apache:
+   ``mod_rewrite`` + ``mod_headers``; Caddy: ``file_server { precompressed br gzip }``)
+   will deliver the pre-compressed file to capable clients with zero runtime overhead.
+
+   Brotli uses quality 11 (maximum) with ``BROTLI_TEXT`` mode, which is optimal for
+   CSS/JS. gzip uses level 9. Both are written once when the asset is first processed
+   and served indefinitely from disk.
+
+*  **Runtime-compressed SVG sprite** — ``SvgSpriteMiddleware`` now inspects the
+   ``Accept-Encoding`` request header and compresses the sprite response body before
+   writing it to the PSR-7 stream. Brotli is attempted first; gzip is used when the
+   client does not signal ``br`` support. ``Content-Encoding`` is added to the response
+   accordingly. The ``ETag`` continues to be computed from the uncompressed XML so
+   conditional GET / 304 semantics remain correct.
+
+*  **TypoScript toggle** — three new settings under
+   ``plugin.tx_maispace_assets.compression``:
+
+   .. code-block:: typoscript
+
+       plugin.tx_maispace_assets.compression {
+           enable = 1   # master switch (default: on)
+           brotli = 1   # Brotli — requires PHP brotli extension (default: on)
+           gzip   = 1   # gzip fallback via gzencode() (default: on)
+       }
+
+   Brotli is silently skipped when the PHP ``brotli`` extension is not installed — no
+   configuration change is needed on hosts that only have zlib.
+
+*  **Web server configuration** — new :ref:`compression` documentation page with
+   ready-to-use configuration snippets for Nginx, Apache, and Caddy.
+
+----
+
 1.4.0 (2026-02-27)
 ==================
 

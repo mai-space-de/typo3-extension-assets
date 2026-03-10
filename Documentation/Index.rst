@@ -35,6 +35,7 @@ Maispace Assets
     Introduction
     Installation
     Configuration
+    Compression
     ViewHelpers
     Events
     Changelog

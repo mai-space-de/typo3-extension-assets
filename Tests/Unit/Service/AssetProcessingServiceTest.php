@@ -242,6 +242,108 @@ final class AssetProcessingServiceTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // writeCompressedVariants
+    // -------------------------------------------------------------------------
+
+    public function testWriteCompressedVariantsSkipsWhenEnableIsOff(): void
+    {
+        $dir = sys_get_temp_dir() . '/maispace_assets_test_' . uniqid();
+        mkdir($dir, 0o777, true);
+        $plainFile = $dir . '/test.css';
+        file_put_contents($plainFile, 'body {}');
+
+        $this->callWriteCompressedVariants(
+            absoluteFile: $plainFile,
+            content: 'body {}',
+            tsCompression: ['enable' => '0'],
+        );
+
+        self::assertFileDoesNotExist($plainFile . '.br');
+        self::assertFileDoesNotExist($plainFile . '.gz');
+
+        unlink($plainFile);
+        rmdir($dir);
+    }
+
+    public function testWriteCompressedVariantsWritesGzipWhenEnabled(): void
+    {
+        if (!function_exists('gzencode')) {
+            self::markTestSkipped('gzencode() not available.');
+        }
+
+        $dir = sys_get_temp_dir() . '/maispace_assets_test_' . uniqid();
+        mkdir($dir, 0o777, true);
+        $plainFile = $dir . '/test.css';
+        $content = 'body { color: red; }';
+        file_put_contents($plainFile, $content);
+
+        $this->callWriteCompressedVariants(
+            absoluteFile: $plainFile,
+            content: $content,
+            tsCompression: ['enable' => '1', 'brotli' => '0', 'gzip' => '1'],
+        );
+
+        self::assertFileExists($plainFile . '.gz');
+        self::assertFileDoesNotExist($plainFile . '.br');
+
+        $decoded = gzdecode((string)file_get_contents($plainFile . '.gz'));
+        self::assertSame($content, $decoded);
+
+        unlink($plainFile);
+        unlink($plainFile . '.gz');
+        rmdir($dir);
+    }
+
+    public function testWriteCompressedVariantsSkipsGzipWhenDisabled(): void
+    {
+        $dir = sys_get_temp_dir() . '/maispace_assets_test_' . uniqid();
+        mkdir($dir, 0o777, true);
+        $plainFile = $dir . '/test.css';
+        file_put_contents($plainFile, 'body {}');
+
+        $this->callWriteCompressedVariants(
+            absoluteFile: $plainFile,
+            content: 'body {}',
+            tsCompression: ['enable' => '1', 'brotli' => '0', 'gzip' => '0'],
+        );
+
+        self::assertFileDoesNotExist($plainFile . '.gz');
+
+        unlink($plainFile);
+        rmdir($dir);
+    }
+
+    public function testWriteCompressedVariantsSkipsExistingSiblings(): void
+    {
+        if (!function_exists('gzencode')) {
+            self::markTestSkipped('gzencode() not available.');
+        }
+
+        $dir = sys_get_temp_dir() . '/maispace_assets_test_' . uniqid();
+        mkdir($dir, 0o777, true);
+        $plainFile = $dir . '/test.css';
+        $content = 'body {}';
+        file_put_contents($plainFile, $content);
+
+        // Pre-create the .gz file with sentinel content.
+        $sentinel = 'sentinel';
+        file_put_contents($plainFile . '.gz', $sentinel);
+
+        $this->callWriteCompressedVariants(
+            absoluteFile: $plainFile,
+            content: $content,
+            tsCompression: ['enable' => '1', 'brotli' => '0', 'gzip' => '1'],
+        );
+
+        // The pre-existing file must not be overwritten.
+        self::assertSame($sentinel, file_get_contents($plainFile . '.gz'));
+
+        unlink($plainFile);
+        unlink($plainFile . '.gz');
+        rmdir($dir);
+    }
+
+    // -------------------------------------------------------------------------
     // Reflection helpers
     // -------------------------------------------------------------------------
 
@@ -303,5 +405,47 @@ final class AssetProcessingServiceTest extends TestCase
         $method->setAccessible(true);
 
         return $method->invoke($this->createService(), $src, $inlineContent);
+    }
+
+    /**
+     * @param array<string, string> $tsCompression Values for plugin.tx_maispace_assets.compression.*
+     */
+    private function callWriteCompressedVariants(
+        string $absoluteFile,
+        string $content,
+        array $tsCompression,
+    ): void {
+        $compressionDot = [];
+        foreach ($tsCompression as $key => $value) {
+            $compressionDot[$key] = $value;
+        }
+
+        $typoScript = new class($compressionDot) {
+            /** @param array<string, string> $compression */
+            public function __construct(private readonly array $compression)
+            {
+            }
+
+            /** @return array<string, mixed> */
+            public function getSetupArray(): array
+            {
+                return [
+                    'plugin.' => [
+                        'tx_maispace_assets.' => [
+                            'compression.' => $this->compression,
+                        ],
+                    ],
+                ];
+            }
+        };
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request->method('getAttribute')
+            ->with('frontend.typoscript')
+            ->willReturn($typoScript);
+
+        $method = new \ReflectionMethod(AssetProcessingService::class, 'writeCompressedVariants');
+        $method->setAccessible(true);
+        $method->invoke($this->createService(), $request, $content, $absoluteFile);
     }
 }
