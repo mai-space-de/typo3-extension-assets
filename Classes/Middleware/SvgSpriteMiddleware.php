@@ -93,14 +93,16 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
         $contentEncoding = null;
 
         if ($this->resolveCompressionFlag($request, 'enable', true)) {
-            $acceptEncoding = $request->getHeaderLine('Accept-Encoding');
+            $acceptedEncodings = $this->parseAcceptEncoding($request->getHeaderLine('Accept-Encoding'));
 
             if ($this->resolveCompressionFlag($request, 'brotli', true)
                 && function_exists('brotli_compress')
-                && str_contains($acceptEncoding, 'br')
+                && isset($acceptedEncodings['br'])
             ) {
-                // 11 = maximum quality; 1 = BROTLI_TEXT mode (optimal for SVG/XML).
-                $compressed = brotli_compress($spriteXml, 11, 1);
+                // Use BROTLI_TEXT constant when available; fall back to its integer value (1)
+                // when the brotli extension defines it differently or stubs are missing.
+                $mode = defined('BROTLI_TEXT') ? BROTLI_TEXT : 1;
+                $compressed = brotli_compress($spriteXml, 11, $mode);
                 if ($compressed !== false) {
                     $body = $compressed;
                     $contentEncoding = 'br';
@@ -110,7 +112,7 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
             if ($contentEncoding === null
                 && $this->resolveCompressionFlag($request, 'gzip', true)
                 && function_exists('gzencode')
-                && str_contains($acceptEncoding, 'gzip')
+                && isset($acceptedEncodings['gzip'])
             ) {
                 $compressed = gzencode($spriteXml, 9);
                 if ($compressed !== false) {
@@ -134,6 +136,51 @@ final class SvgSpriteMiddleware implements MiddlewareInterface
         $response->getBody()->write($body);
 
         return $response;
+    }
+
+    /**
+     * Parse an Accept-Encoding header value per RFC 7231 §5.3.4.
+     *
+     * Tokenises the comma-separated list, strips optional whitespace, and applies
+     * q-value filtering: encodings with q=0 are explicitly rejected and are excluded
+     * from the returned map. Matching is case-insensitive (normalised to lowercase).
+     *
+     * Returns an array keyed by lowercase encoding name (value is always true) for
+     * O(1) membership testing via isset().
+     *
+     * @return array<string, true>
+     */
+    private function parseAcceptEncoding(string $headerValue): array
+    {
+        if ($headerValue === '') {
+            return [];
+        }
+
+        $accepted = [];
+
+        foreach (explode(',', $headerValue) as $token) {
+            $parts = array_map('trim', explode(';', trim($token)));
+            $coding = strtolower(array_shift($parts) ?? '');
+
+            if ($coding === '') {
+                continue;
+            }
+
+            $q = 1.0;
+            foreach ($parts as $param) {
+                $pair = array_map('trim', explode('=', $param, 2));
+                if (strtolower($pair[0]) === 'q' && isset($pair[1])) {
+                    $q = (float)$pair[1];
+                    break;
+                }
+            }
+
+            if ($q > 0.0) {
+                $accepted[$coding] = true;
+            }
+        }
+
+        return $accepted;
     }
 
     /**

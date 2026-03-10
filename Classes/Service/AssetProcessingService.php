@@ -874,9 +874,12 @@ final class AssetProcessingService
 
         if ((bool)$this->getTypoScriptSetting($request, 'compression.brotli', true)
             && function_exists('brotli_compress')
+            && !file_exists($absoluteFile . '.br')
         ) {
-            // 11 = maximum quality; 1 = BROTLI_TEXT mode (optimal for CSS/JS).
-            $br = brotli_compress($content, 11, 1);
+            // Use BROTLI_TEXT constant when available; fall back to its integer value (1)
+            // when the brotli extension defines it differently or stubs are missing.
+            $mode = defined('BROTLI_TEXT') ? BROTLI_TEXT : 1;
+            $br = brotli_compress($content, 11, $mode);
             if ($br !== false) {
                 GeneralUtility::writeFile($absoluteFile . '.br', $br, true);
                 GeneralUtility::fixPermissions($absoluteFile . '.br');
@@ -885,6 +888,7 @@ final class AssetProcessingService
 
         if ((bool)$this->getTypoScriptSetting($request, 'compression.gzip', true)
             && function_exists('gzencode')
+            && !file_exists($absoluteFile . '.gz')
         ) {
             $gz = gzencode($content, 9);
             if ($gz !== false) {
