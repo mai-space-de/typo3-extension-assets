@@ -154,7 +154,7 @@ plugin.tx_maispace_assets {
         #
         # For the SVG sprite, compression is applied at runtime to the HTTP response.
         #
-        # 1 = enabled (default), 0 = disabled.
+        # 1 for enabled (default), 0 for disabled.
         enable = 1
 
         # Enable Brotli compression.
@@ -162,13 +162,13 @@ plugin.tx_maispace_assets {
         # When enabled and the extension is available, Brotli is used as the primary
         # compression algorithm (best ratio for text assets). When unavailable,
         # the extension silently skips Brotli and falls back to gzip if enabled.
-        # 1 = enabled (default), 0 = disabled.
+        # 1 for enabled (default), 0 for disabled.
         brotli = 1
 
         # Enable gzip compression.
         # Uses PHP's built-in gzencode() (zlib). Applied as fallback when the client
         # does not support Brotli, or when Brotli is disabled or unavailable.
-        # 1 = enabled (default), 0 = disabled.
+        # 1 for enabled (default), 0 for disabled.
         gzip = 1
     }
 
