@@ -69,45 +69,42 @@ declare(strict_types=1);
  * ============================================================================
  */
 return [
-
-    // -------------------------------------------------------------------------
-    // The following entries are EXAMPLES.
-    // Replace with your actual icon files or remove entries you do not need.
-    // These paths assume the icons exist in your extension — adjust accordingly.
-    // -------------------------------------------------------------------------
-
-    /*
+        // -------------------------------------------------------------------------
+        // The following entries are EXAMPLES.
+        // Replace with your actual icon files or remove entries you do not need.
+        // These paths assume the icons exist in your extension — adjust accordingly.
+        // -------------------------------------------------------------------------
+        /*
     'icon-arrow-right' => [
-        'src' => 'EXT:maispace_assets/Resources/Public/Icons/arrow-right.svg',
+        'src' => 'EXT:mai_assets/Resources/Public/Icons/arrow-right.svg',
     ],
 
     'icon-arrow-left' => [
-        'src' => 'EXT:maispace_assets/Resources/Public/Icons/arrow-left.svg',
+        'src' => 'EXT:mai_assets/Resources/Public/Icons/arrow-left.svg',
     ],
 
     'icon-close' => [
-        'src' => 'EXT:maispace_assets/Resources/Public/Icons/close.svg',
+        'src' => 'EXT:mai_assets/Resources/Public/Icons/close.svg',
     ],
 
     'icon-menu' => [
-        'src' => 'EXT:maispace_assets/Resources/Public/Icons/menu.svg',
+        'src' => 'EXT:mai_assets/Resources/Public/Icons/menu.svg',
     ],
 
     'icon-search' => [
-        'src' => 'EXT:maispace_assets/Resources/Public/Icons/search.svg',
+        'src' => 'EXT:mai_assets/Resources/Public/Icons/search.svg',
     ],
 
     'icon-external-link' => [
-        'src' => 'EXT:maispace_assets/Resources/Public/Icons/external-link.svg',
+        'src' => 'EXT:mai_assets/Resources/Public/Icons/external-link.svg',
     ],
 
     'icon-check' => [
-        'src' => 'EXT:maispace_assets/Resources/Public/Icons/check.svg',
+        'src' => 'EXT:mai_assets/Resources/Public/Icons/check.svg',
     ],
 
     'icon-warning' => [
-        'src' => 'EXT:maispace_assets/Resources/Public/Icons/warning.svg',
+        'src' => 'EXT:mai_assets/Resources/Public/Icons/warning.svg',
     ],
     */
-
-];
+    ];
