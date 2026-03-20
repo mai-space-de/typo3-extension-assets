@@ -133,7 +133,7 @@ Bug Fixes
      file reference to swap).
 
    Warnings are written to the TYPO3 log at level ``WARNING`` under the
-   ``Maispace.MaispaceAssets.Service.AssetProcessingService`` channel.
+   ``Maispace.MaiAssets.Service.AssetProcessingService`` channel.
 
 Code Quality
 ------------
@@ -141,7 +141,7 @@ Code Quality
 *  **``TypoScriptSettingTrait``** — The identical private static ``getTypoScriptSetting()``
    method that was duplicated in ``ImageViewHelper``, ``PictureViewHelper``, and
    ``Picture\SourceViewHelper`` has been extracted into a shared trait
-   (``Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait``). The three
+   (``Maispace\MaiAssets\ViewHelpers\Traits\TypoScriptSettingTrait``). The three
    ViewHelpers now use the trait instead of carrying their own copy.
 
 *  **``ImageRenderingService`` testability** — The constructor now accepts an optional

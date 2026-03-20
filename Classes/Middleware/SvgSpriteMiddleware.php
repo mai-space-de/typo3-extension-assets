@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Middleware;
+namespace Maispace\MaiAssets\Middleware;
 
-use Maispace\MaispaceAssets\Registry\SpriteIconRegistry;
+use Maispace\MaiAssets\Registry\SpriteIconRegistry;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;

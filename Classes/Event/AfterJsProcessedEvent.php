@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Event;
+namespace Maispace\MaiAssets\Event;
 
 /**
  * Dispatched after a JS asset has been processed (minified / read from file / captured
@@ -20,9 +20,9 @@ namespace Maispace\MaispaceAssets\Event;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-js-processor'
- *               event: Maispace\MaispaceAssets\Event\AfterJsProcessedEvent
+ *               event: Maispace\MaiAssets\Event\AfterJsProcessedEvent
  *
- * @see \Maispace\MaispaceAssets\Service\AssetProcessingService::handleJs()
+ * @see \Maispace\MaiAssets\Service\AssetProcessingService::handleJs()
  */
 final class AfterJsProcessedEvent
 {

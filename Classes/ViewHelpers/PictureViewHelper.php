@@ -2,10 +2,10 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\ViewHelpers;
+namespace Maispace\MaiAssets\ViewHelpers;
 
-use Maispace\MaispaceAssets\Service\ImageRenderingService;
-use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
+use Maispace\MaiAssets\Service\ImageRenderingService;
+use Maispace\MaiAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 

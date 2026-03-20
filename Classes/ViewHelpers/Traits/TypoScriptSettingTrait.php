@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\ViewHelpers\Traits;
+namespace Maispace\MaiAssets\ViewHelpers\Traits;
 
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;

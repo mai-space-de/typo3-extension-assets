@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\EventListener;
+namespace Maispace\MaiAssets\EventListener;
 
-use Maispace\MaispaceAssets\Event\AfterJsProcessedEvent;
+use Maispace\MaiAssets\Event\AfterJsProcessedEvent;
 
 /**
  * Example event listener for AfterJsProcessedEvent.
@@ -22,7 +22,7 @@ use Maispace\MaispaceAssets\Event\AfterJsProcessedEvent;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-js-processor'
- *               event: Maispace\MaispaceAssets\Event\AfterJsProcessedEvent
+ *               event: Maispace\MaiAssets\Event\AfterJsProcessedEvent
  *
  * AVAILABLE EVENT API
  * ====================

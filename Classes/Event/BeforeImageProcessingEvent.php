@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Event;
+namespace Maispace\MaiAssets\Event;
 
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileReference;
@@ -27,9 +27,9 @@ use TYPO3\CMS\Core\Resource\FileReference;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-before-image-processing'
- *               event: Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
+ *               event: Maispace\MaiAssets\Event\BeforeImageProcessingEvent
  *
- * @see \Maispace\MaispaceAssets\Service\ImageRenderingService::processImage()
+ * @see \Maispace\MaiAssets\Service\ImageRenderingService::processImage()
  * @see AfterImageProcessedEvent
  */
 final class BeforeImageProcessingEvent

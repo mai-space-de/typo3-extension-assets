@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\EventListener;
+namespace Maispace\MaiAssets\EventListener;
 
-use Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent;
+use Maispace\MaiAssets\Event\AfterSpriteBuiltEvent;
 
 /**
  * Example event listener for AfterSpriteBuiltEvent.
@@ -21,7 +21,7 @@ use Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-sprite-post-process'
- *               event: Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
+ *               event: Maispace\MaiAssets\Event\AfterSpriteBuiltEvent
  *
  * AVAILABLE EVENT API
  * ====================
@@ -38,7 +38,7 @@ use Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent;
  * - Prettify or minify the sprite XML based on environment
  *
  * @see AfterSpriteBuiltEvent
- * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
+ * @see \Maispace\MaiAssets\Registry\SpriteIconRegistry
  */
 final class AfterSpriteBuiltEventListener
 {

@@ -2,10 +2,10 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Tests\Unit\Middleware;
+namespace Maispace\MaiAssets\Tests\Unit\Middleware;
 
-use Maispace\MaispaceAssets\Middleware\CriticalCssInlineMiddleware;
-use Maispace\MaispaceAssets\Service\CriticalAssetService;
+use Maispace\MaiAssets\Middleware\CriticalCssInlineMiddleware;
+use Maispace\MaiAssets\Service\CriticalAssetService;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;

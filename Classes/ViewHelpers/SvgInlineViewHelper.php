@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\ViewHelpers;
+namespace Maispace\MaiAssets\ViewHelpers;
 
-use Maispace\MaispaceAssets\Cache\AssetCacheManager;
+use Maispace\MaiAssets\Cache\AssetCacheManager;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;

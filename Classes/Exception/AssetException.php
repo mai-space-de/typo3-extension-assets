@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Exception;
+namespace Maispace\MaiAssets\Exception;
 
 /**
  * Base exception for all maispace_assets runtime failures.

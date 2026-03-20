@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\EventListener;
+namespace Maispace\MaiAssets\EventListener;
 
-use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
+use Maispace\MaiAssets\Event\BeforeImageProcessingEvent;
 
 /**
  * Example event listener for BeforeImageProcessingEvent.
@@ -23,7 +23,7 @@ use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-before-image-processing'
- *               event: Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
+ *               event: Maispace\MaiAssets\Event\BeforeImageProcessingEvent
  *
  * AVAILABLE EVENT API
  * ====================
@@ -43,7 +43,7 @@ use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
  * - Apply environment-specific instructions (e.g., sharper crops in production)
  *
  * @see BeforeImageProcessingEvent
- * @see \Maispace\MaispaceAssets\Service\ImageRenderingService::processImage()
+ * @see \Maispace\MaiAssets\Service\ImageRenderingService::processImage()
  */
 final class BeforeImageProcessingEventListener
 {

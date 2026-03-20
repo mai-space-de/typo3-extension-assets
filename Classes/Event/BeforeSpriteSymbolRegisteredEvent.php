@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Event;
+namespace Maispace\MaiAssets\Event;
 
 /**
  * Dispatched for every SVG symbol discovered in a `Configuration/SpriteIcons.php` file
@@ -24,9 +24,9 @@ namespace Maispace\MaispaceAssets\Event;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-icon-filter'
- *               event: Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
+ *               event: Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent
  *
- * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
+ * @see \Maispace\MaiAssets\Registry\SpriteIconRegistry
  */
 final class BeforeSpriteSymbolRegisteredEvent
 {

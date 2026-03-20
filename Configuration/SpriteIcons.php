@@ -57,9 +57,9 @@ declare(strict_types=1);
  * EVENT HOOKS
  * ===========
  * Listen to these events to modify or filter registrations:
- *   - Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
+ *   - Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent
  *       → rename, modify src, or veto individual symbols
- *   - Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
+ *   - Maispace\MaiAssets\Event\AfterSpriteBuiltEvent
  *       → post-process the full sprite XML before it is cached
  *
  * ============================================================================

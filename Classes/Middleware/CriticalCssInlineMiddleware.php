@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Middleware;
+namespace Maispace\MaiAssets\Middleware;
 
-use Maispace\MaispaceAssets\Service\CriticalAssetService;
+use Maispace\MaiAssets\Service\CriticalAssetService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -59,7 +59,7 @@ use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
  * carries the resolved PageArguments (page UID) when process() is called.
  *
  * @see CriticalAssetService
- * @see \Maispace\MaispaceAssets\Command\CriticalCssExtractCommand
+ * @see \Maispace\MaiAssets\Command\CriticalCssExtractCommand
  */
 final class CriticalCssInlineMiddleware implements MiddlewareInterface
 {

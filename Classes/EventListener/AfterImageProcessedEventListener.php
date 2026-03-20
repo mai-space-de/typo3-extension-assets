@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\EventListener;
+namespace Maispace\MaiAssets\EventListener;
 
-use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
+use Maispace\MaiAssets\Event\AfterImageProcessedEvent;
 
 /**
  * Example event listener for AfterImageProcessedEvent.
@@ -23,7 +23,7 @@ use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-after-image-processed'
- *               event: Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
+ *               event: Maispace\MaiAssets\Event\AfterImageProcessedEvent
  *
  * AVAILABLE EVENT API
  * ====================
@@ -40,7 +40,7 @@ use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
  * - Collect statistics for a performance monitoring dashboard
  *
  * @see AfterImageProcessedEvent
- * @see \Maispace\MaispaceAssets\Service\ImageRenderingService::processImage()
+ * @see \Maispace\MaiAssets\Service\ImageRenderingService::processImage()
  */
 final class AfterImageProcessedEventListener
 {

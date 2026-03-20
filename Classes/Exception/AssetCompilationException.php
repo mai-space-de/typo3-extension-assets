@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Exception;
+namespace Maispace\MaiAssets\Exception;
 
 /**
  * Thrown when an asset cannot be compiled or parsed.

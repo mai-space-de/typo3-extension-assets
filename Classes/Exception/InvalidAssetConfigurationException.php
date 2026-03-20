@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Exception;
+namespace Maispace\MaiAssets\Exception;
 
 /**
  * Thrown when a Fonts.php or SpriteIcons.php configuration file is invalid.

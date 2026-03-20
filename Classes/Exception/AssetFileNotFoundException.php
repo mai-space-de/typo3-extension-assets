@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Exception;
+namespace Maispace\MaiAssets\Exception;
 
 /**
  * Thrown when a required asset source file cannot be located on disk.

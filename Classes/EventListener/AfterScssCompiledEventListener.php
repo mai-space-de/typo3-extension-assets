@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\EventListener;
+namespace Maispace\MaiAssets\EventListener;
 
-use Maispace\MaispaceAssets\Event\AfterScssCompiledEvent;
+use Maispace\MaiAssets\Event\AfterScssCompiledEvent;
 
 /**
  * Example event listener for AfterScssCompiledEvent.
@@ -22,7 +22,7 @@ use Maispace\MaispaceAssets\Event\AfterScssCompiledEvent;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-scss-processor'
- *               event: Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
+ *               event: Maispace\MaiAssets\Event\AfterScssCompiledEvent
  *
  * AVAILABLE EVENT API
  * ====================
@@ -42,7 +42,7 @@ use Maispace\MaispaceAssets\Event\AfterScssCompiledEvent;
  * - Log SCSS compilation metrics (input size, output size, identifier)
  *
  * @see AfterScssCompiledEvent
- * @see \Maispace\MaispaceAssets\Service\ScssCompilerService
+ * @see \Maispace\MaiAssets\Service\ScssCompilerService
  */
 final class AfterScssCompiledEventListener
 {

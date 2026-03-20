@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Tests\Unit\Cache;
+namespace Maispace\MaiAssets\Tests\Unit\Cache;
 
-use Maispace\MaispaceAssets\Cache\AssetCacheManager;
+use Maispace\MaiAssets\Cache\AssetCacheManager;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;

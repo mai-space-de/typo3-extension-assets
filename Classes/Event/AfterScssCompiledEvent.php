@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Event;
+namespace Maispace\MaiAssets\Event;
 
 /**
  * Dispatched after SCSS has been compiled to CSS by ScssCompilerService, but before
@@ -19,10 +19,10 @@ namespace Maispace\MaispaceAssets\Event;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-scss-processor'
- *               event: Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
+ *               event: Maispace\MaiAssets\Event\AfterScssCompiledEvent
  *
- * @see \Maispace\MaispaceAssets\Service\AssetProcessingService::handleScss()
- * @see \Maispace\MaispaceAssets\Service\ScssCompilerService
+ * @see \Maispace\MaiAssets\Service\AssetProcessingService::handleScss()
+ * @see \Maispace\MaiAssets\Service\ScssCompilerService
  */
 final class AfterScssCompiledEvent
 {

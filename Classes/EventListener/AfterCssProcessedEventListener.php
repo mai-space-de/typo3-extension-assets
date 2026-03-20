@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\EventListener;
+namespace Maispace\MaiAssets\EventListener;
 
-use Maispace\MaispaceAssets\Event\AfterCssProcessedEvent;
+use Maispace\MaiAssets\Event\AfterCssProcessedEvent;
 
 /**
  * Example event listener for AfterCssProcessedEvent.
@@ -22,7 +22,7 @@ use Maispace\MaispaceAssets\Event\AfterCssProcessedEvent;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-css-processor'
- *               event: Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
+ *               event: Maispace\MaiAssets\Event\AfterCssProcessedEvent
  *
  * AVAILABLE EVENT API
  * ====================

@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Event;
+namespace Maispace\MaiAssets\Event;
 
 /**
  * Dispatched after critical CSS and JS have been extracted for a page and viewport,
@@ -19,9 +19,9 @@ namespace Maispace\MaispaceAssets\Event;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-critical-css-modifier'
- *               event: Maispace\MaispaceAssets\Event\AfterCriticalCssExtractedEvent
+ *               event: Maispace\MaiAssets\Event\AfterCriticalCssExtractedEvent
  *
- * @see \Maispace\MaispaceAssets\Service\CriticalAssetService::extractForPage()
+ * @see \Maispace\MaiAssets\Service\CriticalAssetService::extractForPage()
  */
 final class AfterCriticalCssExtractedEvent
 {

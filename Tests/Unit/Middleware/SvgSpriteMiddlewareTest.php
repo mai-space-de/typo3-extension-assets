@@ -2,11 +2,11 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Tests\Unit\Middleware;
+namespace Maispace\MaiAssets\Tests\Unit\Middleware;
 
-use Maispace\MaispaceAssets\Cache\AssetCacheManager;
-use Maispace\MaispaceAssets\Middleware\SvgSpriteMiddleware;
-use Maispace\MaispaceAssets\Registry\SpriteIconRegistry;
+use Maispace\MaiAssets\Cache\AssetCacheManager;
+use Maispace\MaiAssets\Middleware\SvgSpriteMiddleware;
+use Maispace\MaiAssets\Registry\SpriteIconRegistry;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseFactoryInterface;

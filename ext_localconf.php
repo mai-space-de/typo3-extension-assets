@@ -9,7 +9,7 @@ call_user_func(static function (): void {
     // This allows templates to use <mai:css>, <mai:js>, <mai:scss>, <mai:svgSprite>
     // without a {namespace} declaration at the top of each template.
     $GLOBALS['TYPO3_CONF_VARS']['SYS']['fluid']['namespaces']['mai'] =
-        ['Maispace\\MaispaceAssets\\ViewHelpers'];
+        ['Maispace\\MaiAssets\\ViewHelpers'];
 
     // Register the maispace_assets caching framework cache.
     // Stores minified/compiled assets. Grouped with pages so a page cache flush

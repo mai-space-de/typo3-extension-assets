@@ -2,13 +2,13 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Registry;
+namespace Maispace\MaiAssets\Registry;
 
-use Maispace\MaispaceAssets\Cache\AssetCacheManager;
-use Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent;
-use Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent;
-use Maispace\MaispaceAssets\Exception\AssetCompilationException;
-use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
+use Maispace\MaiAssets\Cache\AssetCacheManager;
+use Maispace\MaiAssets\Event\AfterSpriteBuiltEvent;
+use Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent;
+use Maispace\MaiAssets\Exception\AssetCompilationException;
+use Maispace\MaiAssets\Exception\AssetFileNotFoundException;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\SingletonInterface;
@@ -49,7 +49,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * The cache belongs to the `pages` and `all` groups, so clearing the TYPO3 frontend
  * cache also invalidates the sprite.
  *
- * @see \Maispace\MaispaceAssets\Middleware\SvgSpriteMiddleware
+ * @see \Maispace\MaiAssets\Middleware\SvgSpriteMiddleware
  * @see BeforeSpriteSymbolRegisteredEvent
  * @see AfterSpriteBuiltEvent
  */

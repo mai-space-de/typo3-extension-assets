@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\EventListener;
+namespace Maispace\MaiAssets\EventListener;
 
-use Maispace\MaispaceAssets\Registry\FontRegistry;
+use Maispace\MaiAssets\Registry\FontRegistry;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Page\Event\BeforeStylesheetsRenderingEvent;
 use TYPO3\CMS\Core\Site\Entity\Site;

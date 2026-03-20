@@ -2,10 +2,10 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Command;
+namespace Maispace\MaiAssets\Command;
 
 use Doctrine\DBAL\ParameterType;
-use Maispace\MaispaceAssets\Service\CriticalAssetService;
+use Maispace\MaiAssets\Service\CriticalAssetService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -48,7 +48,7 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  * It is idempotent — running it multiple times is safe.
  *
  * @see CriticalAssetService
- * @see \Maispace\MaispaceAssets\Middleware\CriticalCssInlineMiddleware
+ * @see \Maispace\MaiAssets\Middleware\CriticalCssInlineMiddleware
  */
 #[AsCommand(
     name: 'maispace:assets:critical:extract',

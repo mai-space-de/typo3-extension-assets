@@ -2,14 +2,14 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Service;
+namespace Maispace\MaiAssets\Service;
 
-use Maispace\MaispaceAssets\Cache\AssetCacheManager;
-use Maispace\MaispaceAssets\Event\AfterCssProcessedEvent;
-use Maispace\MaispaceAssets\Event\AfterJsProcessedEvent;
-use Maispace\MaispaceAssets\Event\AfterScssCompiledEvent;
-use Maispace\MaispaceAssets\Exception\AssetCompilationException;
-use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
+use Maispace\MaiAssets\Cache\AssetCacheManager;
+use Maispace\MaiAssets\Event\AfterCssProcessedEvent;
+use Maispace\MaiAssets\Event\AfterJsProcessedEvent;
+use Maispace\MaiAssets\Event\AfterScssCompiledEvent;
+use Maispace\MaiAssets\Exception\AssetCompilationException;
+use Maispace\MaiAssets\Exception\AssetFileNotFoundException;
 use MatthiasMullie\Minify;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;

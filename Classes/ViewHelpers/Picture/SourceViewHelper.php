@@ -2,11 +2,11 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\ViewHelpers\Picture;
+namespace Maispace\MaiAssets\ViewHelpers\Picture;
 
-use Maispace\MaispaceAssets\Service\ImageRenderingService;
-use Maispace\MaispaceAssets\ViewHelpers\PictureViewHelper;
-use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
+use Maispace\MaiAssets\Service\ImageRenderingService;
+use Maispace\MaiAssets\ViewHelpers\PictureViewHelper;
+use Maispace\MaiAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**

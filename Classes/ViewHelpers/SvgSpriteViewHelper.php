@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\ViewHelpers;
+namespace Maispace\MaiAssets\ViewHelpers;
 
-use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
+use Maispace\MaiAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -42,8 +42,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  *       'icon-close' => ['src' => 'EXT:my_sitepackage/Resources/Public/Icons/close.svg'],
  *   ];
  *
- * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
- * @see \Maispace\MaispaceAssets\Middleware\SvgSpriteMiddleware
+ * @see \Maispace\MaiAssets\Registry\SpriteIconRegistry
+ * @see \Maispace\MaiAssets\Middleware\SvgSpriteMiddleware
  */
 final class SvgSpriteViewHelper extends AbstractViewHelper
 {

@@ -2,11 +2,11 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Tests\Unit\Registry;
+namespace Maispace\MaiAssets\Tests\Unit\Registry;
 
-use Maispace\MaispaceAssets\Cache\AssetCacheManager;
-use Maispace\MaispaceAssets\Exception\AssetCompilationException;
-use Maispace\MaispaceAssets\Registry\SpriteIconRegistry;
+use Maispace\MaiAssets\Cache\AssetCacheManager;
+use Maispace\MaiAssets\Exception\AssetCompilationException;
+use Maispace\MaiAssets\Registry\SpriteIconRegistry;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;

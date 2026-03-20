@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Service;
+namespace Maispace\MaiAssets\Service;
 
 use Symfony\Component\Process\Process;
 

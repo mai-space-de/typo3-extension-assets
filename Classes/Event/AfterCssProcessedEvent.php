@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Event;
+namespace Maispace\MaiAssets\Event;
 
 /**
  * Dispatched after a CSS asset has been processed (minified / read from file / captured
@@ -20,9 +20,9 @@ namespace Maispace\MaispaceAssets\Event;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-css-processor'
- *               event: Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
+ *               event: Maispace\MaiAssets\Event\AfterCssProcessedEvent
  *
- * @see \Maispace\MaispaceAssets\Service\AssetProcessingService::handleCss()
+ * @see \Maispace\MaiAssets\Service\AssetProcessingService::handleCss()
  */
 final class AfterCssProcessedEvent
 {

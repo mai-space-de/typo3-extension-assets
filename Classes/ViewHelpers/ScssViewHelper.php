@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\ViewHelpers;
+namespace Maispace\MaiAssets\ViewHelpers;
 
-use Maispace\MaispaceAssets\Service\AssetProcessingService;
+use Maispace\MaiAssets\Service\AssetProcessingService;
 use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
 
 /**
@@ -51,7 +51,7 @@ use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
  *   <mai:scss src="EXT:theme/Resources/Private/Scss/non-critical.scss" deferred="true" />
  *
  * @see AssetProcessingService::handleScss()
- * @see \Maispace\MaispaceAssets\Service\ScssCompilerService
+ * @see \Maispace\MaiAssets\Service\ScssCompilerService
  */
 final class ScssViewHelper extends AbstractAssetViewHelper
 {

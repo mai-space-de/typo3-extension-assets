@@ -66,14 +66,14 @@ Add a listener in your site package's ``Configuration/Services.yaml``:
             tags:
                 -   name: event.listener
                     identifier: 'my-site-css-processor'
-                    event: Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
+                    event: Maispace\MaiAssets\Event\AfterCssProcessedEvent
 
 .. _event-after-css-processed:
 
 AfterCssProcessedEvent
 ======================
 
-**Class:** ``Maispace\MaispaceAssets\Event\AfterCssProcessedEvent``
+**Class:** ``Maispace\MaiAssets\Event\AfterCssProcessedEvent``
 
 Fired by ``AssetProcessingService::handleCss()`` after a CSS asset is minified
 (if enabled), but before it is written to disk and registered with the AssetCollector.
@@ -115,7 +115,7 @@ Example Listener
 
     namespace MyVendor\MySitePackage\EventListener;
 
-    use Maispace\MaispaceAssets\Event\AfterCssProcessedEvent;
+    use Maispace\MaiAssets\Event\AfterCssProcessedEvent;
 
     final class ThemeCssListener
     {
@@ -147,14 +147,14 @@ Example Listener
         tags:
             -   name: event.listener
                 identifier: 'my-site-theme-css'
-                event: Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
+                event: Maispace\MaiAssets\Event\AfterCssProcessedEvent
 
 .. _event-after-js-processed:
 
 AfterJsProcessedEvent
 =====================
 
-**Class:** ``Maispace\MaispaceAssets\Event\AfterJsProcessedEvent``
+**Class:** ``Maispace\MaiAssets\Event\AfterJsProcessedEvent``
 
 Fired by ``AssetProcessingService::handleJs()`` after a JS asset is minified,
 before it is written to disk and registered with the AssetCollector.
@@ -195,7 +195,7 @@ Example Listener
 
     namespace MyVendor\MySitePackage\EventListener;
 
-    use Maispace\MaispaceAssets\Event\AfterJsProcessedEvent;
+    use Maispace\MaiAssets\Event\AfterJsProcessedEvent;
 
     final class ConfigInjectorListener
     {
@@ -222,7 +222,7 @@ Example Listener
 AfterScssCompiledEvent
 ======================
 
-**Class:** ``Maispace\MaispaceAssets\Event\AfterScssCompiledEvent``
+**Class:** ``Maispace\MaiAssets\Event\AfterScssCompiledEvent``
 
 Fired by ``AssetProcessingService::handleScss()`` after SCSS has been compiled
 to CSS by scssphp, before the result is cached.
@@ -261,7 +261,7 @@ Example Listener
 
     namespace MyVendor\MySitePackage\EventListener;
 
-    use Maispace\MaispaceAssets\Event\AfterScssCompiledEvent;
+    use Maispace\MaiAssets\Event\AfterScssCompiledEvent;
     use Psr\Log\LoggerInterface;
 
     final class SizeAuditListener
@@ -293,7 +293,7 @@ Example Listener
 BeforeSpriteSymbolRegisteredEvent
 ==================================
 
-**Class:** ``Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent``
+**Class:** ``Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent``
 
 Fired by ``SpriteIconRegistry`` once for each symbol found in any extension's
 ``Configuration/SpriteIcons.php`` during auto-discovery. Listeners can rename a symbol,
@@ -339,7 +339,7 @@ Example Listener
 
     namespace MyVendor\MySitePackage\EventListener;
 
-    use Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent;
+    use Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent;
 
     /**
      * Rename symbols from a third-party extension and exclude any that are
@@ -372,14 +372,14 @@ Example Listener
         tags:
             -   name: event.listener
                 identifier: 'my-site-sprite-symbol-filter'
-                event: Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
+                event: Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent
 
 .. _event-after-sprite-built:
 
 AfterSpriteBuiltEvent
 =====================
 
-**Class:** ``Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent``
+**Class:** ``Maispace\MaiAssets\Event\AfterSpriteBuiltEvent``
 
 Fired by ``SpriteIconRegistry::buildSprite()`` after the full SVG sprite XML is
 assembled from all registered symbols, before it is stored in the cache and served
@@ -417,7 +417,7 @@ Example Listener
 
     namespace MyVendor\MySitePackage\EventListener;
 
-    use Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent;
+    use Maispace\MaiAssets\Event\AfterSpriteBuiltEvent;
 
     /**
      * Appends a static brand symbol (defined inline, not from a file) and
@@ -456,14 +456,14 @@ Example Listener
         tags:
             -   name: event.listener
                 identifier: 'my-site-static-brand-symbol'
-                event: Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
+                event: Maispace\MaiAssets\Event\AfterSpriteBuiltEvent
 
 .. _event-before-image-processing:
 
 BeforeImageProcessingEvent
 ==========================
 
-**Class:** ``Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent``
+**Class:** ``Maispace\MaiAssets\Event\BeforeImageProcessingEvent``
 
 Fired by ``ImageRenderingService::processImage()`` before an image is submitted to
 TYPO3's ``ImageService`` for resizing or format conversion. Listeners can inspect the
@@ -514,7 +514,7 @@ Example Listener
 
     namespace MyVendor\MySitePackage\EventListener;
 
-    use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
+    use Maispace\MaiAssets\Event\BeforeImageProcessingEvent;
 
     /**
      * Globally force WebP output for all raster images.
@@ -544,14 +544,14 @@ Example Listener
         tags:
             -   name: event.listener
                 identifier: 'my-site-webp-conversion'
-                event: Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
+                event: Maispace\MaiAssets\Event\BeforeImageProcessingEvent
 
 .. _event-after-image-processed:
 
 AfterImageProcessedEvent
 ========================
 
-**Class:** ``Maispace\MaispaceAssets\Event\AfterImageProcessedEvent``
+**Class:** ``Maispace\MaiAssets\Event\AfterImageProcessedEvent``
 
 Fired by ``ImageRenderingService::processImage()`` after TYPO3's ``ImageService`` has
 finished processing an image. Listeners can inspect the result (URL, dimensions, format),
@@ -597,7 +597,7 @@ Example Listener
 
     namespace MyVendor\MySitePackage\EventListener;
 
-    use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
+    use Maispace\MaiAssets\Event\AfterImageProcessedEvent;
     use Psr\Log\LoggerInterface;
 
     final class ImageMetricsListener
@@ -627,14 +627,14 @@ Example Listener
         tags:
             -   name: event.listener
                 identifier: 'my-site-image-metrics'
-                event: Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
+                event: Maispace\MaiAssets\Event\AfterImageProcessedEvent
 
 .. _event-after-critical-css-extracted:
 
 AfterCriticalCssExtractedEvent
 ==============================
 
-**Class:** ``Maispace\MaispaceAssets\Event\AfterCriticalCssExtractedEvent``
+**Class:** ``Maispace\MaiAssets\Event\AfterCriticalCssExtractedEvent``
 
 Fired by ``CriticalAssetService::extractForPage()`` after above-the-fold critical CSS
 and JS have been extracted for a page and viewport, but before the result is stored
@@ -682,7 +682,7 @@ Example Listener
 
     namespace MyVendor\MySitePackage\EventListener;
 
-    use Maispace\MaispaceAssets\Event\AfterCriticalCssExtractedEvent;
+    use Maispace\MaiAssets\Event\AfterCriticalCssExtractedEvent;
 
     final class CriticalCssModifier
     {

@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\ViewHelpers;
+namespace Maispace\MaiAssets\ViewHelpers;
 
-use Maispace\MaispaceAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
+use Maispace\MaiAssets\ViewHelpers\Traits\TypoScriptSettingTrait;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Page\AssetCollector;

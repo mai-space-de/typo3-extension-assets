@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Event;
+namespace Maispace\MaiAssets\Event;
 
 /**
  * Dispatched once after all registered SVG symbols have been assembled into a
@@ -22,9 +22,9 @@ namespace Maispace\MaispaceAssets\Event;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-sprite-post-process'
- *               event: Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
+ *               event: Maispace\MaiAssets\Event\AfterSpriteBuiltEvent
  *
- * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
+ * @see \Maispace\MaiAssets\Registry\SpriteIconRegistry
  */
 final class AfterSpriteBuiltEvent
 {

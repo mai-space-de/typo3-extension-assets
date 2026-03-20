@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\EventListener;
+namespace Maispace\MaiAssets\EventListener;
 
-use Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent;
+use Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent;
 
 /**
  * Example event listener for BeforeSpriteSymbolRegisteredEvent.
@@ -21,7 +21,7 @@ use Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent;
  *       tags:
  *           -   name: event.listener
  *               identifier: 'my-site-icon-filter'
- *               event: Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
+ *               event: Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent
  *
  * AVAILABLE EVENT API
  * ====================
@@ -41,7 +41,7 @@ use Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent;
  * - Log all registrations during development for auditing
  *
  * @see BeforeSpriteSymbolRegisteredEvent
- * @see \Maispace\MaispaceAssets\Registry\SpriteIconRegistry
+ * @see \Maispace\MaiAssets\Registry\SpriteIconRegistry
  */
 final class BeforeSpriteSymbolRegisteredEventListener
 {

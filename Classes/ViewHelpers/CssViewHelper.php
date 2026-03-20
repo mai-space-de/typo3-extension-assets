@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\ViewHelpers;
+namespace Maispace\MaiAssets\ViewHelpers;
 
-use Maispace\MaispaceAssets\Service\AssetProcessingService;
+use Maispace\MaiAssets\Service\AssetProcessingService;
 use TYPO3\CMS\Fluid\Core\Rendering\RenderingContext;
 
 /**

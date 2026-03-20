@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Maispace\MaispaceAssets\Middleware\CriticalCssInlineMiddleware;
-use Maispace\MaispaceAssets\Middleware\SvgSpriteMiddleware;
+use Maispace\MaiAssets\Middleware\CriticalCssInlineMiddleware;
+use Maispace\MaiAssets\Middleware\SvgSpriteMiddleware;
 
 /**
  * PSR-15 middleware registration for the maispace_assets extension.
@@ -30,8 +30,8 @@ use Maispace\MaispaceAssets\Middleware\SvgSpriteMiddleware;
  *                            $handler->handle() triggers the full page render;
  *                            the resulting HTML response is then modified in-place.
  *
- * @see \Maispace\MaispaceAssets\Middleware\SvgSpriteMiddleware
- * @see \Maispace\MaispaceAssets\Middleware\CriticalCssInlineMiddleware
+ * @see \Maispace\MaiAssets\Middleware\SvgSpriteMiddleware
+ * @see \Maispace\MaiAssets\Middleware\CriticalCssInlineMiddleware
  * @see https://docs.typo3.org/m/typo3/reference-coreapi/main/en-us/ApiOverview/RequestLifeCycle/Middlewares.html
  */
 return [

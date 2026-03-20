@@ -4,7 +4,7 @@ services:
         autoconfigure: true
         public: false
 
-    Maispace\MaispaceAssets\:
+    Maispace\MaiAssets\:
         resource: '../Classes/*'
 
     # -------------------------------------------------------------------------
@@ -14,13 +14,13 @@ services:
     # static ViewHelper renderStatic() methods) can resolve them from the DI container.
     # -------------------------------------------------------------------------
 
-    Maispace\MaispaceAssets\Cache\AssetCacheManager:
+    Maispace\MaiAssets\Cache\AssetCacheManager:
         public: true
 
-    Maispace\MaispaceAssets\Service\AssetProcessingService:
+    Maispace\MaiAssets\Service\AssetProcessingService:
         public: true
 
-    Maispace\MaispaceAssets\Service\ScssCompilerService:
+    Maispace\MaiAssets\Service\ScssCompilerService:
         public: true
 
     # SpriteIconRegistry implements SingletonInterface.
@@ -29,19 +29,19 @@ services:
     # Must be public so SvgSpriteMiddleware (resolved via DI) and SvgSpriteViewHelper
     # (resolved via GeneralUtility::makeInstance in static renderStatic) both get
     # the identical singleton with the already-built sprite.
-    Maispace\MaispaceAssets\Registry\SpriteIconRegistry:
+    Maispace\MaiAssets\Registry\SpriteIconRegistry:
         public: true
 
     # FontRegistry implements SingletonInterface — same reasoning as SpriteIconRegistry.
     # Must be public so FontPreloadEventListener (DI-resolved) always gets the same
     # singleton instance that has already performed auto-discovery.
-    Maispace\MaispaceAssets\Registry\FontRegistry:
+    Maispace\MaiAssets\Registry\FontRegistry:
         public: true
 
     # ImageRenderingService must be public so the ViewHelpers (which use static
     # renderStatic() and resolve dependencies via GeneralUtility::makeInstance())
     # receive the DI-configured instance with ImageService and LoggerInterface injected.
-    Maispace\MaispaceAssets\Service\ImageRenderingService:
+    Maispace\MaiAssets\Service\ImageRenderingService:
         public: true
 
     # WarmupCommand — auto-discovered via #[AsCommand] attribute + autoconfigure: true.
@@ -49,7 +49,7 @@ services:
 
     # FontPreloadEventListener — registered as a real event listener (not an example).
     # Font preloading is a core feature of maispace_assets, not an opt-in hook.
-    Maispace\MaispaceAssets\EventListener\FontPreloadEventListener:
+    Maispace\MaiAssets\EventListener\FontPreloadEventListener:
         tags:
             -   name: event.listener
                 identifier: 'maispace-assets-font-preload'
@@ -66,53 +66,53 @@ services:
     # as that would activate the example for every project using this extension.
     #
     # Available events:
-    #   - Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
-    #   - Maispace\MaispaceAssets\Event\AfterJsProcessedEvent
-    #   - Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
-    #   - Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
-    #   - Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
-    #   - Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
-    #   - Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
+    #   - Maispace\MaiAssets\Event\AfterCssProcessedEvent
+    #   - Maispace\MaiAssets\Event\AfterJsProcessedEvent
+    #   - Maispace\MaiAssets\Event\AfterScssCompiledEvent
+    #   - Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent
+    #   - Maispace\MaiAssets\Event\AfterSpriteBuiltEvent
+    #   - Maispace\MaiAssets\Event\BeforeImageProcessingEvent
+    #   - Maispace\MaiAssets\Event\AfterImageProcessedEvent
     # -------------------------------------------------------------------------
 
-    # Maispace\MaispaceAssets\EventListener\AfterCssProcessedEventListener:
+    # Maispace\MaiAssets\EventListener\AfterCssProcessedEventListener:
     #     tags:
     #         -   name: event.listener
     #             identifier: 'maispace-assets-example-css'
-    #             event: Maispace\MaispaceAssets\Event\AfterCssProcessedEvent
+    #             event: Maispace\MaiAssets\Event\AfterCssProcessedEvent
 
-    # Maispace\MaispaceAssets\EventListener\AfterJsProcessedEventListener:
+    # Maispace\MaiAssets\EventListener\AfterJsProcessedEventListener:
     #     tags:
     #         -   name: event.listener
     #             identifier: 'maispace-assets-example-js'
-    #             event: Maispace\MaispaceAssets\Event\AfterJsProcessedEvent
+    #             event: Maispace\MaiAssets\Event\AfterJsProcessedEvent
 
-    # Maispace\MaispaceAssets\EventListener\AfterScssCompiledEventListener:
+    # Maispace\MaiAssets\EventListener\AfterScssCompiledEventListener:
     #     tags:
     #         -   name: event.listener
     #             identifier: 'maispace-assets-example-scss'
-    #             event: Maispace\MaispaceAssets\Event\AfterScssCompiledEvent
+    #             event: Maispace\MaiAssets\Event\AfterScssCompiledEvent
 
-    # Maispace\MaispaceAssets\EventListener\BeforeSpriteSymbolRegisteredEventListener:
+    # Maispace\MaiAssets\EventListener\BeforeSpriteSymbolRegisteredEventListener:
     #     tags:
     #         -   name: event.listener
     #             identifier: 'maispace-assets-example-before-sprite-symbol'
-    #             event: Maispace\MaispaceAssets\Event\BeforeSpriteSymbolRegisteredEvent
+    #             event: Maispace\MaiAssets\Event\BeforeSpriteSymbolRegisteredEvent
 
-    # Maispace\MaispaceAssets\EventListener\AfterSpriteBuiltEventListener:
+    # Maispace\MaiAssets\EventListener\AfterSpriteBuiltEventListener:
     #     tags:
     #         -   name: event.listener
     #             identifier: 'maispace-assets-example-after-sprite-built'
-    #             event: Maispace\MaispaceAssets\Event\AfterSpriteBuiltEvent
+    #             event: Maispace\MaiAssets\Event\AfterSpriteBuiltEvent
 
-    # Maispace\MaispaceAssets\EventListener\BeforeImageProcessingEventListener:
+    # Maispace\MaiAssets\EventListener\BeforeImageProcessingEventListener:
     #     tags:
     #         -   name: event.listener
     #             identifier: 'maispace-assets-example-before-image-processing'
-    #             event: Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent
+    #             event: Maispace\MaiAssets\Event\BeforeImageProcessingEvent
 
-    # Maispace\MaispaceAssets\EventListener\AfterImageProcessedEventListener:
+    # Maispace\MaiAssets\EventListener\AfterImageProcessedEventListener:
     #     tags:
     #         -   name: event.listener
     #             identifier: 'maispace-assets-example-after-image-processed'
-    #             event: Maispace\MaispaceAssets\Event\AfterImageProcessedEvent
+    #             event: Maispace\MaiAssets\Event\AfterImageProcessedEvent

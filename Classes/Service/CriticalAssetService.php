@@ -2,10 +2,10 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Service;
+namespace Maispace\MaiAssets\Service;
 
-use Maispace\MaispaceAssets\Cache\AssetCacheManager;
-use Maispace\MaispaceAssets\Event\AfterCriticalCssExtractedEvent;
+use Maispace\MaiAssets\Cache\AssetCacheManager;
+use Maispace\MaiAssets\Event\AfterCriticalCssExtractedEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 
@@ -30,8 +30,8 @@ use Psr\Log\LoggerInterface;
  * and 'maispace_critical_p{pageUid}' for selective purging.
  *
  * @see ChromiumCdpClient
- * @see \Maispace\MaispaceAssets\Command\CriticalCssExtractCommand
- * @see \Maispace\MaispaceAssets\Middleware\CriticalCssInlineMiddleware
+ * @see \Maispace\MaiAssets\Command\CriticalCssExtractCommand
+ * @see \Maispace\MaiAssets\Middleware\CriticalCssInlineMiddleware
  */
 class CriticalAssetService
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Registry;
+namespace Maispace\MaiAssets\Registry;
 
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Core\Environment;
@@ -50,7 +50,7 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  * Font files are served directly from their stable public extension URLs. No temp file
  * generation occurs — browser HTTP caching handles repeat visits efficiently.
  *
- * @see \Maispace\MaispaceAssets\EventListener\FontPreloadEventListener
+ * @see \Maispace\MaiAssets\EventListener\FontPreloadEventListener
  */
 final class FontRegistry implements SingletonInterface
 {

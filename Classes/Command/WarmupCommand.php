@@ -2,10 +2,10 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Command;
+namespace Maispace\MaiAssets\Command;
 
-use Maispace\MaispaceAssets\Registry\FontRegistry;
-use Maispace\MaispaceAssets\Registry\SpriteIconRegistry;
+use Maispace\MaiAssets\Registry\FontRegistry;
+use Maispace\MaiAssets\Registry\SpriteIconRegistry;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

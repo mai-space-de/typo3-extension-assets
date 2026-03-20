@@ -2,9 +2,9 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Tests\Unit\Service;
+namespace Maispace\MaiAssets\Tests\Unit\Service;
 
-use Maispace\MaispaceAssets\Service\ImageRenderingService;
+use Maispace\MaiAssets\Service\ImageRenderingService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;

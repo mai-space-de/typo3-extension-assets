@@ -2,15 +2,15 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Tests\Unit\Exception;
+namespace Maispace\MaiAssets\Tests\Unit\Exception;
 
-use Maispace\MaispaceAssets\Cache\AssetCacheManager;
-use Maispace\MaispaceAssets\Exception\AssetCompilationException;
-use Maispace\MaispaceAssets\Exception\AssetException;
-use Maispace\MaispaceAssets\Exception\AssetFileNotFoundException;
-use Maispace\MaispaceAssets\Exception\AssetWriteException;
-use Maispace\MaispaceAssets\Exception\InvalidAssetConfigurationException;
-use Maispace\MaispaceAssets\Exception\InvalidImageInputException;
+use Maispace\MaiAssets\Cache\AssetCacheManager;
+use Maispace\MaiAssets\Exception\AssetCompilationException;
+use Maispace\MaiAssets\Exception\AssetException;
+use Maispace\MaiAssets\Exception\AssetFileNotFoundException;
+use Maispace\MaiAssets\Exception\AssetWriteException;
+use Maispace\MaiAssets\Exception\InvalidAssetConfigurationException;
+use Maispace\MaiAssets\Exception\InvalidImageInputException;
 use PHPUnit\Framework\TestCase;
 
 /**

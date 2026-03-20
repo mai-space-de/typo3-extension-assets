@@ -2,10 +2,10 @@
 
 declare(strict_types = 1);
 
-namespace Maispace\MaispaceAssets\Service;
+namespace Maispace\MaiAssets\Service;
 
-use Maispace\MaispaceAssets\Event\AfterImageProcessedEvent;
-use Maispace\MaispaceAssets\Event\BeforeImageProcessingEvent;
+use Maispace\MaiAssets\Event\AfterImageProcessedEvent;
+use Maispace\MaiAssets\Event\BeforeImageProcessingEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Page\PageRenderer;
