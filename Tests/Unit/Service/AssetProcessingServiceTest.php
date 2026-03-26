@@ -426,6 +426,11 @@ final class AssetProcessingServiceTest extends TestCase
             {
             }
 
+            public function hasSetup(): bool
+            {
+                return true;
+            }
+
             /** @return array<string, mixed> */
             public function getSetupArray(): array
             {

@@ -33,6 +33,11 @@ final class CriticalCssInlineMiddlewareTest extends TestCase
         $routing->method('getPageId')->willReturn(123);
 
         $typoScript = new class {
+            public function hasSetup(): bool
+            {
+                return true;
+            }
+
             public function getSetupArray(): array
             {
                 return [
@@ -88,6 +93,11 @@ final class CriticalCssInlineMiddlewareTest extends TestCase
         $routing->method('getPageId')->willReturn(123);
 
         $typoScript = new class {
+            public function hasSetup(): bool
+            {
+                return true;
+            }
+
             public function getSetupArray(): array
             {
                 return [

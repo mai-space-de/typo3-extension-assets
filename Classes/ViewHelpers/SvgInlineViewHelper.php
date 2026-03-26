@@ -136,12 +136,12 @@ final class SvgInlineViewHelper extends AbstractViewHelper
         // Build a stable cache key from all arguments that affect the rendered output.
         $cacheKey = 'svginline_' . md5(implode('|', [
             $src,
-            $this->arguments['class'] ?? '',
-            $this->arguments['width'] ?? '',
-            $this->arguments['height'] ?? '',
-            $this->arguments['aria-hidden'] ?? '',
-            $this->arguments['aria-label'] ?? '',
-            $this->arguments['title'] ?? '',
+            is_string($this->arguments['class']) ? $this->arguments['class'] : '',
+            is_string($this->arguments['width']) ? $this->arguments['width'] : '',
+            is_string($this->arguments['height']) ? $this->arguments['height'] : '',
+            is_string($this->arguments['aria-hidden']) ? $this->arguments['aria-hidden'] : '',
+            is_string($this->arguments['aria-label']) ? $this->arguments['aria-label'] : '',
+            is_string($this->arguments['title']) ? $this->arguments['title'] : '',
             serialize($this->arguments['additionalAttributes'] ?? []),
         ]));
 

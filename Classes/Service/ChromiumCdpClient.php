@@ -192,7 +192,10 @@ final class ChromiumCdpClient
         $raw = is_array($val) && is_string($val['value'] ?? null) ? (string)$val['value'] : '[]';
         $scripts = json_decode($raw, true);
 
-        return is_array($scripts) ? implode("\n", $scripts) : '';
+        return is_array($scripts) ? implode("\n", array_map(
+            static fn (mixed $v): string => is_string($v) ? $v : '',
+            $scripts
+        )) : '';
     }
 
     /**

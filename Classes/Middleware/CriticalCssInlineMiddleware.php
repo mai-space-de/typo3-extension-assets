@@ -199,8 +199,7 @@ final class CriticalCssInlineMiddleware implements MiddlewareInterface
     {
         /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $frontendTypoScript */
         $frontendTypoScript = $request->getAttribute('frontend.typoscript');
-
-        if ($frontendTypoScript === null) {
+        if ($frontendTypoScript === null || !$frontendTypoScript->hasSetup()) {
             return '';
         }
 

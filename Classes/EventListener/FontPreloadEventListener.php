@@ -69,7 +69,7 @@ final class FontPreloadEventListener
 
         /** @var \TYPO3\CMS\Core\TypoScript\FrontendTypoScript|null $fts */
         $fts = $request->getAttribute('frontend.typoscript');
-        if ($fts === null) {
+        if ($fts === null || !$fts->hasSetup()) {
             return true;
         }
 
