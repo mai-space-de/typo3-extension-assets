@@ -1,7 +1,0 @@
-includes:
-	- vendor/saschaegerer/phpstan-typo3/extension.neon
-
-parameters:
-	level: max
-	paths:
-		- Classes
