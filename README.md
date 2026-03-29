@@ -5,7 +5,7 @@
 
 The canonical asset pipeline for the entire extension set. Provides Fluid ViewHelper-based asset inclusion with minification, SCSS compilation, and SVG sprite building. Also manages the TYPO3 file abstraction layer via `cms-filelist` and `cms-filemetadata`. All other extensions that need SCSS compilation or asset minification depend on this extension rather than pulling in `scssphp` or minification libraries directly.
 
-**Requires:** TYPO3 13.4 LTS / 14.0 · PHP 8.2+
+**Requires:** TYPO3 13.4 LTS / 14.1 · PHP 8.2+
 
 ---
 
