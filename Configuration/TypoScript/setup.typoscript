@@ -1,0 +1,5 @@
+config.namespaces.mai = Maispace\MaiAssets\ViewHelpers
+
+tt_content.stdWrap.dataProcessing {
+    100 = Maispace\MaiAssets\DataProcessing\CriticalAssetDataProcessor
+}

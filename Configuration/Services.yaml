@@ -1,9 +1,19 @@
 services:
-  _defaults:
-    autowire: true
-    autoconfigure: true
-    public: false
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
 
-  Maispace\MaiAssets\:
-    resource: '../Classes/*'
-    exclude: '../Classes/Domain/Model/*'
+    Maispace\MaiAssets\:
+        resource: '../Classes/*'
+        exclude:
+            - '../Classes/Event/*'
+
+    Maispace\MaiAssets\Collector\SvgSpriteCollector:
+        shared: true
+
+    Maispace\MaiAssets\Collector\FontPreloadCollector:
+        shared: true
+
+    Maispace\MaiAssets\Cache\AboveFoldCacheService:
+        shared: true

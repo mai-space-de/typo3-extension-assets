@@ -1,22 +1,30 @@
 {
     "name": "maispace/mai-assets",
-    "description": "The canonical asset pipeline for the entire extension set. Provides Fluid ViewHelper-based asset inclusion with minification, SCSS compilation, and SVG sprite building. Also manages the TYPO3 file abstraction layer via `cms-filelist` and `cms-filemetadata`. All other extensions that need SCSS compilation or asset minification depend on this extension rather than pulling in `scssphp` or minification libraries directly.",
+    "description": "Intelligent asset pipeline for TYPO3 with critical CSS, SVG sprites, responsive images, font preloading, and self-optimising above-fold detection.",
     "type": "typo3-cms-extension",
-    "license": "GPL-2.0-or-later",
+    "license": "MIT",
     "authors": [
         {
             "name": "Maispace",
             "role": "Developer"
         }
     ],
+    "require": {
+        "typo3/cms-core": "^12.4 || ^13.0",
+        "scssphp/scssphp": "^1.12",
+        "matthiasmullie/minify": "^1.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
     "autoload": {
         "psr-4": {
-            "Maispace\\MaiAssets\\": "Classes"
+            "Maispace\\MaiAssets\\": "Classes/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Maispace\\MaiAssets\\Tests\\": "Tests"
+            "Maispace\\MaiAssets\\Tests\\": "Tests/"
         }
     },
     "extra": {
@@ -24,7 +32,7 @@
             "extension-key": "mai_assets"
         },
         "branch-alias": {
-            "dev-main": "14.0.x-dev"
+            "dev-main": "1.0.x-dev"
         }
     },
     "scripts": {

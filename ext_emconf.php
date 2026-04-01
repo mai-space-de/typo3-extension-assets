@@ -1,7 +1,7 @@
 <?php
 $EM_CONF[$_EXTKEY] = [
     'title' => 'Mai Assets',
-    'description' => 'The canonical asset pipeline for the entire extension set. Provides Fluid ViewHelper-based asset inclusion with minification, SCSS compilation, and SVG sprite building. Also manages the TYPO3 file abstraction layer via `cms-filelist` and `cms-filemetadata`. All other extensions that need SCSS compilation or asset minification depend on this extension rather than pulling in `scssphp` or minification libraries directly.',
+    'description' => 'Intelligent asset pipeline for TYPO3 with critical CSS, SVG sprites, responsive images, font preloading, and self-optimising above-fold detection.',
     'category' => 'module',
     'author' => 'Maispace',
     'author_email' => '',
@@ -9,7 +9,7 @@ $EM_CONF[$_EXTKEY] = [
     'version' => '1.0.0',
     'constraints' => [
         'depends' => [
-            'typo3' => '13.4.0-14.99.99',
+            'typo3' => '12.4.0-13.99.99',
         ],
         'conflicts' => [],
         'suggests' => [],
