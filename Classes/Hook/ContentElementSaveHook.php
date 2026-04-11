@@ -23,9 +23,15 @@ final class ContentElementSaveHook
         'endtime',
     ];
 
-    public function __construct(
-        private readonly AboveFoldCacheService $aboveFoldCacheService,
-    ) {}
+    /**
+     * This class is instantiated by GeneralUtility::makeInstance() via the
+     * processDatamapClass hook, which bypasses Symfony DI. Dependencies must
+     * therefore be resolved lazily inside methods rather than via constructor injection.
+     */
+    private function getAboveFoldCacheService(): AboveFoldCacheService
+    {
+        return GeneralUtility::makeInstance(AboveFoldCacheService::class);
+    }
 
     public function processDatamap_afterDatabaseOperations(
         string $status,
@@ -63,7 +69,8 @@ final class ContentElementSaveHook
         }
 
         // Get all critical UIDs for the page
-        $allCriticalUids = $this->aboveFoldCacheService->getAllCriticalUids($pageUid);
+        $aboveFoldCacheService = $this->getAboveFoldCacheService();
+        $allCriticalUids = $aboveFoldCacheService->getAllCriticalUids($pageUid);
         if ($allCriticalUids === []) {
             return;
         }
@@ -78,8 +85,8 @@ final class ContentElementSaveHook
         }
 
         if ($elementIsCritical || $sortingConflict) {
-            $this->aboveFoldCacheService->clearCriticalUids($pageUid);
-            $this->aboveFoldCacheService->bumpResetTimestamp($pageUid);
+            $aboveFoldCacheService->clearCriticalUids($pageUid);
+            $aboveFoldCacheService->bumpResetTimestamp($pageUid);
             $this->flushPageCache($pageUid);
         }
     }
