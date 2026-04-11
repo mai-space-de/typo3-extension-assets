@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "typo3/cms-core": "^12.4 || ^13.0",
+        "typo3/cms-core": "^12.4 || ^13.0 || ^14.0",
         "scssphp/scssphp": "^1.12",
         "matthiasmullie/minify": "^1.3"
     },

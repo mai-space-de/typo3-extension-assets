@@ -11,13 +11,6 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets
     'groups'   => ['system'],
 ];
 
-// Register contentPostProc-output hooks
-$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_fe.php']['contentPostProc-output'][]
-    = \Maispace\MaiAssets\Hook\AboveFoldObserverHook::class . '->execute';
-
-$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tslib/class.tslib_fe.php']['contentPostProc-output'][]
-    = \Maispace\MaiAssets\Hook\SvgSpriteInjectionHook::class . '->execute';
-
 // Register DataHandler hook
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
     = \Maispace\MaiAssets\Hook\ContentElementSaveHook::class;

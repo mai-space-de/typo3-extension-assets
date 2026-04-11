@@ -6,8 +6,9 @@ namespace Maispace\MaiAssets\Hook;
 
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class ContentElementSaveHook
@@ -91,7 +92,7 @@ final class ContentElementSaveHook
         $result = $queryBuilder
             ->select('pid')
             ->from('tt_content')
-            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($elementUid, \PDO::PARAM_INT)))
+            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($elementUid, Connection::PARAM_INT)))
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchAssociative();
@@ -120,11 +121,11 @@ final class ContentElementSaveHook
             ->select('uid', 'sorting')
             ->from('tt_content')
             ->where(
-                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageUid, \PDO::PARAM_INT)),
-                $queryBuilder->expr()->eq('colPos', $queryBuilder->createNamedParameter($colPos, \PDO::PARAM_INT)),
+                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('colPos', $queryBuilder->createNamedParameter($colPos, Connection::PARAM_INT)),
                 $queryBuilder->expr()->in(
                     'uid',
-                    $queryBuilder->createNamedParameter($allCriticalUids, \TYPO3\CMS\Core\Database\Connection::PARAM_INT_ARRAY)
+                    $queryBuilder->createNamedParameter($allCriticalUids, Connection::PARAM_INT_ARRAY)
                 )
             )
             ->executeQuery()

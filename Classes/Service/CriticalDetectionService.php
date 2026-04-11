@@ -9,6 +9,7 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Event\ModifyCriticalThresholdEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -95,7 +96,7 @@ final class CriticalDetectionService
         $result = $queryBuilder
             ->select('uid', 'pid', 'colPos', 'sorting', 'tx_maiassets_is_critical', 'tx_maiassets_force_critical')
             ->from('tt_content')
-            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($elementUid, \PDO::PARAM_INT)))
+            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($elementUid, Connection::PARAM_INT)))
             ->setMaxResults(1)
             ->executeQuery();
 
@@ -112,11 +113,11 @@ final class CriticalDetectionService
             ->count('uid')
             ->from('tt_content')
             ->where(
-                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageUid, \PDO::PARAM_INT)),
-                $queryBuilder->expr()->eq('colPos', $queryBuilder->createNamedParameter($colPos, \PDO::PARAM_INT)),
-                $queryBuilder->expr()->lt('sorting', $queryBuilder->createNamedParameter($sorting, \PDO::PARAM_INT)),
-                $queryBuilder->expr()->eq('hidden', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)),
-                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT))
+                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('colPos', $queryBuilder->createNamedParameter($colPos, Connection::PARAM_INT)),
+                $queryBuilder->expr()->lt('sorting', $queryBuilder->createNamedParameter($sorting, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('hidden', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
             )
             ->executeQuery()
             ->fetchOne();

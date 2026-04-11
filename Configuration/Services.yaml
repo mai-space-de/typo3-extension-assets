@@ -8,6 +8,17 @@ services:
         resource: '../Classes/*'
         exclude:
             - '../Classes/Event/*'
+            - '../Classes/EventListener/*'
+
+    Maispace\MaiAssets\EventListener\AboveFoldObserverListener:
+        tags:
+            - name: event.listener
+              identifier: 'mai-assets/above-fold-observer'
+
+    Maispace\MaiAssets\EventListener\SvgSpriteInjectionListener:
+        tags:
+            - name: event.listener
+              identifier: 'mai-assets/svg-sprite-injection'
 
     Maispace\MaiAssets\Collector\SvgSpriteCollector:
         shared: true
