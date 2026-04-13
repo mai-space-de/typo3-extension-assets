@@ -233,31 +233,6 @@ integrators hook into every processing stage without patching core code.
 
 ---
 
-## 8. Middleware
-
-### 8.1 `CriticalCssInlineMiddleware`
-**Deleted file:** `Classes/Middleware/CriticalCssInlineMiddleware.php` (~242 lines)
-
-PSR-15 middleware that automatically injects previously-extracted critical CSS/JS into the
-`<head>` of every HTML response. Features:
-
-- Mobile vs. desktop viewport detection
-- CSS Layers support
-- CSP nonce injection into inline `<style>` blocks
-- Registered via `Configuration/RequestMiddlewares.php`
-
-### 8.2 `SvgSpriteMiddleware`
-**Deleted file:** `Classes/Middleware/SvgSpriteMiddleware.php` (~256 lines)
-
-Serves the assembled SVG sprite from a configurable route (default `/typo3temp/assets/sprites/`)
-with:
-
-- Runtime Brotli / gzip compression
-- `ETag` generation and `304 Not Modified` support
-- Registered via `Configuration/RequestMiddlewares.php`
-
----
-
 ## 9. CLI Commands
 
 ### 9.1 `CriticalCssExtractCommand`
@@ -408,7 +383,6 @@ return [
 - `AssetCacheManagerTest`
 - `AssetProcessingServiceTest` + `AssetProcessingServiceExceptionTest`
 - `ImageRenderingServiceTest` + `ImageRenderingServiceExceptionTest`
-- `CriticalCssInlineMiddlewareTest`
 - `SvgSpriteMiddlewareTest`
 - `SpriteIconRegistryExceptionTest`
 
@@ -449,7 +423,6 @@ Based on dependency relationships and user-facing impact:
 7. **`<mai:image>` / `<mai:picture>` / `<mai:picture.source>` / `<mai:figure>` ViewHelpers**
 8. **`SpriteIconRegistry`** + `<mai:svgSprite>` + `<mai:svgInline>` + `SvgSpriteMiddleware`
 9. **`FontRegistry`** + `<mai:hint>` + `<mai:lottie>`
-10. **`ChromiumCdpClient`** + **`CriticalAssetService`** + `CriticalCssInlineMiddleware`
 11. **CLI commands** (`critical:extract`, `warmup`)
 12. **TypoScript configuration** (expand alongside each step above)
 13. **Configuration discovery** (`SpriteIcons.php`, `Fonts.php`)
