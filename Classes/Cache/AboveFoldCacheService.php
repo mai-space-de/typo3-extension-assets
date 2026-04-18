@@ -67,7 +67,7 @@ final class AboveFoldCacheService implements SingletonInterface
         }
 
         $key = $this->buildCacheKey($pageUid, $bucket);
-        $this->cache->set($key, $sortedNew, ['mai_assets', 'pageId_' . $pageUid]);
+        $this->cache->set($key, $sortedNew, ['mai_assets', 'maiAssetsAboveFold_' . $pageUid]);
 
         // Update bucket index
         $indexKey = 'buckets_' . $pageUid;
@@ -77,7 +77,7 @@ final class AboveFoldCacheService implements SingletonInterface
         }
         if (!in_array($bucket, $buckets, true)) {
             $buckets[] = $bucket;
-            $this->cache->set($indexKey, $buckets, ['mai_assets', 'pageId_' . $pageUid]);
+            $this->cache->set($indexKey, $buckets, ['mai_assets', 'maiAssetsAboveFold_' . $pageUid]);
         }
 
         $event = new AfterCriticalUidsUpdatedEvent($pageUid, $bucket, $existingUids, $sortedNew);
@@ -109,6 +109,6 @@ final class AboveFoldCacheService implements SingletonInterface
     public function bumpResetTimestamp(int $pageUid): void
     {
         $key = $this->buildResetKey($pageUid);
-        $this->cache->set($key, time(), ['mai_assets', 'pageId_' . $pageUid]);
+        $this->cache->set($key, time(), ['mai_assets', 'maiAssetsAboveFold_' . $pageUid]);
     }
 }

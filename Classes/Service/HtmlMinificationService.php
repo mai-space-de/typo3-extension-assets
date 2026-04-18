@@ -30,6 +30,7 @@ final class HtmlMinificationService
         'FOOTERDATA',
         'TYPO3SEARCH_begin',
         'TYPO3SEARCH_end',
+        'PROTECTED_',
     ];
 
     /**
@@ -75,7 +76,7 @@ final class HtmlMinificationService
             $tag = preg_quote($tag, '/');
             $pattern = '/(<' . $tag . '[\s>].*?<\/' . $tag . '>)/is';
             $html = preg_replace_callback($pattern, static function (array $matches) use (&$map, &$counter): string {
-                $token = "\x00PROTECTED_" . $counter . "\x00";
+                $token = '<!--PROTECTED_' . $counter . '-->';
                 $map[$token] = $matches[1];
                 $counter++;
                 return $token;
