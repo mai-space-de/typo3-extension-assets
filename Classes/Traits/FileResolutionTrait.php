@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Traits;
 
+use Maispace\MaiAssets\Exception\AssetFileNotFoundException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 trait FileResolutionTrait
@@ -26,7 +27,7 @@ trait FileResolutionTrait
     {
         $resolved = $this->resolveFilePath($path);
         if ($resolved === '' || !file_exists($resolved)) {
-            throw new \RuntimeException(
+            throw new AssetFileNotFoundException(
                 sprintf('Required file not found: "%s" (resolved: "%s")', $path, $resolved),
                 1700000001
             );

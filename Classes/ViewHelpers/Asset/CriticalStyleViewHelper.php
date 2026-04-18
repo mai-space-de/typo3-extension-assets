@@ -8,6 +8,8 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Processing\MinificationProcessor;
 use Maispace\MaiAssets\Processing\ScssProcessor;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
+use TYPO3\CMS\Core\Page\AssetCollector;
+use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 final class CriticalStyleViewHelper extends AbstractViewHelper
@@ -20,6 +22,7 @@ final class CriticalStyleViewHelper extends AbstractViewHelper
         private readonly ScssProcessor $scssProcessor,
         private readonly MinificationProcessor $minificationProcessor,
         private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly AssetCollector $assetCollector,
     ) {
         parent::__construct();
     }
@@ -59,17 +62,11 @@ final class CriticalStyleViewHelper extends AbstractViewHelper
             return '<style>' . $content . '</style>';
         }
 
-        // Deferred load for non-critical
-        $href = htmlspecialchars($this->getPublicPath($resolvedPath), ENT_QUOTES);
-        $mediaAttr = htmlspecialchars($media, ENT_QUOTES);
-        return '<link rel="stylesheet" href="' . $href . '" media="print"'
-            . ' onload="this.media=\'' . $mediaAttr . '\'">'
-            . '<noscript><link rel="stylesheet" href="' . $href . '" media="' . $mediaAttr . '"></noscript>';
-    }
+        // Deferred load for non-critical — register via AssetCollector for deduplication
+        $identifier = (string)$this->arguments['identifier'];
+        $publicPath = PathUtility::getAbsoluteWebPath($resolvedPath);
+        $this->assetCollector->addStyleSheet($identifier, $publicPath, ['media' => $media]);
 
-    private function getPublicPath(string $absolutePath): string
-    {
-        $sitePath = defined('PATH_site') ? PATH_site : \TYPO3\CMS\Core\Core\Environment::getPublicPath() . '/';
-        return '/' . ltrim(str_replace($sitePath, '', $absolutePath), '/');
+        return '';
     }
 }

@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Service;
 
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use Maispace\MaiAssets\Event\AfterImageProcessedEvent;
+use Maispace\MaiAssets\Event\BeforeImageProcessingEvent;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Extbase\Service\ImageService;
 
 final class ImageVariantService
 {
     public function __construct(
         private readonly ImageService $imageService,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {}
 
     /**
@@ -22,6 +25,13 @@ final class ImageVariantService
      */
     public function processVariants(object $fileReference, array $breakpoints): array
     {
+        $beforeEvent = new BeforeImageProcessingEvent($fileReference, $breakpoints);
+        $this->eventDispatcher->dispatch($beforeEvent);
+        if ($beforeEvent->isCancelled()) {
+            return [];
+        }
+        $breakpoints = $beforeEvent->getBreakpoints();
+
         $result = [];
         $formats = ['avif', 'webp', 'jpeg'];
 
@@ -46,6 +56,9 @@ final class ImageVariantService
             $result[$bucket] = $bucketData;
         }
 
-        return $result;
+        $afterEvent = new AfterImageProcessedEvent($result, $fileReference);
+        $this->eventDispatcher->dispatch($afterEvent);
+
+        return $afterEvent->getVariants();
     }
 }

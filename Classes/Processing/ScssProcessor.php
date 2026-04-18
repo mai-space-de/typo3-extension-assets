@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Processing;
 
+use Maispace\MaiAssets\Event\AfterScssCompiledEvent;
+use Maispace\MaiAssets\Exception\AssetCompilationException;
 use ScssPhp\ScssPhp\Compiler;
 use ScssPhp\ScssPhp\OutputStyle;
 
@@ -24,9 +26,14 @@ final class ScssProcessor extends AbstractAssetProcessor
 
         try {
             $result = $compiler->compileString($content, $sourcePath);
-            return $result->getCss();
+            $css = $result->getCss();
+
+            $event = new AfterScssCompiledEvent($css, $sourcePath);
+            $this->eventDispatcher->dispatch($event);
+
+            return $event->getCompiledCss();
         } catch (\Exception $e) {
-            throw new \RuntimeException(
+            throw new AssetCompilationException(
                 sprintf('SCSS compilation error in file "%s": %s', $sourcePath, $e->getMessage()),
                 1700000002,
                 $e

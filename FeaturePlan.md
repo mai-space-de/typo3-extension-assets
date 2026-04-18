@@ -452,8 +452,126 @@ plugin.tx_maispace_assets {
             brotli = 1
             gzip   = 1
         }
+
+        # HTML output minification
+        htmlMinification {
+            enable           = 0
+            stripComments    = 1
+            preserveTags     = pre,code,textarea
+        }
     }
 }
+```
+
+### 3.14 HTML Minification (NEW)
+
+**Files**:
+- `Classes/Service/HtmlMinificationService.php` — pure transformation service, no DI, no side effects
+- `Classes/EventListener/HtmlMinificationListener.php` — listens to `AfterCacheableContentIsGeneratedEvent`, reads TypoScript config, delegates
+
+**Purpose**: Strip inter-element whitespace and HTML comments from the final cached HTML
+response, reducing transfer size without altering rendered output. Runs once per page per
+cache lifetime (result is cached with the page).
+
+#### Event wiring
+
+```php
+#[AsEventListener(
+    identifier: 'mai-assets/html-minification',
+    after: 'mai-assets/svg-sprite-injection',
+)]
+```
+
+Runs **after** `SvgSpriteInjectionListener` and `AboveFoldObserverListener` so that
+injected sprite and observer markup is also minified.
+
+#### Content-type guard
+
+The listener checks `$event->getResponse()->getHeaderLine('Content-Type')`. If the response
+is not `text/html`, minification is skipped entirely (protects JSON/XML API sub-requests).
+
+#### TypoScript configuration
+
+Add to `plugin.tx_maispace_assets.settings` (also document in §3.13):
+
+```typoscript
+htmlMinification {
+    enable           = 0
+    stripComments    = 1
+    preserveTags     = pre,code,textarea
+}
+```
+
+`enable = 0` by default — must be explicitly opted in.
+`preserveTags` is a comma-separated list of tags whose entire content (including whitespace)
+is protected from any transformation. `<script>`, `<style>`, and JSON/LD blocks are always
+protected regardless of this setting.
+
+#### `HtmlMinificationService` public API
+
+```php
+final class HtmlMinificationService
+{
+    public function minify(string $html, array $config): string;
+    private function protectBlocks(string $html, array $preserveTags): array; // [protected_html, map]
+    private function restoreBlocks(string $html, array $map): string;
+    private function stripComments(string $html): string;
+    private function collapseWhitespace(string $html): string;
+}
+```
+
+#### Block protection strategy
+
+Before any transformation, `protectBlocks()` replaces protected content with unique
+placeholder tokens (`\x00PROTECTED_{n}\x00`). After all transformations, `restoreBlocks()`
+substitutes the tokens back. Order: protect → strip comments → collapse whitespace → restore.
+
+**Always-protected** (regardless of `preserveTags` setting):
+- `<script>` / `</script>` (all script blocks, including `type="text/javascript"`)
+- `<style>` / `</style>`
+- `<script type="application/json">` and `<script type="application/ld+json">` blocks — JSON is never touched
+- `<textarea>` (form value content)
+
+**Configurable via `preserveTags`** (defaults: `pre,code,textarea`):
+- `<pre>` — whitespace is significant
+- `<code>` — inline code should not be reflow-mangled
+- `<textarea>` — in addition to always-protected, keeps it in the configurable list so it can be removed if desired
+
+#### Comment stripping
+
+When `stripComments = 1`, HTML comments (`<!-- … -->`) are removed with the following
+exceptions — these TYPO3-internal markers must be preserved:
+
+| Pattern | Used for |
+|---|---|
+| `<!--INT_SCRIPT.*-->` | Non-cached page markers |
+| `<!--HD_-->`, `<!--TDS_-->`, `<!--FD_-->` | Head/footer data markers |
+| `<!--CSS_INCLUDE_-->`, `<!--CSS_INLINE_-->` | CSS injection markers |
+| `<!--JS_LIBS-->`, `<!--JS_INCLUDE-->`, `<!--JS_INLINE-->` | JS injection markers |
+| `<!--JS_LIBS_FOOTER-->`, `<!--JS_INCLUDE_FOOTER-->`, `<!--JS_INLINE_FOOTER-->` | Footer JS markers |
+| `<!--HEADERDATA-->`, `<!--FOOTERDATA-->` | Header/footer data |
+| `<!--TYPO3SEARCH_begin-->`, `<!--TYPO3SEARCH_end-->` | Indexed search markers |
+| `<!-- ###…` | Section markers used by some content elements |
+
+Implementation: a single `preg_replace` with a negative lookahead excludes matching patterns
+before removing the rest.
+
+#### Whitespace collapsing
+
+1. Each line: trim leading and trailing whitespace
+2. Runs of whitespace characters (space, tab, `\r`, `\n`) between `>` and `<` are collapsed
+   to a single space
+3. Lines that become empty after trimming are discarded
+
+Collapsing is applied **only** to non-protected content (i.e., after block protection).
+
+#### TypoScript access in listener
+
+```php
+$tsSettings = $event->getRequest()
+    ->getAttribute('frontend.typoscript')
+    ?->getSetupArray()['plugin.']['tx_maispace_assets.']['settings.']['htmlMinification.']
+    ?? [];
 ```
 
 ---
@@ -503,7 +621,8 @@ Ordered by dependency graph (each item can start once its prerequisites are ✓)
 | 12 | `<mai:picture>` + `<mai:picture.source>` | `ImageVariantService` | L |
 | 13 | `<mai:figure>` | none | XS |
 | 14 | `WarmupCommand` | `ExtensionConfigurationDiscovery`, processors | M |
-| 15 | TypoScript settings expansion (§3.13) | all above | S |
-| 16 | Unit tests for all new code | each step | ongoing |
+| 15 | `HtmlMinificationService` + `HtmlMinificationListener` (§3.14) | exception hierarchy | M |
+| 16 | TypoScript settings expansion (§3.13, including `htmlMinification`) | all above | S |
+| 17 | Unit tests for all new code | each step | ongoing |
 
 **Effort key**: XS < 1h · S 1-2h · M 2-4h · L 4-8h

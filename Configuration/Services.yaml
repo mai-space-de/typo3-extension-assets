@@ -20,6 +20,12 @@ services:
             - name: event.listener
               identifier: 'mai-assets/svg-sprite-injection'
 
+    Maispace\MaiAssets\EventListener\HtmlMinificationListener:
+        tags:
+            - name: event.listener
+              identifier: 'mai-assets/html-minification'
+              after: 'mai-assets/svg-sprite-injection'
+
     Maispace\MaiAssets\Collector\SvgSpriteCollector:
         shared: true
 
@@ -28,3 +34,8 @@ services:
 
     Maispace\MaiAssets\Cache\AboveFoldCacheService:
         shared: true
+
+    Maispace\MaiAssets\Command\WarmupCommand:
+        tags:
+            - name: console.command
+              command: 'maispace:assets:warmup'

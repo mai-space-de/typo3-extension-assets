@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\Processing;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
+use Maispace\MaiAssets\Event\AfterCssProcessedEvent;
+use Maispace\MaiAssets\Event\AfterJsProcessedEvent;
 use Maispace\MaiAssets\Event\BeforeAssetInjectionEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -32,6 +34,18 @@ abstract class AbstractAssetProcessor implements AssetProcessorInterface
         }
 
         $type = $this->getContentType($sourcePath);
+
+        // Fire type-specific post-processing events
+        if ($type === 'js') {
+            $jsEvent = new AfterJsProcessedEvent($processed, $sourcePath);
+            $this->eventDispatcher->dispatch($jsEvent);
+            $processed = $jsEvent->getProcessedJs();
+        } else {
+            $cssEvent = new AfterCssProcessedEvent($processed, $sourcePath);
+            $this->eventDispatcher->dispatch($cssEvent);
+            $processed = $cssEvent->getProcessedCss();
+        }
+
         $event = new BeforeAssetInjectionEvent($processed, $type, $sourcePath);
         $this->eventDispatcher->dispatch($event);
 
