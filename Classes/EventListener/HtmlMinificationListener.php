@@ -20,19 +20,16 @@ final class HtmlMinificationListener
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void
     {
-        // Only process cacheable responses
         if (!$event->isCachingEnabled()) {
             return;
         }
 
-        // Guard: only minify text/html responses
-        $response = $event->getResponse();
-        $contentType = $response->getHeaderLine('Content-Type');
-        if ($contentType !== '' && !str_contains($contentType, 'text/html')) {
+        $html = $event->getContent();
+
+        if ($html === '') {
             return;
         }
 
-        // Read TypoScript settings
         $tsSettings = $event->getRequest()
             ->getAttribute('frontend.typoscript')
             ?->getSetupArray()['plugin.']['tx_maispace_assets.']['settings.']['htmlMinification.']
@@ -42,13 +39,6 @@ final class HtmlMinificationListener
             return;
         }
 
-        $controller = $event->getController();
-        $html = $controller->content;
-
-        if ($html === '') {
-            return;
-        }
-
-        $controller->content = $this->htmlMinificationService->minify($html, $tsSettings);
+        $event->setContent($this->htmlMinificationService->minify($html, $tsSettings));
     }
 }
