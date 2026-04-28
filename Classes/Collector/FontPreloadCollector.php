@@ -6,7 +6,10 @@ namespace Maispace\MaiAssets\Collector;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Configuration\ExtensionConfigurationDiscovery;
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use TYPO3\CMS\Core\SingletonInterface;
+use TYPO3\CMS\Core\Utility\PathUtility;
 
 final class FontPreloadCollector extends AbstractAssetCollector implements SingletonInterface
 {
@@ -15,6 +18,7 @@ final class FontPreloadCollector extends AbstractAssetCollector implements Singl
     public function __construct(
         private readonly ExtensionConfiguration $extensionConfiguration,
         private readonly ExtensionConfigurationDiscovery $extensionConfigurationDiscovery,
+        private readonly EarlyHintCandidateCollector $earlyHintCollector,
     ) {}
 
     public function build(): string
@@ -47,6 +51,15 @@ final class FontPreloadCollector extends AbstractAssetCollector implements Singl
                 htmlspecialchars($filePath, ENT_QUOTES),
                 $mimeType
             ) . "\n";
+
+            $publicPath = PathUtility::getAbsoluteWebPath($filePath);
+            $this->earlyHintCollector->add(new EarlyHintCandidate(
+                href: $publicPath,
+                rel: 'preload',
+                as: 'font',
+                type: $mimeType,
+                crossorigin: 'anonymous',
+            ));
         }
 
         return $links;

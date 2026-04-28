@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\ViewHelpers\Asset;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Processing\MinificationProcessor;
 use Maispace\MaiAssets\Processing\ScssProcessor;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
@@ -23,6 +25,7 @@ final class CriticalStyleViewHelper extends AbstractViewHelper
         private readonly MinificationProcessor $minificationProcessor,
         private readonly ExtensionConfiguration $extensionConfiguration,
         private readonly AssetCollector $assetCollector,
+        private readonly EarlyHintCandidateCollector $earlyHintCollector,
     ) {}
 
     public function initializeArguments(): void
@@ -88,6 +91,12 @@ final class CriticalStyleViewHelper extends AbstractViewHelper
         $this->assetCollector->addStyleSheet($identifier, $publicPath, [
             "media" => $media,
         ]);
+
+        $this->earlyHintCollector->add(new EarlyHintCandidate(
+            href: $publicPath,
+            rel: 'preload',
+            as: 'style',
+        ));
 
         return "";
     }

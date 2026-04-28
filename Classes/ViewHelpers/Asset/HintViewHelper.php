@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Asset;
 
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
@@ -19,7 +21,10 @@ final class HintViewHelper extends AbstractViewHelper
 
     protected $escapeOutput = false;
 
-    public function __construct(private readonly PageRenderer $pageRenderer) {}
+    public function __construct(
+        private readonly PageRenderer $pageRenderer,
+        private readonly EarlyHintCandidateCollector $earlyHintCollector,
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -95,6 +100,14 @@ final class HintViewHelper extends AbstractViewHelper
         $this->pageRenderer->addHeaderData(
             $tag . "<!-- " . $deduplicationKey . " -->",
         );
+
+        $this->earlyHintCollector->add(new EarlyHintCandidate(
+            href: $href,
+            rel: $rel,
+            as: $as,
+            type: $type,
+            crossorigin: $crossorigin,
+        ));
 
         return "";
     }
