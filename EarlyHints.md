@@ -59,15 +59,17 @@ Good candidates:
 
 Fonts are the strongest candidate.
 
-Because fonts can already be discovered from extension configuration, they do not have to depend on late template rendering. A middleware could resolve the active site/page context, read the configured critical fonts, and emit:
+Because fonts can already be discovered from extension configuration, they do not have to depend on late template rendering. A middleware could resolve the active site/page context, read the configured fonts to preload, and emit:
 
-- `Link: </path/to/font.woff2>; rel=preload; as=font; type=font/woff2; crossorigin`
+- `Link: </path/to/font.woff2>; rel=preload; as=font; type=font/woff2; crossorigin=anonymous`
 
 This should work especially well for:
 
 - globally used brand fonts
 - site-wide navigation/header fonts
 - fonts declared in `Configuration/Fonts.php`
+
+If we later want only a subset of configured fonts to be sent as Early Hints, the `Configuration/Fonts.php` contract would need to be extended with an explicit flag for that.
 
 For fonts registered only through ViewHelpers, the same cached-manifest approach as above would still be needed.
 
