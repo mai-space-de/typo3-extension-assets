@@ -18,6 +18,13 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets
     'groups'   => ['pages'],
 ];
 
+// Register Early Hints manifest cache (keyed by page + language)
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets_early_hints'] ??= [
+    'frontend' => \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend::class,
+    'backend'  => \TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend::class,
+    'groups'   => ['pages'],
+];
+
 // Register DataHandler hook
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
     = \Maispace\MaiAssets\Hook\ContentElementSaveHook::class;

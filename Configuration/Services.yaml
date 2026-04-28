@@ -9,21 +9,30 @@ services:
         exclude:
             - '../Classes/Event/*'
             - '../Classes/EventListener/*'
+            - '../Classes/Hook/*'
+
+    Maispace\MaiAssets\Hook\ContentElementSaveHook:
+        public: true
+        arguments:
+            $aboveFoldCacheService: '@Maispace\MaiAssets\Cache\AboveFoldCacheService'
 
     Maispace\MaiAssets\EventListener\AboveFoldObserverListener:
         tags:
             - name: event.listener
               identifier: 'mai-assets/above-fold-observer'
+              event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
 
     Maispace\MaiAssets\EventListener\SvgSpriteInjectionListener:
         tags:
             - name: event.listener
               identifier: 'mai-assets/svg-sprite-injection'
+              event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
 
     Maispace\MaiAssets\EventListener\HtmlMinificationListener:
         tags:
             - name: event.listener
               identifier: 'mai-assets/html-minification'
+              event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
               after: 'mai-assets/svg-sprite-injection'
 
     Maispace\MaiAssets\Collector\SvgSpriteCollector:
@@ -34,6 +43,19 @@ services:
 
     Maispace\MaiAssets\Cache\AboveFoldCacheService:
         shared: true
+
+    Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector:
+        shared: true
+
+    Maispace\MaiAssets\EarlyHints\EarlyHintCacheService:
+        shared: true
+
+    Maispace\MaiAssets\EventListener\EarlyHintManifestListener:
+        tags:
+            - name: event.listener
+              identifier: 'mai-assets/early-hint-manifest'
+              event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
+              after: 'mai-assets/svg-sprite-injection'
 
     Maispace\MaiAssets\Command\WarmupCommand:
         tags:

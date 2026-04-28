@@ -9,5 +9,10 @@ return [
             'after' => ['typo3/cms-frontend/site'],
             'before' => ['typo3/cms-frontend/page-resolver'],
         ],
+        'maispace/mai-assets/early-hints' => [
+            'target' => \Maispace\MaiAssets\Middleware\EarlyHintsMiddleware::class,
+            'after' => ['typo3/cms-frontend/page-resolver'],
+            'before' => ['typo3/cms-frontend/page-argument-validator'],
+        ],
     ],
 ];
