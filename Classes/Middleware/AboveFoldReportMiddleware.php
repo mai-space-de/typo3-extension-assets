@@ -6,21 +6,25 @@ namespace Maispace\MaiAssets\Middleware;
 
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
+use Maispace\MaiAssets\Security\AboveFoldTokenService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Http\JsonResponse;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class AboveFoldReportMiddleware implements MiddlewareInterface
 {
     private const ROUTE_PATH = '/api/mai-assets/above-fold-report';
+    private const RATE_LIMIT_MAX   = 10;
+    private const RATE_LIMIT_WINDOW = 60;
 
     public function __construct(
         private readonly AboveFoldCacheService $aboveFoldCacheService,
         private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly AboveFoldTokenService $tokenService,
+        private readonly CacheManager $cacheManager,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -36,7 +40,23 @@ final class AboveFoldReportMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
+        // Enforce Content-Type: application/json
+        if (!str_contains($request->getHeaderLine('Content-Type'), 'application/json')) {
+            return new JsonResponse(['status' => 'unsupported_media_type'], 415);
+        }
+
+        // IP-based rate limiting
+        $rateLimitResponse = $this->checkRateLimit($request);
+        if ($rateLimitResponse !== null) {
+            return $rateLimitResponse;
+        }
+
         $body = (string)$request->getBody();
+
+        if (strlen($body) > 4096) {
+            return new JsonResponse(['status' => 'invalid', 'errors' => ['Payload too large']], 413);
+        }
+
         $data = json_decode($body, true);
 
         if (!is_array($data)) {
@@ -44,6 +64,14 @@ final class AboveFoldReportMiddleware implements MiddlewareInterface
                 ['status' => 'invalid', 'errors' => ['Request body must be valid JSON']],
                 400
             );
+        }
+
+        $token   = (string)($data['token'] ?? '');
+        $ts      = (int)($data['resetTimestamp'] ?? 0);
+        $pageUid = (int)($data['pageUid'] ?? 0);
+
+        if (!$this->tokenService->verify($token, $pageUid, $ts)) {
+            return new JsonResponse(['status' => 'forbidden'], 403);
         }
 
         $errors = $this->validate($data);
@@ -61,8 +89,7 @@ final class AboveFoldReportMiddleware implements MiddlewareInterface
         $changed = $this->aboveFoldCacheService->updateCriticalUids($pageUid, $bucket, $criticalUids);
 
         if ($changed) {
-            $cacheManager = GeneralUtility::makeInstance(CacheManager::class);
-            $cacheManager->flushCachesByTag('pageId_' . $pageUid);
+            $this->cacheManager->flushCachesByTag('pageId_' . $pageUid);
         }
 
         return new JsonResponse(['status' => 'ok', 'changed' => $changed]);
@@ -80,6 +107,8 @@ final class AboveFoldReportMiddleware implements MiddlewareInterface
             $errors[] = 'criticalUids must be an array of integers';
         } elseif (!$this->isArrayOfIntegers($data['criticalUids'])) {
             $errors[] = 'criticalUids must contain only integers';
+        } elseif (count($data['criticalUids']) > 50) {
+            $errors[] = 'criticalUids must not contain more than 50 entries';
         }
 
         $validBuckets = array_keys($this->extensionConfiguration->getViewportBuckets());
@@ -93,10 +122,32 @@ final class AboveFoldReportMiddleware implements MiddlewareInterface
     private function isArrayOfIntegers(array $array): bool
     {
         foreach ($array as $item) {
-            if (!is_int($item) && !ctype_digit((string)$item)) {
+            if (!(is_int($item) || ctype_digit((string)$item)) || (int)$item <= 0) {
                 return false;
             }
         }
         return true;
+    }
+
+    private function checkRateLimit(ServerRequestInterface $request): ?ResponseInterface
+    {
+        try {
+            $cache = $this->cacheManager->getCache('mai_assets_above_fold');
+            $ip    = (string)($request->getServerParams()['REMOTE_ADDR'] ?? 'unknown');
+            $key   = 'ratelimit_' . md5($ip);
+
+            $count = $cache->get($key);
+            $count = is_int($count) ? $count + 1 : 1;
+
+            if ($count > self::RATE_LIMIT_MAX) {
+                return new JsonResponse(['status' => 'too_many_requests'], 429);
+            }
+
+            $cache->set($key, $count, [], self::RATE_LIMIT_WINDOW);
+        } catch (\Throwable) {
+            // Fail open: cache unavailable, allow the request
+        }
+
+        return null;
     }
 }

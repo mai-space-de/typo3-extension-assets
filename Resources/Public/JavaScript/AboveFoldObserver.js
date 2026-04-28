@@ -3,6 +3,8 @@
 
     var PAGE_UID = ###PAGE_UID###;
     var SERVER_RESET_TIMESTAMP = ###SERVER_RESET_TIMESTAMP###;
+    var REPORT_TOKEN = '###REPORT_TOKEN###';
+    var VALID_BUCKETS = ###VALID_BUCKETS###;
 
     // Determine viewport bucket
     function getViewportBucket() {
@@ -13,9 +15,9 @@
     }
 
     var bucket = (function () {
-        // Check cookie first
+        // Check cookie first, validate against server-provided allowlist
         var cookieMatch = document.cookie.match(/(?:^|;\s*)viewport_bucket=([^;]+)/);
-        if (cookieMatch) return cookieMatch[1];
+        if (cookieMatch && VALID_BUCKETS.indexOf(cookieMatch[1]) !== -1) return cookieMatch[1];
         return getViewportBucket();
     }());
 
@@ -68,7 +70,8 @@
 
         var payload = JSON.stringify({
             pageUid: PAGE_UID,
-            url: window.location.href,
+            resetTimestamp: SERVER_RESET_TIMESTAMP,
+            token: REPORT_TOKEN,
             bucket: bucket,
             criticalUids: criticalUids
         });

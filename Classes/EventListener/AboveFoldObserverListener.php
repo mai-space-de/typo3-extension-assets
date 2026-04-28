@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\EventListener;
 
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
+use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Event\BeforeObserverScriptInjectedEvent;
+use Maispace\MaiAssets\Security\AboveFoldTokenService;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -16,7 +18,9 @@ final class AboveFoldObserverListener
 {
     public function __construct(
         private readonly AboveFoldCacheService $aboveFoldCacheService,
+        private readonly AboveFoldTokenService $tokenService,
         private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly ExtensionConfiguration $extensionConfiguration,
     ) {}
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void
@@ -33,6 +37,12 @@ final class AboveFoldObserverListener
         }
 
         $resetTimestamp = $this->aboveFoldCacheService->getResetTimestamp($pageUid);
+        if ($resetTimestamp === 0) {
+            $resetTimestamp = time();
+        }
+        $token = $this->tokenService->generate($pageUid, $resetTimestamp);
+
+        $validBuckets = (string)json_encode(array_keys($this->extensionConfiguration->getViewportBuckets()));
 
         $observerScriptPath = GeneralUtility::getFileAbsFileName(
             'EXT:mai_assets/Resources/Public/JavaScript/AboveFoldObserver.js'
@@ -44,8 +54,8 @@ final class AboveFoldObserverListener
 
         $scriptTemplate = (string)file_get_contents($observerScriptPath);
         $script = str_replace(
-            ['###PAGE_UID###', '###SERVER_RESET_TIMESTAMP###'],
-            [(string)$pageUid, (string)$resetTimestamp],
+            ['###PAGE_UID###', '###SERVER_RESET_TIMESTAMP###', '###REPORT_TOKEN###', '###VALID_BUCKETS###'],
+            [(string)$pageUid, (string)$resetTimestamp, $token, $validBuckets],
             $scriptTemplate
         );
 
