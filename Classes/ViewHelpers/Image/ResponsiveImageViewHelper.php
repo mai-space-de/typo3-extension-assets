@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Image;
 
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
+use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\ImageVariantService;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -15,6 +18,8 @@ final class ResponsiveImageViewHelper extends AbstractViewHelper
     public function __construct(
         private readonly ImageVariantService $imageVariantService,
         private readonly AssetCollector $assetCollector,
+        private readonly AssetCriticalityResolver $criticalityResolver,
+        private readonly EarlyHintCandidateCollector $earlyHintCollector,
     ) {
         parent::__construct();
     }
@@ -24,7 +29,8 @@ final class ResponsiveImageViewHelper extends AbstractViewHelper
         $this->registerArgument('image', 'object', 'FAL file reference', true);
         $this->registerArgument('breakpoints', 'array', 'Breakpoints with widths', true);
         $this->registerArgument('sizes', 'string', 'Sizes attribute value', true);
-        $this->registerArgument('isCritical', 'bool', 'Whether the image is critical', false, false);
+        $this->registerArgument('critical', 'string', 'Criticality: auto|true|false', false, 'auto');
+        $this->registerArgument('elementUid', 'int', 'Content element UID for auto-criticality detection', false, 0);
         $this->registerArgument('alt', 'string', 'Alt text', false, '');
         $this->registerArgument('class', 'string', 'CSS class', false, '');
     }
@@ -34,23 +40,38 @@ final class ResponsiveImageViewHelper extends AbstractViewHelper
         $image = $this->arguments['image'];
         $breakpoints = (array)$this->arguments['breakpoints'];
         $sizes = (string)$this->arguments['sizes'];
-        $isCritical = (bool)$this->arguments['isCritical'];
+        $critical = (string)$this->arguments['critical'];
+        $elementUid = (int)$this->arguments['elementUid'];
         $alt = (string)$this->arguments['alt'];
         $class = (string)$this->arguments['class'];
 
+        $pageUid = (int)($this->renderingContext->getRequest()?->getAttribute('routing')?->getPageId() ?? 0);
+
+        $isCritical = match ($critical) {
+            'true'  => true,
+            'false' => false,
+            default => $elementUid > 0 && $pageUid > 0
+                       && $this->criticalityResolver->isElementAboveFold($elementUid, $pageUid),
+        };
+
         $variants = $this->imageVariantService->processVariants($image, $breakpoints);
 
-        // Register AVIF preload for critical images
         if ($isCritical && isset($variants['desktop']['avif']) && $variants['desktop']['avif'] !== '') {
+            $avifUrl = $variants['desktop']['avif'];
             $this->assetCollector->addLink(
-                'mai_assets_avif_preload_' . md5($variants['desktop']['avif']),
+                'mai_assets_avif_preload_' . md5($avifUrl),
                 [
                     'rel'  => 'preload',
-                    'href' => $variants['desktop']['avif'],
+                    'href' => $avifUrl,
                     'as'   => 'image',
                     'type' => 'image/avif',
                 ]
             );
+            $this->earlyHintCollector->add(new EarlyHintCandidate(
+                href: $avifUrl,
+                rel: 'preload',
+                as: 'image',
+            ));
         }
 
         $loadingAttr = $isCritical ? 'eager' : 'lazy';
@@ -61,19 +82,16 @@ final class ResponsiveImageViewHelper extends AbstractViewHelper
 
         $html = '<picture>';
 
-        // AVIF sources
         $avifSrcset = $this->buildSrcset($variants, 'avif');
         if ($avifSrcset !== '') {
             $html .= '<source type="image/avif" srcset="' . $avifSrcset . '" sizes="' . htmlspecialchars($sizes, ENT_QUOTES) . '">';
         }
 
-        // WebP sources
         $webpSrcset = $this->buildSrcset($variants, 'webp');
         if ($webpSrcset !== '') {
             $html .= '<source type="image/webp" srcset="' . $webpSrcset . '" sizes="' . htmlspecialchars($sizes, ENT_QUOTES) . '">';
         }
 
-        // JPEG fallback img
         $jpegSrcset = $this->buildSrcset($variants, 'jpeg');
         $fallbackSrc = $variants['desktop']['jpeg'] ?? ($variants[array_key_last($variants)]['jpeg'] ?? '');
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Image;
 
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
+use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\ImageVariantService;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -13,7 +15,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  * Child <mai:picture.source> tags define breakpoint-specific <source> elements.
  *
  * Usage:
- *   <mai:picture image="{image}" alt="Description">
+ *   <mai:picture image="{image}" alt="Description" elementUid="{data.uid}">
  *     <mai:picture.source media="(max-width: 767px)" srcset="{0: 400, 1: 800}" formats="{0: 'avif', 1: 'webp'}" />
  *     <mai:picture.source media="(min-width: 768px)" srcset="{0: 1200, 1: 1600}" formats="{0: 'avif', 1: 'webp'}" />
  *   </mai:picture>
@@ -25,6 +27,8 @@ final class PictureViewHelper extends AbstractViewHelper
     public function __construct(
         private readonly ImageVariantService $imageVariantService,
         private readonly ImageService $imageService,
+        private readonly AssetCriticalityResolver $criticalityResolver,
+        private readonly EarlyHintCandidateCollector $earlyHintCollector,
     ) {
         parent::__construct();
     }
@@ -35,8 +39,8 @@ final class PictureViewHelper extends AbstractViewHelper
         $this->registerArgument('alt', 'string', 'Alt text for the fallback <img>', false, '');
         $this->registerArgument('width', 'int', 'Fallback image width', false, 0);
         $this->registerArgument('height', 'int', 'Fallback image height', false, 0);
-        $this->registerArgument('lazyloading', 'bool', 'Add loading="lazy" to <img>', false, true);
-        $this->registerArgument('fetchPriority', 'string', 'fetchpriority attribute (high/low/auto)', false, '');
+        $this->registerArgument('critical', 'string', 'Criticality: auto|true|false', false, 'auto');
+        $this->registerArgument('elementUid', 'int', 'Content element UID for auto-criticality detection', false, 0);
         $this->registerArgument('quality', 'int', 'Fallback image quality', false, 85);
         $this->registerArgument('fileExtension', 'string', 'Fallback image format (e.g. jpg)', false, '');
         $this->registerArgument('crossorigin', 'string', 'crossorigin attribute', false, '');
@@ -49,20 +53,33 @@ final class PictureViewHelper extends AbstractViewHelper
         $alt = (string)$this->arguments['alt'];
         $width = (int)$this->arguments['width'];
         $height = (int)$this->arguments['height'];
-        $lazyloading = (bool)$this->arguments['lazyloading'];
-        $fetchPriority = (string)$this->arguments['fetchPriority'];
+        $critical = (string)$this->arguments['critical'];
+        $elementUid = (int)$this->arguments['elementUid'];
         $fileExtension = (string)$this->arguments['fileExtension'];
         $crossorigin = (string)$this->arguments['crossorigin'];
         $class = (string)$this->arguments['class'];
 
-        // Expose file reference to child SourceViewHelpers via variable provider
+        $pageUid = (int)($this->renderingContext->getRequest()?->getAttribute('routing')?->getPageId() ?? 0);
+
+        $isCritical = match ($critical) {
+            'true'  => true,
+            'false' => false,
+            default => $elementUid > 0 && $pageUid > 0
+                       && $this->criticalityResolver->isElementAboveFold($elementUid, $pageUid),
+        };
+
+        // Expose file reference and criticality to child SourceViewHelpers via variable provider
         $variableProvider = $this->renderingContext->getVariableProvider();
         $variableProvider->add('__pictureFileReference', $image);
+        $variableProvider->add('__pictureIsCritical', $isCritical);
+        $variableProvider->add('__pictureEarlyHintCollector', $this->earlyHintCollector);
 
         // Render child content (source tags)
         $sources = $this->renderChildren();
 
         $variableProvider->remove('__pictureFileReference');
+        $variableProvider->remove('__pictureIsCritical');
+        $variableProvider->remove('__pictureEarlyHintCollector');
 
         // Generate fallback <img>
         $processingInstructions = [];
@@ -86,12 +103,12 @@ final class PictureViewHelper extends AbstractViewHelper
         $imgAttrs = 'src="' . htmlspecialchars($imgSrc, ENT_QUOTES) . '"'
             . ' alt="' . htmlspecialchars($alt, ENT_QUOTES) . '"';
 
-        if ($lazyloading) {
+        if ($isCritical) {
+            $imgAttrs .= ' loading="eager" fetchpriority="high" decoding="sync"';
+        } else {
             $imgAttrs .= ' loading="lazy"';
         }
-        if ($fetchPriority !== '') {
-            $imgAttrs .= ' fetchpriority="' . htmlspecialchars($fetchPriority, ENT_QUOTES) . '"';
-        }
+
         if ($crossorigin !== '') {
             $imgAttrs .= ' crossorigin="' . htmlspecialchars($crossorigin, ENT_QUOTES) . '"';
         }

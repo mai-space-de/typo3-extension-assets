@@ -106,6 +106,50 @@ final class ExtensionConfigurationDiscovery
     }
 
     /**
+     * Discover preconnect origins from all loaded extensions' Configuration/Preconnect.php.
+     *
+     * @return array<int, array{href: string, crossorigin: string}>
+     */
+    public function discoverPreconnects(): array
+    {
+        $currentSiteIdentifier = $this->getCurrentSiteIdentifier();
+        $origins = [];
+
+        foreach (ExtensionManagementUtility::getLoadedExtensionListArray() as $extKey) {
+            $configFile = ExtensionManagementUtility::extPath($extKey) . 'Configuration/Preconnect.php';
+            if (!file_exists($configFile)) {
+                continue;
+            }
+
+            $config = require $configFile;
+            if (!is_array($config)) {
+                continue;
+            }
+
+            if (!$this->matchesSite($config['sites'] ?? ['*'], $currentSiteIdentifier)) {
+                continue;
+            }
+
+            $originList = $config['origins'] ?? [];
+            if (!is_array($originList)) {
+                continue;
+            }
+
+            foreach ($originList as $origin) {
+                if (!is_array($origin) || !isset($origin['href']) || !is_string($origin['href'])) {
+                    continue;
+                }
+                $origins[] = [
+                    'href'        => $origin['href'],
+                    'crossorigin' => (string)($origin['crossorigin'] ?? ''),
+                ];
+            }
+        }
+
+        return $origins;
+    }
+
+    /**
      * @param array<int, string> $sites
      */
     private function matchesSite(array $sites, string $currentSiteIdentifier): bool
