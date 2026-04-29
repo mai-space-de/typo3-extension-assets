@@ -282,17 +282,18 @@ render time, meaning:
 - **Cached pages** deliver whichever criticality state was active when the page was last
   rendered. If observer data arrives after caching, the inlined CSS only appears after the
   cache is invalidated.
-- `ContentElementSaveHook` already flushes `maiAssetsAboveFold_{pageUid}` tags when a
-  content element is saved. This also triggers page cache invalidation, so the next uncached
-  render picks up new observer data.
-- `AboveFoldCacheService::updateCriticalUids()` calls `AfterCriticalUidsUpdatedEvent`;
-  a new listener `CriticalCacheInvalidationListener` should flush the TYPO3 page cache
-  tags for the affected PID so a fresh render (with inlined CSS) is produced immediately
-  after observer data arrives, without waiting for a manual cache clear.
+- When a content element is saved, `ContentElementSaveHook` does **not** flush a
+  `maiAssetsAboveFold_{pageUid}` cache tag. Instead it calls
+  `AboveFoldCacheService::clearCriticalUids()` and `AboveFoldCacheService::bumpResetTimestamp()`,
+  then flushes the TYPO3 page cache for the affected page via `pageId_{pageUid}` so the next
+  uncached render picks up the reset above-fold state.
+- `AboveFoldCacheService::updateCriticalUids()` calls `AfterCriticalUidsUpdatedEvent`; any
+  follow-up invalidation work here should target TYPO3 page-cache invalidation for the affected
+  page/PID, not rely on a non-existent `maiAssetsAboveFold_{pageUid}` tag flush.
 - The early hints manifest (`mai_assets_early_hints` cache) is keyed by `pageUid + language`
-  and is already invalidated by `EarlyHintManifestListener` on every page render. This is
-  correct: the manifest is always rebuilt from the current render's `EarlyHintCandidateCollector`
-  state.
+  and is updated by `EarlyHintManifestListener` on cacheable renders when the current
+  `EarlyHintCandidateCollector` contains candidates. If a render produces no candidates,
+  the previous manifest entry can persist until it is flushed by its cache tags.
 
 ---
 
@@ -413,7 +414,8 @@ These rules must be followed in all new and modified code:
    must invalidate the page cache for that PID (handled by `CriticalCacheInvalidationListener`).
    ViewHelpers must not bypass this by writing to caches directly.
 6. **Early hints are always additive** — `EarlyHintCandidateCollector::add()` is idempotent
-   (keyed by `rel+href`). ViewHelpers may call it unconditionally; duplicates are discarded.
+   per `EarlyHintCandidate::key()` (currently derived from `rel`, `href`, and `as`). ViewHelpers
+   may call it unconditionally; only candidates with the same full key are discarded as duplicates.
 7. **`critical="auto"` must never throw** — if `pageUid` is 0 or observer data is unavailable,
    silently default to non-critical. Fail open, not closed.
 8. **Loosely coupled services** — `AssetCriticalityResolver` knows about `AboveFoldCacheService`
