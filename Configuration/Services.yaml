@@ -9,12 +9,9 @@ services:
         exclude:
             - '../Classes/Event/*'
             - '../Classes/EventListener/*'
-            - '../Classes/Hook/*'
 
     Maispace\MaiAssets\Hook\ContentElementSaveHook:
         public: true
-        arguments:
-            $aboveFoldCacheService: '@Maispace\MaiAssets\Cache\AboveFoldCacheService'
 
     Maispace\MaiAssets\EventListener\AboveFoldObserverListener:
         tags:

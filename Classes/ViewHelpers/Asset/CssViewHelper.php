@@ -64,7 +64,7 @@ final class CssViewHelper extends AbstractViewHelper
             ? (bool)$this->arguments['minify']
             : $this->extensionConfiguration->isEnableMinification();
 
-        $pageUid = (int)($this->renderingContext->getRequest()?->getAttribute('routing')?->getPageId() ?? 0);
+        $pageUid = (int)($GLOBALS['TYPO3_REQUEST']->getAttribute('routing')?->getPageId() ?? 0);
 
         $isCritical = match ($critical) {
             'true'  => true,

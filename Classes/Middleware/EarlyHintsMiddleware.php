@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use TYPO3\CMS\Core\Core\Environment;
 
 final class EarlyHintsMiddleware implements MiddlewareInterface
 {
@@ -21,7 +22,10 @@ final class EarlyHintsMiddleware implements MiddlewareInterface
         $pageArguments = $request->getAttribute('routing');
         $language = $request->getAttribute('language');
 
-        if ($pageArguments !== null && $this->isCacheableGetRequest($request)) {
+        // Skip Early Hints in Development context: Apache mod_proxy_fcgi auto-promotes
+        // Link: headers to HTTP 103 responses before mod_headers can suppress them,
+        // causing downstream proxies (e.g. Traefik) to fail with 500.
+        if ($pageArguments !== null && $this->isCacheableGetRequest($request) && !Environment::getContext()->isDevelopment()) {
             $pageUid = (int)$pageArguments->getPageId();
             $languageUid = $language !== null ? (int)$language->getLanguageId() : 0;
 
