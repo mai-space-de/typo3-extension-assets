@@ -97,6 +97,17 @@
             return;
         }
 
+        // Only observe when the page starts at the top of the scroll position.
+        // If the browser has restored scroll position (e.g. history.back() or
+        // bfcache restore), elements that are NOT above the fold would be
+        // detected as intersecting, producing incorrect criticality data.
+        var scrollTop = window.pageYOffset !== undefined
+            ? window.pageYOffset
+            : (document.documentElement.scrollTop || document.body.scrollTop || 0);
+        if (scrollTop > 0) {
+            return;
+        }
+
         observeElements();
 
         if (document.readyState === 'complete') {
