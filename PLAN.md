@@ -393,7 +393,7 @@ Dependencies determine sequence. Each step can start only when its prerequisites
 | 12 | Review and delete `FontPreloadService` if only used by deleted ViewHelper | step 10 | |
 | 13 | Update TypoScript settings tree to document `critical` thresholds + new `preconnect` config | steps 1–8 | |
 | 14 | Migrate any internal template usage (`Resources/Private/`) from old to new ViewHelper API | steps 3–6 | |
-| 15 | Unit tests for `AssetCriticalityResolver`, updated ViewHelpers, new listener | all above | One test class per changed class |
+| 15 | Unit tests for `AssetCriticalityResolver`, updated ViewHelpers, new listener | all above | ✅ `AssetCriticalityResolverTest` · ✅ `CssViewHelperTest` (7 tests: critical=true/false/auto) · ⬜ `JsViewHelperTest` · ⬜ `CriticalCacheInvalidationListenerTest` |
 
 ---
 
