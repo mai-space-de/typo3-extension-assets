@@ -131,6 +131,32 @@ final class PictureViewHelperTest extends TestCase
     }
 
     /**
+     * Processed image dimensions are rendered as width/height on the fallback img (perf-08).
+     */
+    public function testProcessedDimensionsAreRenderedOnImg(): void
+    {
+        $subject = $this->createViewHelper($this->stubImageServiceWithDimensions(1200, 675), width: 1200);
+
+        $result = $subject->render();
+
+        self::assertStringContainsString('width="1200"', $result);
+        self::assertStringContainsString('height="675"', $result);
+    }
+
+    /**
+     * Explicit height argument is preserved on the fallback img.
+     */
+    public function testExplicitHeightIsRenderedOnImg(): void
+    {
+        $subject = $this->createViewHelper($this->stubImageServiceWithDimensions(800, 450), width: 800, height: 450);
+
+        $result = $subject->render();
+
+        self::assertStringContainsString('width="800"', $result);
+        self::assertStringContainsString('height="450"', $result);
+    }
+
+    /**
      * CSS class is rendered on the fallback img tag.
      */
     public function testCssClassIsRenderedOnImg(): void
@@ -295,6 +321,8 @@ final class PictureViewHelperTest extends TestCase
         string $childrenOutput = '',
         ?RenderingContext $renderingContext = null,
         ?PictureSourceRenderer $pictureSourceRenderer = null,
+        int $width = 0,
+        int $height = 0,
     ): PictureViewHelper {
         if ($pictureSourceRenderer === null) {
             $pictureSourceRenderer = $this->createMock(PictureSourceRenderer::class);
@@ -313,8 +341,8 @@ final class PictureViewHelperTest extends TestCase
         $vh->setArguments([
             'image'         => new \stdClass(),
             'alt'           => $alt,
-            'width'         => 0,
-            'height'        => 0,
+            'width'         => $width,
+            'height'        => $height,
             'critical'      => $critical,
             'elementUid'    => 0,
             'quality'       => 85,
@@ -325,6 +353,42 @@ final class PictureViewHelperTest extends TestCase
         ]);
 
         return $vh;
+    }
+
+    private function stubImageServiceWithDimensions(int $width, int $height): ImageService
+    {
+        return new readonly class($width, $height) extends ImageService {
+            public function __construct(
+                private readonly int $width,
+                private readonly int $height,
+            ) {}
+
+            public function applyProcessingInstructions($image, array $instructions): ProcessedFile
+            {
+                return new class($this->width, $this->height) extends ProcessedFile {
+                    public function __construct(
+                        private readonly int $width,
+                        private readonly int $height,
+                    ) {
+                    }
+
+                    public function getWidth(): int
+                    {
+                        return $this->width;
+                    }
+
+                    public function getHeight(): int
+                    {
+                        return $this->height;
+                    }
+                };
+            }
+
+            public function getImageUri($file, bool $absolute = false): string
+            {
+                return '/f/fallback.jpg';
+            }
+        };
     }
 
     private function createImageVariantService(ImageService $imageService): ImageVariantService
@@ -409,6 +473,11 @@ final class PictureViewHelperTest extends TestCase
                     public function getWidth(): int
                     {
                         return $this->width;
+                    }
+
+                    public function getHeight(): int
+                    {
+                        return 0;
                     }
                 };
             }

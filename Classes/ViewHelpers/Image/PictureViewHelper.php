@@ -7,6 +7,7 @@ namespace Maispace\MaiAssets\ViewHelpers\Image;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
+use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
@@ -103,15 +104,33 @@ class PictureViewHelper extends AbstractViewHelper
             $processingInstructions['fileExtension'] = $fileExtension;
         }
 
+        $imgWidth = $width;
+        $imgHeight = $height;
+
         try {
             $processedImage = $this->imageService->applyProcessingInstructions($image, $processingInstructions);
             $imgSrc = $this->imageService->getImageUri($processedImage, true);
+            if ($processedImage instanceof ProcessedFile) {
+                if ($imgWidth <= 0) {
+                    $imgWidth = $processedImage->getWidth();
+                }
+                if ($imgHeight <= 0) {
+                    $imgHeight = $processedImage->getHeight();
+                }
+            }
         } catch (\Exception) {
             $imgSrc = '';
         }
 
         $imgAttrs = 'src="' . htmlspecialchars($imgSrc, ENT_QUOTES) . '"'
             . ' alt="' . htmlspecialchars($alt, ENT_QUOTES) . '"';
+
+        if ($imgWidth > 0) {
+            $imgAttrs .= ' width="' . $imgWidth . '"';
+        }
+        if ($imgHeight > 0) {
+            $imgAttrs .= ' height="' . $imgHeight . '"';
+        }
 
         if ($isCritical) {
             $imgAttrs .= ' loading="eager" fetchpriority="high" decoding="sync"';
