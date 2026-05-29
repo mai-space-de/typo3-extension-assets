@@ -13,7 +13,7 @@
 ## Image ViewHelpers
 
 * `<mai:image.responsive>` — produces a `<picture>` element with AVIF, WebP, and JPEG `srcset` variants per breakpoint; auto-detects criticality by content element UID, sets `loading="eager"` and `fetchpriority="high"`, and registers an early hint preload for the AVIF source when critical
-* `<mai:image.picture>` — low-level `<picture>` wrapper that propagates the resolved criticality flag to nested `<source>` elements
+* `<mai:image.picture>` — low-level `<picture>` wrapper that propagates the resolved criticality flag to nested `<source>` elements; emits Hero-aligned default AVIF/WebP srcsets when no child sources are defined
 * `<mai:image.picture.source>` — `<source>` element within a `<picture>` with format-specific `srcset` and `sizes`
 * `<mai:image.figure>` — `<figure>` wrapper for images with optional caption
 
@@ -34,6 +34,13 @@
 * Criticality resolver — `AssetCriticalityResolver` provides a single injection point for ViewHelpers to query page-level (`pageHasObserverData`, `pageHasCompleteObserverData`) and element-level (`isElementAboveFold`) criticality without coupling to the detection internals
 * Cache invalidation on save — `ContentElementSaveHook` clears the above-fold cache and invalidates the TYPO3 page cache when a content element is edited so the next render reflects the reset state
 
+## Static HTML Page Cache
+
+* Full-page caching — `StaticFileServeMiddleware` writes rendered HTML pages to `typo3temp/assets/mai_assets_static/{pageUid}_{languageUid}/` with optional Gzip and Brotli variants for fast subsequent serving
+* Readiness validation — `PageOptimizationReadinessService` and `StaticFileCacheReadinessListener` gate caching on completion of above-fold detection; only pages with complete critical data are cached to prevent premature serving of incomplete page metadata
+* Cache invalidation — `StaticFileRemovalService` purges cache entries when the above-fold cache is reset (e.g., on content element save), keeping cached pages in sync with observer data
+* Webserver acceleration — Apache and Nginx configuration examples provided in `Resources/Private/ConfigurationExamples/` for optionally serving static cache files directly from the webserver without PHP (DDEV-optimized templates included)
+
 ## HTTP 103 Early Hints (Hybrid Delivery Path)
 
 * Early hints middleware — `EarlyHintsMiddleware` emits cached `Link:` headers as HTTP 103 informational responses before the full page response (disabled in Development context to avoid proxy issues)
@@ -51,14 +58,13 @@
 
 * Page-output minification — `HtmlMinificationService` strips HTML comments and collapses inter-element whitespace on cacheable page output, protecting `<script>`, `<style>`, `<pre>`, `<code>`, and `<textarea>` blocks and all TYPO3-internal comment markers
 
-## Pre-Compressed Static Asset Delivery (Server Config)
+## Webserver Delivery Configuration
 
-* Apache + Nginx rewrite snippets — comprehensive configuration files in `Resources/Private/ServerConfig/` for serving pre-compressed Brotli (`.br`) and Gzip (`.gz`) variants of compiled assets
-* Content-negotiation — Brotli preferred over Gzip based on `Accept-Encoding`, with uncompressed fallback
-* Cache optimisation — 1-year `Cache-Control: public, immutable` for content-hash-keyed asset filenames, `Vary: Accept-Encoding`, ETag stripping
-* MIME type handling — correct `Content-Type` (text/css, application/javascript, image/svg+xml) for compressed variants that lose their original extension
-* DDEV integration — documented placement for `.ddev/apache/` and `.ddev/nginx/` custom configs
-* Ported from EXT:staticfilecache HtaccessGenerator patterns — adapted for asset pipeline use case (immutable files, no HTML page caching)
+* Apache + Nginx configuration examples — ready-to-use templates in `Resources/Private/ConfigurationExamples/` for serving pre-compressed Brotli (`.br`) and Gzip (`.gz`) variants of static files
+* Content-negotiation — Brotli preferred over Gzip based on `Accept-Encoding` header, with uncompressed fallback
+* DDEV integration — `ddev-apache-site.conf.example` and `ddev-nginx.conf.example` provide DDEV-specific configurations for Apache-FPM and Nginx respectively
+* Htaccess fallback — `StaticFileCache.htaccess` provides a simpler `.htaccess`-only approach for Apache without modifying main config
+* Ported patterns — webserver rules adapted from EXT:staticfilecache `HtaccessGenerator` for handling pre-compressed variants and content-type negotiation
 
 ## Security & Sub-resource Integrity
 

@@ -1,0 +1,94 @@
+# DDEV Apache Configuration for Static File Cache Delivery
+#
+# Add these rules to .ddev/apache/apache-site.conf in both <VirtualHost *:80>
+# and <VirtualHost *:443> blocks to enable webserver-level serving of cached HTML.
+#
+# This configuration:
+# 1. Maps incoming requests to the static file cache directory
+# 2. Serves cached files directly when they exist
+# 3. Falls back to PHP middleware when no cache file is found
+# 4. Handles content-encoding negotiation for gzip/brotli variants
+#
+# ============================================================================
+# INSTALLATION INSTRUCTIONS
+# ============================================================================
+#
+# 1. Open .ddev/apache/apache-site.conf
+#
+# 2. Inside both <VirtualHost> blocks (after "DocumentRoot" and <Directory>
+#    directives), add the rules from the "INTEGRATION POINT" section below
+#
+# 3. Restart DDEV:
+#    ddev restart
+#
+# 4. Enable static file cache in TYPO3 (once middleware is tested):
+#    - Admin Tools > Settings > Extension Configuration > mai_assets
+#    - Set "enableStaticFileCache" to 1
+#
+# ============================================================================
+# INTEGRATION POINT: Add these rules inside <Directory "/var/www/html/public/">
+# ============================================================================
+
+	<IfModule mod_rewrite.c>
+		# ============= Static File Cache Rules =============
+		#
+		# Map incoming URLs to the static cache directory:
+		# - Cache location: typo3temp/assets/mai_assets_static/
+		# - Page ID structure: {pageUid}_{languageUid}/index.html
+		# - URL structure: {scheme}_{host}_{port}/{url-path}/index.html
+		#
+		# The middleware (StaticFileServeMiddleware) uses page-ID-based lookup,
+		# but at the webserver level we use URL-based lookup for simplicity.
+
+		# Step 1: Build the host-based segment from the request
+		#         Structure: {scheme}_{host}_{port}
+		RewriteCond %{HTTPS} on
+		RewriteRule ^(.*)$ - [E=CACHE_SCHEME:https]
+		RewriteCond %{HTTPS} off
+		RewriteRule ^(.*)$ - [E=CACHE_SCHEME:http]
+
+		RewriteCond %{HTTP_HOST} ^(.+?)(?::\d+)?$ [NC]
+		RewriteRule ^(.*)$ - [E=CACHE_HOST:%1]
+
+		# Determine port (443 for HTTPS, 80 for HTTP)
+		RewriteCond %{HTTPS} on
+		RewriteRule ^(.*)$ - [E=CACHE_PORT:443]
+		RewriteCond %{HTTPS} off
+		RewriteRule ^(.*)$ - [E=CACHE_PORT:80]
+
+		# Step 2: Check if a static cache file exists
+		#         Try: typo3temp/assets/mai_assets_static/{scheme}_{host}_{port}/{path}/index.html
+
+		# Prefer brotli variant when client supports it
+		RewriteCond %{DOCUMENT_ROOT}/typo3temp/assets/mai_assets_static/%{ENV:CACHE_SCHEME}_%{ENV:CACHE_HOST}_%{ENV:CACHE_PORT}%{REQUEST_URI}index.html.br -f
+		RewriteCond %{HTTP:Accept-Encoding} br
+		RewriteRule ^(.*)$ /typo3temp/assets/mai_assets_static/%{ENV:CACHE_SCHEME}_%{ENV:CACHE_HOST}_%{ENV:CACHE_PORT}%{REQUEST_URI}index.html.br [QSA,L,E=STATIC_CACHE_HIT:br]
+
+		# Fall back to gzip variant
+		RewriteCond %{DOCUMENT_ROOT}/typo3temp/assets/mai_assets_static/%{ENV:CACHE_SCHEME}_%{ENV:CACHE_HOST}_%{ENV:CACHE_PORT}%{REQUEST_URI}index.html.gz -f
+		RewriteCond %{HTTP:Accept-Encoding} gzip
+		RewriteRule ^(.*)$ /typo3temp/assets/mai_assets_static/%{ENV:CACHE_SCHEME}_%{ENV:CACHE_HOST}_%{ENV:CACHE_PORT}%{REQUEST_URI}index.html.gz [QSA,L,E=STATIC_CACHE_HIT:gz]
+
+		# Try plain HTML variant (no compression)
+		RewriteCond %{DOCUMENT_ROOT}/typo3temp/assets/mai_assets_static/%{ENV:CACHE_SCHEME}_%{ENV:CACHE_HOST}_%{ENV:CACHE_PORT}%{REQUEST_URI}index.html -f
+		RewriteRule ^(.*)$ /typo3temp/assets/mai_assets_static/%{ENV:CACHE_SCHEME}_%{ENV:CACHE_HOST}_%{ENV:CACHE_PORT}%{REQUEST_URI}index.html [QSA,L,E=STATIC_CACHE_HIT:plain]
+
+		# End of Static File Cache Rules
+	</IfModule>
+
+	<IfModule mod_headers.c>
+		# Set Content-Encoding for served cache variants
+		Header set Content-Encoding "br" env=STATIC_CACHE_HIT_br
+		Header set Content-Encoding "gzip" env=STATIC_CACHE_HIT_gz
+
+		# Ensure proper Content-Type for cached HTML
+		<FilesMatch "^/typo3temp/assets/mai_assets_static/">
+			Header set Content-Type "text/html; charset=utf-8"
+			Header append Vary "Accept-Encoding"
+		</FilesMatch>
+	</IfModule>
+
+# ============================================================================
+# END: Static File Cache Rules
+# ============================================================================
+

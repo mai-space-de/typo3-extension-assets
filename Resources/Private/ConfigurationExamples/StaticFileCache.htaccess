@@ -1,0 +1,45 @@
+# .htaccess for Static File Cache Directory
+# Place this file at: public/typo3temp/assets/mai_assets_static/.htaccess
+#
+# Enables direct webserver delivery of cached HTML files with content-encoding
+# negotiation (gzip / brotli) based on Accept-Encoding header.
+#
+# See Documentation/StaticFileCacheWebserverDelivery.md for full details.
+
+ForceType text/html; charset=utf-8
+
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteBase /typo3temp/assets/mai_assets_static/
+
+	# Block direct access to .htaccess
+	RewriteCond %{ENV:REDIRECT_STATUS} ^$
+	RewriteRule ^\.htaccess$ - [F,L]
+
+	# Content-Encoding Negotiation
+	# Serve pre-compressed variants when client accepts them and variants exist
+
+	# Prefer brotli over gzip (if client supports both)
+	RewriteCond %{HTTP:Accept-Encoding} br
+	RewriteCond %{REQUEST_FILENAME}.br -f
+	RewriteRule ^(.+)$ $1.br [QSA,L,E=STATIC_ENCODED:br]
+
+	# Fall back to gzip
+	RewriteCond %{HTTP:Accept-Encoding} gzip
+	RewriteCond %{REQUEST_FILENAME}.gz -f
+	RewriteRule ^(.+)$ $1.gz [QSA,L,E=STATIC_ENCODED:gz]
+</IfModule>
+
+<IfModule mod_headers.c>
+	# Set Content-Encoding header for compressed variants
+	Header set Content-Encoding "br" env=STATIC_ENCODED_br
+	Header set Content-Encoding "gzip" env=STATIC_ENCODED_gz
+
+	# Ensure proper Content-Type for all HTML variants
+	<FilesMatch "\.(html?|gz|br)$">
+		Header set Content-Type "text/html; charset=utf-8"
+	</FilesMatch>
+
+	# Add Vary header to indicate encoding variations
+	Header append Vary "Accept-Encoding"
+</IfModule>

@@ -1,0 +1,110 @@
+# DDEV Nginx Configuration for Static File Cache Delivery
+#
+# This example shows how to configure Nginx for direct serving of cached HTML files.
+# Use this if you switch your DDEV environment to use Nginx instead of Apache.
+#
+# To use Nginx in DDEV instead of Apache-FPM:
+#
+# 1. Edit .ddev/config.yaml and change:
+#    webserver_type: nginx-fpm  # (instead of apache-fpm)
+#
+# 2. Place this configuration in .ddev/nginx_full/server.conf
+#
+# 3. Restart DDEV:
+#    ddev restart
+#
+# ============================================================================
+
+# Inside the main server block:
+
+# Define cache directory (can be overridden via extension configuration)
+set $static_cache_root "typo3temp/assets/mai_assets_static";
+
+# Build the cache path from request details
+# Structure: {scheme}_{host}_{port}/{url-path}/index.html
+set $cache_scheme "http";
+if ($https) {
+    set $cache_scheme "https";
+}
+
+set $cache_port 80;
+if ($https) {
+    set $cache_port 443;
+}
+
+# Extract host without port (HTTP_HOST includes port if non-standard)
+set $cache_host $host;
+if ($http_host ~* ^(.+?):\d+$) {
+    set $cache_host $1;
+}
+
+# Build the complete cache directory path
+set $cache_path "${static_cache_root}/${cache_scheme}_${cache_host}_${cache_port}${request_uri}";
+
+# ============================================================================
+# Static File Cache Serving with Content-Encoding Negotiation
+# ============================================================================
+
+location / {
+    # Try serving static cache with content-encoding negotiation
+    # Priority: brotli > gzip > plain HTML > PHP
+
+    # 1. Try brotli variant (highest priority)
+    if ($http_accept_encoding ~* br) {
+        set $cache_file "${cache_path}index.html.br";
+        if (-f "$document_root/$cache_file") {
+            add_header Content-Encoding "br" always;
+            add_header Vary "Accept-Encoding" always;
+            add_header Content-Type "text/html; charset=utf-8" always;
+            rewrite ^(.*)$ /$cache_file break;
+        }
+    }
+
+    # 2. Try gzip variant
+    if ($http_accept_encoding ~* gzip) {
+        set $cache_file "${cache_path}index.html.gz";
+        if (-f "$document_root/$cache_file") {
+            add_header Content-Encoding "gzip" always;
+            add_header Vary "Accept-Encoding" always;
+            add_header Content-Type "text/html; charset=utf-8" always;
+            rewrite ^(.*)$ /$cache_file break;
+        }
+    }
+
+    # 3. Try plain HTML variant
+    set $cache_file "${cache_path}index.html";
+    if (-f "$document_root/$cache_file") {
+        add_header Vary "Accept-Encoding" always;
+        add_header Content-Type "text/html; charset=utf-8" always;
+        rewrite ^(.*)$ /$cache_file break;
+    }
+
+    # 4. Fall back to TYPO3 PHP entry point
+    try_files $uri $uri/ /index.php?$args;
+}
+
+# ============================================================================
+# Cache File Headers
+# ============================================================================
+
+# Match static cache directory files
+location ~ ^/typo3temp/assets/mai_assets_static/ {
+    # Disable browser caching for cached HTML (handled by middleware)
+    expires 0;
+    add_header Cache-Control "public, no-cache, must-revalidate" always;
+    add_header Pragma "no-cache" always;
+}
+
+# ============================================================================
+# PHP-FPM Passthrough
+# ============================================================================
+
+location ~ \.php$ {
+    # Pass to PHP-FPM (adjust socket path as needed for your DDEV setup)
+    fastcgi_pass unix:/var/run/php-fpm.sock;
+    fastcgi_index index.php;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    fastcgi_param TYPO3_CONTEXT "Development/Ddev";
+}
+
