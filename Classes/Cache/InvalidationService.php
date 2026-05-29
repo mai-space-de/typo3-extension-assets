@@ -26,10 +26,10 @@ class InvalidationService implements SingletonInterface
     ) {}
 
     /**
-     * Content save → page cache, early hints, static file (± above-fold for position changes).
+     * Content save → page cache, early hints, static file.
      *
-     * Position-relevant fields (sorting, colPos, pid, hidden, deleted, starttime, endtime)
-     * additionally invalidate the above-fold observer cache.
+     * When position-relevant fields change (sorting, colPos, pid, hidden, deleted, starttime, endtime),
+     * also invalidate the above-fold observer cache since element visibility/position affects criticality.
      */
     public function invalidateAfterContentSave(int $pageUid, array $changedFields): void
     {

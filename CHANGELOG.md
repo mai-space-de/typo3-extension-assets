@@ -4,6 +4,8 @@
 
 ### Added
 
+- `StaticFileCacheWarmupTask` scheduler task processes the staticfilecache boost queue every 5 minutes, warming up pages that have reached optimisation readiness. Batch processing with configurable concurrency and cleanup of old queue entries. Gracefully handles cases where staticfilecache is not installed.
+- `StaticHtmlWriterListener` persists cacheable frontend HTML via `StaticHtmlWriterService::writeByPageId()` on `AfterCacheableContentIsGeneratedEvent` (after minification), gated on `enableStaticFileCache`, page readiness, and an existing early-hints manifest; skips INT/non-cacheable GET requests and URIs with query strings.
 - `CriticalCacheInvalidationListener` gates cache invalidation on `PageOptimizationReadinessService::isReady()` so page, early-hints, and static HTML are flushed only when all viewport buckets are collected.
 - `InvalidationService` purges static HTML via `StaticFileRemovalService` for the `static_file` invalidation target.
 - `PictureSourceRenderer` service and LCP hero audit notes (`Documentation/Performance/LcpHeroImageAudit.md`).

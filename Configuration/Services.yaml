@@ -57,6 +57,13 @@ services:
               event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
               after: 'mai-assets/svg-sprite-injection'
 
+    Maispace\MaiAssets\EventListener\StaticHtmlWriterListener:
+        tags:
+            - name: event.listener
+              identifier: 'mai-assets/static-html-writer'
+              event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
+              after: 'mai-assets/html-minification'
+
     Maispace\MaiAssets\EventListener\CriticalCacheInvalidationListener:
         tags:
             - name: event.listener
@@ -85,3 +92,6 @@ services:
         tags:
             - name: console.command
               command: 'maispace:assets:check-critical-css-regression'
+
+    Maispace\MaiAssets\Scheduler\StaticFileCacheWarmupTask:
+        public: true
