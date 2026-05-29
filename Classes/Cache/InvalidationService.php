@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\Cache;
 
 use Maispace\MaiAssets\Event\AfterCacheInvalidationEvent;
 use Maispace\MaiAssets\Event\BeforeCacheInvalidationEvent;
+use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\SingletonInterface;
@@ -21,6 +22,7 @@ class InvalidationService implements SingletonInterface
         private readonly CacheManager $cacheManager,
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly AboveFoldCacheService $aboveFoldCacheService,
+        private readonly StaticFileRemovalService $staticFileRemovalService,
     ) {}
 
     /**
@@ -95,10 +97,12 @@ class InvalidationService implements SingletonInterface
 
         $invalidatedTargets = [];
         $pageTagFlushed = false;
+        $staticFilesPurged = false;
 
         foreach ($finalTargets as $target) {
             $success = match ($target) {
-                self::TARGET_PAGE_CACHE, self::TARGET_EARLY_HINTS, self::TARGET_STATIC_FILE => $this->flushByPageTag($pageUid, $pageTagFlushed),
+                self::TARGET_PAGE_CACHE, self::TARGET_EARLY_HINTS => $this->flushByPageTag($pageUid, $pageTagFlushed),
+                self::TARGET_STATIC_FILE => $this->purgeStaticFiles($pageUid, $staticFilesPurged),
                 self::TARGET_ABOVE_FOLD     => $this->clearAboveFoldCache($pageUid),
                 default                     => false,
             };
@@ -134,6 +138,21 @@ class InvalidationService implements SingletonInterface
         try {
             $this->aboveFoldCacheService->clearCriticalUids($pageUid);
             $this->aboveFoldCacheService->bumpResetTimestamp($pageUid);
+            return true;
+        } catch (\Exception) {
+            return false;
+        }
+    }
+
+    private function purgeStaticFiles(int $pageUid, bool &$alreadyPurged): bool
+    {
+        if ($alreadyPurged) {
+            return true;
+        }
+
+        try {
+            $this->staticFileRemovalService->purgeByPageUid($pageUid);
+            $alreadyPurged = true;
             return true;
         } catch (\Exception) {
             return false;

@@ -53,6 +53,7 @@ final class InvalidationServiceTest extends TestCase
             $this->cacheManager,
             $this->eventDispatcher,
             $this->aboveFoldCacheService,
+            $this->staticFileRemovalService,
         );
     }
 
@@ -65,7 +66,7 @@ final class InvalidationServiceTest extends TestCase
         );
         $this->eventDispatcher->method('dispatch')->willReturnArgument(0);
         $this->staticFileRemovalService
-            ->expects(self::exactly(2))
+            ->expects(self::exactly(3))
             ->method('purgeByPageUid')
             ->with(42);
 
@@ -78,8 +79,9 @@ final class InvalidationServiceTest extends TestCase
         $this->aboveFoldFrontend->expects(self::never())->method('remove');
         $this->eventDispatcher->method('dispatch')->willReturnArgument(0);
         $this->staticFileRemovalService
-            ->expects(self::never())
-            ->method('purgeByPageUid');
+            ->expects(self::once())
+            ->method('purgeByPageUid')
+            ->with(42);
 
         $this->createService()->invalidateAfterContentSave(42, ['bodytext']);
     }
@@ -90,8 +92,9 @@ final class InvalidationServiceTest extends TestCase
         $this->aboveFoldFrontend->expects(self::never())->method('remove');
         $this->eventDispatcher->method('dispatch')->willReturnArgument(0);
         $this->staticFileRemovalService
-            ->expects(self::never())
-            ->method('purgeByPageUid');
+            ->expects(self::once())
+            ->method('purgeByPageUid')
+            ->with(7);
 
         $this->createService()->invalidateAfterBucketUpdate(7, 'mobile');
     }
@@ -199,6 +202,9 @@ final class InvalidationServiceTest extends TestCase
         $this->cacheManager
             ->method('flushCachesByTag')
             ->willThrowException(new \RuntimeException('Cache unavailable'));
+        $this->staticFileRemovalService
+            ->method('purgeByPageUid')
+            ->willThrowException(new \RuntimeException('Static cache unavailable'));
 
         $this->eventDispatcher
             ->expects(self::atLeastOnce())

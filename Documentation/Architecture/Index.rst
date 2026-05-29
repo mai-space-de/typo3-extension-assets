@@ -295,19 +295,11 @@ When an editor saves, moves, or hides a content element, the
 3. Flushes the TYPO3 page cache for the affected page
 
 The ``CriticalCacheInvalidationListener`` (``Classes/EventListener/CriticalCacheInvalidationListener.php``)
-listens to ``AfterCriticalUidsUpdatedEvent`` and flushes page cache tags whenever
-observer data is updated:
-
-.. code-block:: php
-
-    #[AsEventListener(identifier: 'mai-assets/critical-cache-invalidation')]
-    final class CriticalCacheInvalidationListener
-    {
-        public function __invoke(AfterCriticalUidsUpdatedEvent $event): void
-        {
-            $this->cacheManager->flushCachesByTag('pageId_' . $event->getPageUid());
-        }
-    }
+listens to ``AfterCriticalUidsUpdatedEvent``. When
+``PageOptimizationReadinessService::isReady()`` reports that all viewport buckets
+have observer data, it delegates to ``InvalidationService`` to flush TYPO3 page
+cache tags, purge static HTML files, and clear early-hints manifests so the next
+request re-renders optimised HTML before static file cache write.
 
 Early Hints (HTTP 103) Pipeline
 ================================

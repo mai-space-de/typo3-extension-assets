@@ -4,7 +4,14 @@
 
 ### Added
 
+- `CriticalCacheInvalidationListener` gates cache invalidation on `PageOptimizationReadinessService::isReady()` so page, early-hints, and static HTML are flushed only when all viewport buckets are collected.
+- `InvalidationService` purges static HTML via `StaticFileRemovalService` for the `static_file` invalidation target.
+- `PictureSourceRenderer` service and LCP hero audit notes (`Documentation/Performance/LcpHeroImageAudit.md`).
+- `PictureViewHelper` default AVIF/WebP srcsets when no `<mai:image.picture.source>` children are defined (`sizes` argument, default `100vw`).
+
 ### Changed
+
+- `SourceViewHelper` delegates source markup to `PictureSourceRenderer`.
 
 ### Benchmark: Static File Cache Performance (2026-05-29)
 
