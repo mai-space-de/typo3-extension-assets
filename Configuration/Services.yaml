@@ -80,3 +80,8 @@ services:
         tags:
             - name: console.command
               command: 'maispace:assets:warmup'
+
+    Maispace\MaiAssets\Command\CheckCriticalCssRegressionCommand:
+        tags:
+            - name: console.command
+              command: 'maispace:assets:check-critical-css-regression'
