@@ -422,3 +422,115 @@ These rules must be followed in all new and modified code:
    and `CriticalDetectionService` but neither knows about each other or about ViewHelpers.
    ViewHelpers know about `AssetCriticalityResolver` but not about the underlying detection chain.
 9. **All new public methods covered by unit tests** before the step is marked complete.
+
+---
+
+## 9. Delivery Path Decision (assets-10)
+
+*Resolved 2026-05-29. This documents the strategy for how compiled assets, early hints,
+and cached pages reach the browser across different environments.*
+
+### 9.1 Context
+
+The extension publishes compiled CSS/JS to `public/typo3temp/assets/mai_assets/compiled/{hash}.css`,
+computes SRI hashes, registers files with TYPO3's `AssetCollector`, and maintains an early
+hints manifest cache. The question is how these outputs get delivered to browsers — through
+Apache `.htaccess` rules, PHP middleware, or a hybrid of HTTP 103 Early Hints + static files.
+
+### 9.2 Decision: Hybrid — Apache direct serving + HTTP 103 Early Hints
+
+**For compiled assets (CSS, JS, images):** Apache serves them directly from the filesystem.
+Content-hash filenames make them immutable, so the existing `public/.htaccess` `mod_expires`
+rules (`ExpiresByType text/css "access plus 1 year"`, `mod_deflate` compression, CORS for
+fonts/images) handle delivery with zero PHP overhead. No middleware code is needed.
+
+**For HTTP 103 Early Hints:** The `EarlyHintsMiddleware` — already operational — sends
+`Link` headers with HTTP status 103 for GET requests where a cached early hints manifest
+exists for the current page+language. 103 is disabled in Development context (DDEV) due to
+a known `mod_proxy_fcgi` bug where Link headers are auto-promoted to 103 responses before
+`mod_headers` can suppress them, causing downstream proxies (e.g. Traefik) to fail with 500.
+
+**For full HTML page caching in production:** The project may optionally use
+`EXT:staticfilecache`. In that case the `.htaccess` redirect path (PrepareMiddleware →
+GenerateMiddleware → `.htaccess` template) writes `Link` headers alongside cached HTML,
+delivering the same preload hints without PHP on subsequent visits. The `FallbackMiddleware`
+is kept enabled as a universal fallback for environments that lack `.htaccess` support
+(Nginx, Caddy, etc.).
+
+### 9.3 Layer assignment
+
+| Layer | Delivery mechanism | Implemented? |
+|---|---|---|
+| Compiled CSS / JS | Apache direct filesystem serving (`public/` → `mod_expires` + `mod_deflate`) | ✅ (status quo — `CompiledAssetPublisher` publishes to `typo3temp/assets/mai_assets/compiled/`) |
+| HTTP 103 Early Hints | `EarlyHintsMiddleware` (PSR-15, after `page-resolver`, before `page-argument-validator`) | ✅ (sends `header('Link: …', false, 103)` from cached manifest; skipped in Development context) |
+| Early hint manifest storage | `EarlyHintManifestListener` → `EarlyHintCacheService` (TYPO3 cache `mai_assets_early_hints`, keyed by `pageUid_languageUid`) | ✅ |
+| Full-page static HTML (Apache) | `EXT:staticfilecache` `.htaccess` redirect (Prepare + Generate middleware → `Htaccess.html` template) | Optional; production config |
+| Full-page static HTML (universal) | `EXT:staticfilecache` `FallbackMiddleware` (PHP serves HTML + reads `.config.json` headers) | Enabled by default in staticfilecache (`useFallbackMiddleware=1`) |
+
+### 9.4 Comparison: staticfilecache PrepareMiddleware vs FallbackMiddleware
+
+| Aspect | `PrepareMiddleware` | `FallbackMiddleware` |
+|---|---|---|
+| **Execution point** | POST-render (after `handler->handle()`) — tags the response | PRE-render (early in chain, before `timetracker`) — may short-circuit |
+| **Position in stack** | After `page-resolver`, `prepare-tsfe-rendering`; before `cache-timeout` | Before `timetracker` (earliest possible intercept) |
+| **Purpose** | Annotate response with `X-SFC-Tags` / `X-SFC-Cachable`, inline assets, emit HTTP/2 push `Link` headers | Serve cached HTML file directly, bypass TYPO3 page rendering entirely |
+| **Delivery mechanism** | Works with `.htaccess` generator — mod_rewrite, `ForceType`, `mod_headers` serve static HTML + stored headers | PHP reads static file + `.config.json` headers → `HtmlResponse` |
+| **Web server dependency** | Apache only (`.htaccess` + mod_rewrite + mod_headers + mod_expires) | Universal (Apache, Nginx, Caddy, PHP dev server) |
+| **Nginx support** | ❌ No `.htaccess`; requires PHP generator (`enableGeneratorPhp=1`) + Nginx `try_files` config | ✅ Works natively |
+| **Performance** | Best — Apache serves HTML without booting PHP/TYPO3 at all | ~50ms overhead (PHP bootstrap + middleware chain up to early position) |
+| **Header storage** | `Header set {name} "{value}"` in per-file `.htaccess` | JSON key-value in per-file `.config.json` |
+| **Cache invalidation** | mod_rewrite `TIME` check → rewrite to `/index.php` when expired | PHP `time()` comparison against `invalidAtTimestamp` in `.config.json` |
+| **Content-Encoding** | Apache `mod_negotiation` handles `.gz`/`.br` variants via `MultiViews` or explicit `RewriteCond` | PHP checks `Accept-Encoding` header, serves `.gz`/`.br` variant with `Content-Encoding` header |
+| **Link / Early Hints** | Stored as `Header set Link "…"` in `.htaccess` (sent as response header, not 103) | Stored in `.config.json`, served as response header |
+
+### 9.5 Environment matrix: DDEV vs Production
+
+| Concern | DDEV (Development) | Production (Apache) | Production (Nginx) |
+|---|---|---|---|
+| **Web server** | Apache + mod_rewrite + mod_proxy_fcgi | Apache + mod_rewrite | Nginx |
+| **HTTP 103 Early Hints** | ❌ Disabled — `Environment::getContext()->isDevelopment()` check in `EarlyHintsMiddleware` avoids mod_proxy_fcgi auto-103 bug | ✅ Enabled — `EarlyHintsMiddleware` sends `header('Link: …', false, 103)` | ⚠️ Requires special Nginx config (103 is non-trivial; typically deprecated in favor of `Link` response headers) |
+| **Compiled asset delivery** | Apache direct from `typo3temp/assets/mai_assets/compiled/` (same as production) | Apache direct + `mod_expires` 1-year cache | Nginx `try_files` from same directory + `expires` directive |
+| **Full-page HTML cache** | TYPO3 internal page cache only (staticfilecache not needed in dev) | staticfilecache `.htaccess` redirect OR `FallbackMiddleware` | staticfilecache `FallbackMiddleware` + Nginx `try_files` config (see staticfilecache docs) |
+| **`.htaccess` support** | ✅ (DDEV default: `AllowOverride All`) | ✅ (typical TYPO3 hosting) | ❌ (use `FallbackMiddleware` + PHP generator) |
+| **Recommended approach** | PHP rendering (no static HTML cache), no 103, asset filesystem serving | **Hybrid:** `.htaccess` static HTML from staticfilecache + 103 Early Hints from `EarlyHintsMiddleware` | FallbackMiddleware for HTML + Link response headers (no 103) |
+
+### 9.6 Rationale for the hybrid decision
+
+1. **Assets are already optimally served.** Content-hash filenames (`{sha256}.css`) make every
+   compiled output immutable. Apache's `mod_expires` sets `Cache-Control: max-age=31536000`.
+   There is no value in adding a PHP middleware just to serve these files — it would add
+   latency with no benefit.
+
+2. **103 Early Hints are the right granularity for critical assets.** The `EarlyHintsMiddleware`
+   sends hints *before* TYPO3 renders, so the browser can preload CSS/JS/images while the
+   server does the heavy lifting. This is more aggressive than staticfilecache's
+   `HttpPushService` (which adds Link headers post-render) and more targeted than blanket
+   `.htaccess` Link headers (which hint everything). The mai_assets approach only hints
+   assets that are actually observed as above-fold-critical on that page.
+
+3. **`.htaccess` static HTML is the fallback, not the primary layer.** The extension's
+   early hints + observer pipeline already provides the real performance win on uncached
+   requests. Static HTML caching (via staticfilecache or another mechanism) is a production
+   optimization that should be configured per-environment, not baked into mai_assets code.
+   Nothing in mai_assets depends on or requires staticfilecache.
+
+4. **`FallbackMiddleware` is the safety net.** When `.htaccess` is not available (Nginx,
+   misconfigured Apache), the staticfilecache `FallbackMiddleware` still serves cached
+   pages with correct headers. This is slower than Apache but universal.
+
+### 9.7 Implications for mai_assets code
+
+- **No new middleware needed.** The `CompiledAssetPublisher` already publishes to the
+  public filesystem. Apache serves those files directly. The `EarlyHintsMiddleware` already
+  sends 103s. No additional interception layer is required.
+- **No `.htaccess` generation in mai_assets.** The extension must never write `.htaccess`
+  files — that is the web server / staticfilecache's concern. mai_assets publishes to
+  a standard public cache directory; the web server configuration handles delivery.
+- **No HTTP 103 in DDEV dev.** The `Environment::getContext()->isDevelopment()` guard in
+  `EarlyHintsMiddleware` is the correct and sufficient workaround for the mod_proxy_fcgi
+  bug. No additional configuration or detection is needed.
+- **103 is Apache-only for now.** The `EarlyHintsMiddleware` uses PHP's `header()` with
+  status code 103, which only works through Apache + mod_proxy_fcgi (when not in dev).
+  Nginx typically does not forward 103 from PHP-FPM. This is acceptable — Nginx production
+  deployments should use Link response headers from `FallbackMiddleware` or Nginx's
+  native `add_header Link` instead.
