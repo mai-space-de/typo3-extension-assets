@@ -34,9 +34,10 @@
 * Criticality resolver — `AssetCriticalityResolver` provides a single injection point for ViewHelpers to query page-level (`pageHasObserverData`, `pageHasCompleteObserverData`) and element-level (`isElementAboveFold`) criticality without coupling to the detection internals
 * Cache invalidation on save — `ContentElementSaveHook` clears the above-fold cache and invalidates the TYPO3 page cache when a content element is edited so the next render reflects the reset state
 
-## HTTP 103 Early Hints
+## HTTP 103 Early Hints (Hybrid Delivery Path)
 
-* Early hints middleware — `EarlyHintsMiddleware` emits cached `Link:` headers as HTTP 103 responses before the full page response (disabled in Development context to avoid proxy issues)
+* Early hints middleware — `EarlyHintsMiddleware` emits cached `Link:` headers as HTTP 103 informational responses before the full page response (disabled in Development context to avoid proxy issues)
+* Static file hybrid fallback — `StaticFileServeMiddleware` loads the same cached early hints manifest and includes the `Link:` headers on the 200 response, providing a fallback for clients/proxies that do not process 103 Early Hints
 * Candidate collection — `EarlyHintCandidateCollector` accumulates `preload`, `modulepreload`, and `preconnect` candidates during page rendering; candidates are keyed and deduplicated
 * Manifest persistence — `EarlyHintManifestListener` writes the collected candidates to a per-page/language cache entry after each cacheable render so the middleware can serve them on subsequent requests without re-rendering
 
