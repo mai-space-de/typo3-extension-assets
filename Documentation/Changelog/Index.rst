@@ -4,6 +4,12 @@
 Changelog
 =========
 
+.. note::
+
+   The performance benchmark comparing TYPO3 page cache, static file cache
+   middleware, and early hints delivery is documented in the extension root
+   ``CHANGELOG.md`` (ApacheBench baselines and staticfilecache comparison).
+
 Version 1.1.0
 =============
 

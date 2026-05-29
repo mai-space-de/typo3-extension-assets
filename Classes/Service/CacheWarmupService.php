@@ -7,9 +7,9 @@ namespace Maispace\MaiAssets\Service;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use SFC\Staticfilecache\Service\QueueService;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Site\Entity\SiteInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Enqueues page URLs into the staticfilecache boost queue once a page
@@ -18,15 +18,17 @@ use TYPO3\CMS\Core\Site\Entity\SiteInterface;
  * Called by CacheWarmupListener when AfterCriticalUidsUpdatedEvent fires
  * and the readiness check passes. Uses TYPO3's Site API to resolve page
  * UIDs to fully qualified URLs for every configured language.
+ *
+ * The staticfilecache dependency (QueueService) is optional — when the
+ * extension is not installed, warmup is silently skipped.
  */
-final class CacheWarmupService implements LoggerAwareInterface
+class CacheWarmupService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
     public function __construct(
         private readonly PageOptimizationReadinessService $readinessService,
         private readonly SiteFinder $siteFinder,
-        private readonly QueueService $queueService,
         private readonly ExtensionConfiguration $extensionConfiguration,
     ) {}
 
@@ -35,7 +37,8 @@ final class CacheWarmupService implements LoggerAwareInterface
      * them into the staticfilecache boost queue.
      *
      * This is idempotent: QueueService->addIdentifiers() skips URLs already
-     * present in the queue.
+     * present in the queue. When staticfilecache is not installed, warmup
+     * is silently skipped.
      */
     public function warmupPage(int $pageUid): void
     {
@@ -53,7 +56,7 @@ final class CacheWarmupService implements LoggerAwareInterface
             return;
         }
 
-        $this->queueService->addIdentifiers($urls, QueueService::PRIORITY_LOW);
+        $this->enqueueUrls($urls);
 
         $this->logger?->info(
             sprintf(
@@ -63,6 +66,23 @@ final class CacheWarmupService implements LoggerAwareInterface
             ),
             ['urls' => $urls]
         );
+    }
+
+    /**
+     * Enqueue URLs into the staticfilecache boost queue when available.
+     *
+     * Uses runtime class-existence check to avoid a compile-time dependency
+     * on the optional staticfilecache extension.
+     */
+    private function enqueueUrls(array $urls): void
+    {
+        if (!class_exists(\SFC\Staticfilecache\Service\QueueService::class)) {
+            return;
+        }
+
+        /** @var \SFC\Staticfilecache\Service\QueueService $queueService */
+        $queueService = GeneralUtility::makeInstance(\SFC\Staticfilecache\Service\QueueService::class);
+        $queueService->addIdentifiers($urls, \SFC\Staticfilecache\Service\QueueService::PRIORITY_LOW);
     }
 
     /**

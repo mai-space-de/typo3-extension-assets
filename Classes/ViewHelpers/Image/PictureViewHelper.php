@@ -20,7 +20,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  *     <mai:picture.source media="(min-width: 768px)" srcset="{0: 1200, 1: 1600}" formats="{0: 'avif', 1: 'webp'}" />
  *   </mai:picture>
  */
-final class PictureViewHelper extends AbstractViewHelper
+class PictureViewHelper extends AbstractViewHelper
 {
     protected $escapeOutput = false;
 
@@ -30,7 +30,6 @@ final class PictureViewHelper extends AbstractViewHelper
         private readonly AssetCriticalityResolver $criticalityResolver,
         private readonly EarlyHintCandidateCollector $earlyHintCollector,
     ) {
-        parent::__construct();
     }
 
     public function initializeArguments(): void

@@ -13,14 +13,13 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  * Renders a <source> element inside a <mai:picture> container.
  * Must be used as a direct child of PictureViewHelper.
  */
-final class SourceViewHelper extends AbstractViewHelper
+class SourceViewHelper extends AbstractViewHelper
 {
     protected $escapeOutput = false;
 
     public function __construct(
         private readonly ImageVariantService $imageVariantService,
     ) {
-        parent::__construct();
     }
 
     public function initializeArguments(): void

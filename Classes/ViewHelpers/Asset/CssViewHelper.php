@@ -19,7 +19,7 @@ use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
-final class CssViewHelper extends AbstractViewHelper
+class CssViewHelper extends AbstractViewHelper
 {
     use FileResolutionTrait;
 

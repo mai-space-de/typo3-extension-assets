@@ -8,16 +8,13 @@ use Maispace\MaiAssets\Collector\SvgSpriteCollector;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
-final class IconViewHelper extends AbstractViewHelper
+class IconViewHelper extends AbstractViewHelper
 {
-    use FileResolutionTrait;
-
     protected $escapeOutput = false;
 
     public function __construct(
-        private readonly SvgSpriteCollector $svgSpriteCollector,
+        private readonly SvgSpriteCollector $spriteCollector,
     ) {
-        parent::__construct();
     }
 
     public function initializeArguments(): void

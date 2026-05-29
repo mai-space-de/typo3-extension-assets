@@ -14,7 +14,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  *     <mai:image ... />
  *   </mai:figure>
  */
-final class FigureViewHelper extends AbstractViewHelper
+class FigureViewHelper extends AbstractViewHelper
 {
     protected $escapeOutput = false;
 

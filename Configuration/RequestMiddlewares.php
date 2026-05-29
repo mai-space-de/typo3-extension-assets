@@ -9,14 +9,10 @@ return [
             'after' => [
                 'maispace/mai-assets/early-hints',
             ],
-            'before' => [
-                'typo3/cms-frontend/timetracker',
-            ],
         ],
         'maispace/mai-assets/above-fold-report' => [
             'target' => \Maispace\MaiAssets\Middleware\AboveFoldReportMiddleware::class,
             'after' => ['typo3/cms-frontend/site'],
-            'before' => ['typo3/cms-frontend/page-resolver'],
         ],
         'maispace/mai-assets/early-hints' => [
             'target' => \Maispace\MaiAssets\Middleware\EarlyHintsMiddleware::class,

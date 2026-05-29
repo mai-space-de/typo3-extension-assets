@@ -18,7 +18,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
-final class JsViewHelper extends AbstractViewHelper
+class JsViewHelper extends AbstractViewHelper
 {
     use FileResolutionTrait;
 

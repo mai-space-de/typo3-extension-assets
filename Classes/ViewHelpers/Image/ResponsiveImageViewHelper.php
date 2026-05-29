@@ -11,17 +11,15 @@ use Maispace\MaiAssets\Service\ImageVariantService;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
-final class ResponsiveImageViewHelper extends AbstractViewHelper
+class ResponsiveImageViewHelper extends AbstractViewHelper
 {
     protected $escapeOutput = false;
 
     public function __construct(
         private readonly ImageVariantService $imageVariantService,
-        private readonly AssetCollector $assetCollector,
         private readonly AssetCriticalityResolver $criticalityResolver,
         private readonly EarlyHintCandidateCollector $earlyHintCollector,
     ) {
-        parent::__construct();
     }
 
     public function initializeArguments(): void

@@ -6,7 +6,7 @@ namespace Maispace\MaiAssets\ViewHelpers\Video;
 
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
-final class VideoViewHelper extends AbstractViewHelper
+class VideoViewHelper extends AbstractViewHelper
 {
     protected $escapeOutput = false;
 
