@@ -128,7 +128,7 @@ final class CssViewHelperTest extends TestCase
         $this->setProp($cacheService, 'eventDispatcher', $this->createMock(\Psr\EventDispatcher\EventDispatcherInterface::class));
 
         $detectionService = $this->noConstructor(CriticalDetectionService::class);
-        $this->criticalityResolver = new AssetCriticalityResolver($cacheService, $detectionService);
+        $this->criticalityResolver = new AssetCriticalityResolver($cacheService, $detectionService, $this->extensionConfiguration);
 
         // EarlyHintCandidateCollector (final)
         // No-constructor; verify via getAll() after the VH runs.

@@ -31,7 +31,7 @@
 * IntersectionObserver script — a lightweight observer is injected into each page to detect which content element UIDs are visible at initial render and report them to the server
 * Above-fold report API — `POST /api/mai-assets/above-fold-report` endpoint accepts HMAC-signed observer payloads, enforces IP-based rate limiting (10 requests / 60 s), and persists critical UID sets per page/viewport bucket
 * Three-layer criticality detection — `CriticalDetectionService` resolves criticality through DB force flags → observer cache data → heuristic colPos-position fallback
-* Criticality resolver — `AssetCriticalityResolver` provides a single injection point for ViewHelpers to query page-level and element-level criticality without coupling to the detection internals
+* Criticality resolver — `AssetCriticalityResolver` provides a single injection point for ViewHelpers to query page-level (`pageHasObserverData`, `pageHasCompleteObserverData`) and element-level (`isElementAboveFold`) criticality without coupling to the detection internals
 * Cache invalidation on save — `ContentElementSaveHook` clears the above-fold cache and invalidates the TYPO3 page cache when a content element is edited so the next render reflects the reset state
 
 ## HTTP 103 Early Hints
@@ -49,6 +49,15 @@
 ## HTML Minification
 
 * Page-output minification — `HtmlMinificationService` strips HTML comments and collapses inter-element whitespace on cacheable page output, protecting `<script>`, `<style>`, `<pre>`, `<code>`, and `<textarea>` blocks and all TYPO3-internal comment markers
+
+## Pre-Compressed Static Asset Delivery (Server Config)
+
+* Apache + Nginx rewrite snippets — comprehensive configuration files in `Resources/Private/ServerConfig/` for serving pre-compressed Brotli (`.br`) and Gzip (`.gz`) variants of compiled assets
+* Content-negotiation — Brotli preferred over Gzip based on `Accept-Encoding`, with uncompressed fallback
+* Cache optimisation — 1-year `Cache-Control: public, immutable` for content-hash-keyed asset filenames, `Vary: Accept-Encoding`, ETag stripping
+* MIME type handling — correct `Content-Type` (text/css, application/javascript, image/svg+xml) for compressed variants that lose their original extension
+* DDEV integration — documented placement for `.ddev/apache/` and `.ddev/nginx/` custom configs
+* Ported from EXT:staticfilecache HtaccessGenerator patterns — adapted for asset pipeline use case (immutable files, no HTML page caching)
 
 ## Security & Sub-resource Integrity
 

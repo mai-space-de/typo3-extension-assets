@@ -378,6 +378,39 @@ deferred loading.
 
 ---
 
+## Criticality Resolution
+
+The `AssetCriticalityResolver` service provides ViewHelpers with a single injection point to query
+above-fold criticality. Two page-level methods are available:
+
+### `pageHasObserverData(int $pageUid): bool`
+
+Returns `true` when **any** viewport bucket (e.g. only desktop) has reported critical UIDs for the
+page. This is the permissive check — used by `<mai:css>` and `<mai:js>` in `critical="auto"` mode
+to start inlining as soon as the first visitor's browser reports above-fold elements.
+
+### `pageHasCompleteObserverData(int $pageUid): bool`
+
+Returns `true` only when **all** configured viewport buckets (mobile, tablet, desktop) have been
+reported AND at least one bucket contains non-empty critical UIDs. This is the conservative check —
+wait until observer data has been accumulated across every viewport size before trusting the
+auto-criticality decision.
+
+| Method | Condition | Use case |
+| --- | --- | --- |
+| `pageHasObserverData` | Any bucket has UIDs | Quick warm-up: inline as soon as first observer reports |
+| `pageHasCompleteObserverData` | All configured buckets have UIDs | Conservative: wait for full cross-viewport coverage |
+
+Both methods delegate to `AboveFoldCacheService` and never touch the database directly.
+
+### `isElementAboveFold(int $elementUid, int $pageUid): bool`
+
+Element-level check used by image ViewHelpers. Delegates to `CriticalDetectionService::isCritical()`
+which resolves through three layers: DB `force_critical` flag → observer cache data →
+position/sorting heuristic.
+
+---
+
 ## Development
 
 ### Linting
