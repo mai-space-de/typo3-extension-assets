@@ -6,13 +6,14 @@ namespace Maispace\MaiAssets\ViewHelpers\Image;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
-use Maispace\MaiAssets\Service\ImageVariantService;
+use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
  * Renders a <picture> element for art-directed responsive images.
  * Child <mai:picture.source> tags define breakpoint-specific <source> elements.
+ * When no children are present, Hero-aligned AVIF/WebP srcsets are emitted automatically.
  *
  * Usage:
  *   <mai:picture image="{image}" alt="Description" elementUid="{data.uid}">
@@ -25,7 +26,7 @@ class PictureViewHelper extends AbstractViewHelper
     protected $escapeOutput = false;
 
     public function __construct(
-        private readonly ImageVariantService $imageVariantService,
+        private readonly PictureSourceRenderer $pictureSourceRenderer,
         private readonly ImageService $imageService,
         private readonly AssetCriticalityResolver $criticalityResolver,
         private readonly EarlyHintCandidateCollector $earlyHintCollector,
@@ -36,10 +37,11 @@ class PictureViewHelper extends AbstractViewHelper
     {
         $this->registerArgument('image', 'object', 'FAL file reference or file object', true);
         $this->registerArgument('alt', 'string', 'Alt text for the fallback <img>', false, '');
-        $this->registerArgument('width', 'int', 'Fallback image width', false, 0);
+        $this->registerArgument('width', 'int', 'Fallback image width (also scales default srcset)', false, 0);
         $this->registerArgument('height', 'int', 'Fallback image height', false, 0);
         $this->registerArgument('critical', 'string', 'Criticality: auto|true|false', false, 'auto');
         $this->registerArgument('elementUid', 'int', 'Content element UID for auto-criticality detection', false, 0);
+        $this->registerArgument('sizes', 'string', 'sizes attribute for default <source> elements', false, '100vw');
         $this->registerArgument('quality', 'int', 'Fallback image quality', false, 85);
         $this->registerArgument('fileExtension', 'string', 'Fallback image format (e.g. jpg)', false, '');
         $this->registerArgument('crossorigin', 'string', 'crossorigin attribute', false, '');
@@ -54,6 +56,7 @@ class PictureViewHelper extends AbstractViewHelper
         $height = (int)$this->arguments['height'];
         $critical = (string)$this->arguments['critical'];
         $elementUid = (int)$this->arguments['elementUid'];
+        $sizes = (string)$this->arguments['sizes'];
         $fileExtension = (string)$this->arguments['fileExtension'];
         $crossorigin = (string)$this->arguments['crossorigin'];
         $class = (string)$this->arguments['class'];
@@ -67,20 +70,28 @@ class PictureViewHelper extends AbstractViewHelper
                        && $this->criticalityResolver->isElementAboveFold($elementUid, $pageUid),
         };
 
-        // Expose file reference and criticality to child SourceViewHelpers via variable provider
         $variableProvider = $this->renderingContext->getVariableProvider();
         $variableProvider->add('__pictureFileReference', $image);
         $variableProvider->add('__pictureIsCritical', $isCritical);
         $variableProvider->add('__pictureEarlyHintCollector', $this->earlyHintCollector);
 
-        // Render child content (source tags)
-        $sources = $this->renderChildren();
+        $sources = $this->renderChildSources();
+
+        if ($sources === '') {
+            $maxWidth = $width > 0 ? $width : 1600;
+            $sources = $this->pictureSourceRenderer->renderDefaultSources(
+                $image,
+                $sizes,
+                $maxWidth,
+                $isCritical,
+                $this->earlyHintCollector,
+            );
+        }
 
         $variableProvider->remove('__pictureFileReference');
         $variableProvider->remove('__pictureIsCritical');
         $variableProvider->remove('__pictureEarlyHintCollector');
 
-        // Generate fallback <img>
         $processingInstructions = [];
         if ($width > 0) {
             $processingInstructions['width'] = $width;
@@ -119,5 +130,17 @@ class PictureViewHelper extends AbstractViewHelper
             . $sources
             . '<img ' . $imgAttrs . '>' . "\n"
             . '</picture>';
+    }
+
+    /**
+     * Renders nested <mai:image.picture.source> children when present in the Fluid tree.
+     */
+    protected function renderChildSources(): string
+    {
+        if ($this->viewHelperNode === null || $this->viewHelperNode->getChildren() === []) {
+            return '';
+        }
+
+        return trim((string)$this->renderChildren());
     }
 }

@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Image\Picture;
 
-use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
-use Maispace\MaiAssets\Service\ImageVariantService;
+use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -18,7 +17,7 @@ class SourceViewHelper extends AbstractViewHelper
     protected $escapeOutput = false;
 
     public function __construct(
-        private readonly ImageVariantService $imageVariantService,
+        private readonly PictureSourceRenderer $pictureSourceRenderer,
     ) {
     }
 
@@ -37,7 +36,6 @@ class SourceViewHelper extends AbstractViewHelper
     {
         $templateVariableContainer = $this->renderingContext->getVariableProvider();
 
-        // Only render inside a PictureViewHelper context
         if (!$templateVariableContainer->exists('__pictureFileReference')) {
             return '';
         }
@@ -56,67 +54,17 @@ class SourceViewHelper extends AbstractViewHelper
         $sizes = (string)$this->arguments['sizes'];
         $formats = (array)$this->arguments['formats'];
 
-        if ($widths === []) {
-            return '';
-        }
-
-        $output = '';
         $registeredEarlyHint = false;
 
-        foreach ($formats as $format) {
-            $srcsetParts = [];
-            $firstUrl = '';
-            foreach ($widths as $width) {
-                $breakpoints = ['w' . $width => (int)$width];
-                $variants = $this->imageVariantService->processVariants($fileReference, $breakpoints);
-                $url = $variants['w' . $width][$format] ?? '';
-                if ($url !== '') {
-                    $srcsetParts[] = htmlspecialchars($url, ENT_QUOTES) . ' ' . $width . 'w';
-                    if ($firstUrl === '') {
-                        $firstUrl = $url;
-                    }
-                }
-            }
-
-            if ($srcsetParts === []) {
-                continue;
-            }
-
-            // Register early hint for the first AVIF source of critical images
-            if ($isCritical && !$registeredEarlyHint && $format === 'avif'
-                && $firstUrl !== '' && $earlyHintCollector !== null) {
-                $earlyHintCollector->add(new EarlyHintCandidate(
-                    href: $firstUrl,
-                    rel: 'preload',
-                    as: 'image',
-                ));
-                $registeredEarlyHint = true;
-            }
-
-            $mimeType = $this->getMimeType((string)$format);
-            $srcsetAttr = implode(', ', $srcsetParts);
-            $sizesAttr = $sizes !== '' ? ' sizes="' . htmlspecialchars($sizes, ENT_QUOTES) . '"' : '';
-            $fetchPriorityAttr = $isCritical ? ' fetchpriority="high"' : '';
-            $output .= '<source'
-                . ' media="' . htmlspecialchars($media, ENT_QUOTES) . '"'
-                . ' srcset="' . $srcsetAttr . '"'
-                . $sizesAttr
-                . ' type="' . htmlspecialchars($mimeType, ENT_QUOTES) . '"'
-                . $fetchPriorityAttr
-                . '>' . "\n";
-        }
-
-        return $output;
-    }
-
-    private function getMimeType(string $format): string
-    {
-        return match ($format) {
-            'avif'         => 'image/avif',
-            'webp'         => 'image/webp',
-            'jpg', 'jpeg'  => 'image/jpeg',
-            'png'          => 'image/png',
-            default        => 'image/' . $format,
-        };
+        return $this->pictureSourceRenderer->renderSourcesForMedia(
+            $fileReference,
+            $media,
+            $widths,
+            $sizes,
+            $formats,
+            $isCritical,
+            $earlyHintCollector,
+            $registeredEarlyHint,
+        );
     }
 }

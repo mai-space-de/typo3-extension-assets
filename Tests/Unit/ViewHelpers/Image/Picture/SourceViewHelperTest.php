@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\Tests\Unit\ViewHelpers\Image\Picture;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\ImageVariantService;
+use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use Maispace\MaiAssets\ViewHelpers\Image\Picture\SourceViewHelper;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -289,7 +290,7 @@ final class SourceViewHelperTest extends TestCase
         bool $isCritical = false,
         ?EarlyHintCandidateCollector $earlyHintCollector = null,
     ): SourceViewHelper {
-        $vh = new SourceViewHelper($variantService);
+        $vh = new SourceViewHelper(new PictureSourceRenderer($variantService));
 
         $ctx = $this->createRenderingContext();
 
@@ -319,7 +320,30 @@ final class SourceViewHelperTest extends TestCase
         return new class extends RenderingContext {
             public function __construct()
             {
-                $this->variableProvider = new StandardVariableProvider();
+                $this->variableProvider = new class extends StandardVariableProvider {
+                    /** @var array<string, mixed> */
+                    private array $storage = [];
+
+                    public function add(string $identifier, mixed $value): void
+                    {
+                        $this->storage[$identifier] = $value;
+                    }
+
+                    public function get(string $identifier): mixed
+                    {
+                        return $this->storage[$identifier];
+                    }
+
+                    public function exists(string $identifier): bool
+                    {
+                        return array_key_exists($identifier, $this->storage);
+                    }
+
+                    public function remove(string $identifier): void
+                    {
+                        unset($this->storage[$identifier]);
+                    }
+                };
             }
 
             public function getRequest(): \Psr\Http\Message\ServerRequestInterface
@@ -341,17 +365,42 @@ final class SourceViewHelperTest extends TestCase
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
-                $format = $instructions['format'] ?? '';
+                $format = (string)($instructions['format'] ?? 'jpg');
                 if (in_array($format, $this->failFormats, true)) {
                     throw new \RuntimeException('Format failed: ' . $format);
                 }
-                return new class extends ProcessedFile {
+
+                $width = (int)($instructions['width'] ?? 0);
+
+                return new class($format, $width) extends ProcessedFile {
+                    public function __construct(
+                        private readonly string $format,
+                        private readonly int $width,
+                    ) {
+                    }
+
+                    public function getFormat(): string
+                    {
+                        return $this->format;
+                    }
+
+                    public function getWidth(): int
+                    {
+                        return $this->width;
+                    }
                 };
             }
 
             public function getImageUri($file, bool $absolute = false): string
             {
-                return '/f/test.img';
+                $format = ($file instanceof ProcessedFile && method_exists($file, 'getFormat'))
+                    ? $file->getFormat()
+                    : 'jpg';
+                $width = ($file instanceof ProcessedFile && method_exists($file, 'getWidth'))
+                    ? $file->getWidth()
+                    : 0;
+
+                return '/f/test-' . $format . '-' . $width . '.img';
             }
         };
 

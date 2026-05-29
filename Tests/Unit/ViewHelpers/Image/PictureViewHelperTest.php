@@ -10,6 +10,7 @@ use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\CriticalDetectionService;
 use Maispace\MaiAssets\Service\ImageVariantService;
+use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use Maispace\MaiAssets\ViewHelpers\Image\PictureViewHelper;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -197,10 +198,32 @@ final class PictureViewHelperTest extends TestCase
      */
     public function testChildrenAreIncludedInOutput(): void
     {
-        $subject = $this->createViewHelper(
+        $pictureSourceRenderer = $this->createMock(PictureSourceRenderer::class);
+        $pictureSourceRenderer->expects(self::never())->method('renderDefaultSources');
+
+        $subject = $this->createViewHelperWithChildSources(
             $this->stubImageService(),
-            childrenOutput: '<source type="image/avif" srcset="/f/test.avif 800w">' . "\n"
+            '<source type="image/avif" srcset="/f/test.avif 800w">' . "\n",
+            $pictureSourceRenderer,
         );
+
+        $result = $subject->render();
+
+        self::assertStringContainsString('<source type="image/avif"', $result);
+    }
+
+    /**
+     * When no child sources are defined, default AVIF/WebP srcsets are rendered.
+     */
+    public function testDefaultSourcesRenderedWhenNoChildren(): void
+    {
+        $pictureSourceRenderer = $this->createMock(PictureSourceRenderer::class);
+        $pictureSourceRenderer
+            ->expects(self::once())
+            ->method('renderDefaultSources')
+            ->willReturn('<source type="image/avif" srcset="/f/hero.avif 800w">' . "\n");
+
+        $subject = $this->createViewHelper($this->stubImageService(), pictureSourceRenderer: $pictureSourceRenderer);
 
         $result = $subject->render();
 
@@ -224,6 +247,45 @@ final class PictureViewHelperTest extends TestCase
 
     // ── helpers ──────────────────────────────────────────────────────────────────
 
+    private function createViewHelperWithChildSources(
+        ImageService $imageService,
+        string $childSources,
+        ?PictureSourceRenderer $pictureSourceRenderer = null,
+    ): PictureViewHelper {
+        $vh = new class(
+            $pictureSourceRenderer ?? new PictureSourceRenderer($this->createImageVariantService($imageService)),
+            $imageService,
+            $this->criticalityResolver,
+            $this->earlyHintCollector,
+        ) extends PictureViewHelper {
+            public string $forcedChildSources = '';
+
+            protected function renderChildSources(): string
+            {
+                return $this->forcedChildSources;
+            }
+        };
+
+        $vh->forcedChildSources = $childSources;
+        $ctx = $this->createRenderingContext();
+        $vh->setRenderingContext($ctx);
+        $vh->setArguments([
+            'image'         => new \stdClass(),
+            'alt'           => '',
+            'width'         => 0,
+            'height'        => 0,
+            'critical'      => 'false',
+            'elementUid'    => 0,
+            'quality'       => 85,
+            'fileExtension' => '',
+            'crossorigin'   => '',
+            'class'         => '',
+            'sizes'         => '100vw',
+        ]);
+
+        return $vh;
+    }
+
     private function createViewHelper(
         ImageService $imageService,
         string $critical = 'false',
@@ -232,11 +294,15 @@ final class PictureViewHelperTest extends TestCase
         string $crossorigin = '',
         string $childrenOutput = '',
         ?RenderingContext $renderingContext = null,
+        ?PictureSourceRenderer $pictureSourceRenderer = null,
     ): PictureViewHelper {
-        $imageVariantService = $this->createImageVariantService($imageService);
+        if ($pictureSourceRenderer === null) {
+            $pictureSourceRenderer = $this->createMock(PictureSourceRenderer::class);
+            $pictureSourceRenderer->method('renderDefaultSources')->willReturn('');
+        }
 
         $vh = new PictureViewHelper(
-            $imageVariantService,
+            $pictureSourceRenderer,
             $imageService,
             $this->criticalityResolver,
             $this->earlyHintCollector,
@@ -255,6 +321,7 @@ final class PictureViewHelperTest extends TestCase
             'fileExtension' => '',
             'crossorigin'   => $crossorigin,
             'class'         => $class,
+            'sizes'         => '100vw',
         ]);
 
         return $vh;
@@ -276,12 +343,40 @@ final class PictureViewHelperTest extends TestCase
             public function __construct(string $childrenOutput)
             {
                 $this->childrenOutput = $childrenOutput;
-                $this->variableProvider = new StandardVariableProvider();
+                $this->variableProvider = $this->createPictureVariableProvider();
             }
 
             public function getRequest(): \Psr\Http\Message\ServerRequestInterface
             {
                 return $GLOBALS['TYPO3_REQUEST'];
+            }
+
+            private function createPictureVariableProvider(): StandardVariableProvider
+            {
+                return new class extends StandardVariableProvider {
+                    /** @var array<string, mixed> */
+                    private array $storage = [];
+
+                    public function add(string $identifier, mixed $value): void
+                    {
+                        $this->storage[$identifier] = $value;
+                    }
+
+                    public function get(string $identifier): mixed
+                    {
+                        return $this->storage[$identifier];
+                    }
+
+                    public function exists(string $identifier): bool
+                    {
+                        return array_key_exists($identifier, $this->storage);
+                    }
+
+                    public function remove(string $identifier): void
+                    {
+                        unset($this->storage[$identifier]);
+                    }
+                };
             }
         };
     }
@@ -296,7 +391,25 @@ final class PictureViewHelperTest extends TestCase
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
-                return new class extends ProcessedFile {
+                $format = (string)($instructions['fileExtension'] ?? $instructions['format'] ?? 'jpg');
+                $width = (int)($instructions['width'] ?? 0);
+
+                return new class($format, $width) extends ProcessedFile {
+                    public function __construct(
+                        private readonly string $format,
+                        private readonly int $width,
+                    ) {
+                    }
+
+                    public function getFormat(): string
+                    {
+                        return $this->format;
+                    }
+
+                    public function getWidth(): int
+                    {
+                        return $this->width;
+                    }
                 };
             }
 
