@@ -66,19 +66,14 @@ class InvalidationService implements SingletonInterface
      */
     private function resolveContentSaveTargets(array $changedFields): array
     {
-        $positionFields = ['sorting', 'colPos', 'pid', 'hidden', 'deleted', 'starttime', 'endtime'];
-        $hasPositionChange = array_intersect($changedFields, $positionFields) !== [];
-
-        if ($hasPositionChange) {
-            return [
-                self::TARGET_ABOVE_FOLD,
-                self::TARGET_PAGE_CACHE,
-                self::TARGET_EARLY_HINTS,
-                self::TARGET_STATIC_FILE,
-            ];
-        }
-
-        return [self::TARGET_PAGE_CACHE, self::TARGET_EARLY_HINTS, self::TARGET_STATIC_FILE];
+        // All content changes invalidate above-fold cache, page cache, early hints, and static files.
+        // This ensures readiness is reset whenever content changes, forcing re-detection of critical elements.
+        return [
+            self::TARGET_ABOVE_FOLD,
+            self::TARGET_PAGE_CACHE,
+            self::TARGET_EARLY_HINTS,
+            self::TARGET_STATIC_FILE,
+        ];
     }
 
     /**

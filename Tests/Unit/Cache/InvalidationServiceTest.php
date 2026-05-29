@@ -73,13 +73,16 @@ final class InvalidationServiceTest extends TestCase
         $this->createService()->invalidateAfterContentSave(42, ['sorting']);
     }
 
-    public function testInvalidateAfterContentSaveNonPositionFieldsSkipsAboveFold(): void
+    public function testInvalidateAfterContentSaveNonPositionFieldsClearsAboveFold(): void
     {
         $this->cacheManager->method('flushCachesByTag');
-        $this->aboveFoldFrontend->expects(self::never())->method('remove');
+        $this->aboveFoldFrontend->expects(self::once())->method('remove')->with('buckets_42');
+        $this->aboveFoldFrontend->expects(self::once())->method('set')->with(
+            'reset_42', self::anything(), self::anything()
+        );
         $this->eventDispatcher->method('dispatch')->willReturnArgument(0);
         $this->staticFileRemovalService
-            ->expects(self::once())
+            ->expects(self::exactly(3))
             ->method('purgeByPageUid')
             ->with(42);
 

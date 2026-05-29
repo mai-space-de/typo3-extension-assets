@@ -10,9 +10,11 @@
 - `InvalidationService` purges static HTML via `StaticFileRemovalService` for the `static_file` invalidation target.
 - `PictureSourceRenderer` service and LCP hero audit notes (`Documentation/Performance/LcpHeroImageAudit.md`).
 - `PictureViewHelper` default AVIF/WebP srcsets when no `<mai:image.picture.source>` children are defined (`sizes` argument, default `100vw`).
+- `ContentElementSaveHookTest` unit tests for `ContentElementSaveHook` covering new element creation, updates, and edge cases.
 
 ### Changed
 
+- `InvalidationService::resolveContentSaveTargets()` now invalidates above-fold cache (readiness) for ALL content changes, not just position-relevant field changes. This ensures readiness is reset whenever any content field changes, forcing re-detection of critical elements.
 - `SourceViewHelper` delegates source markup to `PictureSourceRenderer`.
 
 ### Benchmark: Static File Cache Performance (2026-05-29)
