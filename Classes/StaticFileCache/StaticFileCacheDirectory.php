@@ -21,7 +21,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * files itself. The GeneratorService uses this class to determine where to
  * place a cached page response.
  */
-final class StaticFileCacheDirectory
+class StaticFileCacheDirectory
 {
     /**
      * Default cache root, relative to the TYPO3 public/ docroot.
@@ -159,5 +159,78 @@ final class StaticFileCacheDirectory
     {
         $parts = parse_url($requestUri);
         return trim((string)($parts['path'] ?? ''), '/');
+    }
+
+    /**
+     * Get the absolute directory path that will hold the cached HTML for a
+     * specific page UID and language. This is the page-ID-based variant of
+     * getPageDirectory() — it derives the path from the numeric page and
+     * language identifiers rather than from the request URI.
+     *
+     * Path scheme: {base}/{pageUid}_{languageUid}/
+     *
+     * This scheme mirrors the early-hints manifest cache key
+     * (earlyhints_{pageUid}_{languageUid}) so both caches are naturally
+     * aligned per page+language combination.
+     *
+     * The directory is not created; call ensureDirectoryExists() when needed.
+     *
+     * @throws \InvalidArgumentException When $pageUid <= 0 or $languageUid < 0.
+     */
+    public function getPageDirectoryById(int $pageUid, int $languageUid): string
+    {
+        if ($pageUid <= 0) {
+            throw new \InvalidArgumentException(
+                'Page UID must be positive, got ' . $pageUid . '.',
+                1748534400
+            );
+        }
+        if ($languageUid < 0) {
+            throw new \InvalidArgumentException(
+                'Language UID must be non-negative, got ' . $languageUid . '.',
+                1748534401
+            );
+        }
+
+        $baseDir = $this->getAbsoluteBaseDirectory();
+        $relative = $this->buildRelativePagePathById($pageUid, $languageUid);
+        $resultPath = GeneralUtility::resolveBackPath($baseDir . $relative);
+
+        // Security guard: the resolved path must stay within the cache base directory.
+        if (!str_starts_with($resultPath, $baseDir)) {
+            throw new \InvalidArgumentException(
+                'Resolved path "' . $resultPath . '" is outside the cache base directory "' . $baseDir . '".',
+                1748534402
+            );
+        }
+
+        return $resultPath;
+    }
+
+    /**
+     * Build the relative page path from numeric identifiers (no leading slash,
+     * trailing slash included):  {pageUid}_{languageUid}/
+     *
+     * This isolates the pure ID-to-path mapping so it can be tested without a
+     * real TYPO3 environment.
+     *
+     * @throws \InvalidArgumentException When $pageUid <= 0 or $languageUid < 0.
+     */
+    public function buildRelativePagePathById(int $pageUid, int $languageUid): string
+    {
+        if ($pageUid <= 0) {
+            throw new \InvalidArgumentException(
+                'Page UID must be positive, got ' . $pageUid . '.',
+                1748534403
+            );
+        }
+        if ($languageUid < 0) {
+            throw new \InvalidArgumentException(
+                'Language UID must be non-negative, got ' . $languageUid . '.',
+                1748534404
+            );
+        }
+
+        return $pageUid . '_' . $languageUid . '/';
     }
 }

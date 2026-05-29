@@ -81,21 +81,19 @@ final class StaticFileServeMiddleware implements MiddlewareInterface
                 return $handler->handle($request);
             }
 
-            if (!$this->cacheDirectory->isValidUri($requestUri)) {
-                return $handler->handle($request);
-            }
+            // --- Primary lookup: page-ID-based cache key ---
+            // This aligns with the early-hints manifest key
+            // (earlyhints_{pageUid}_{languageUid}) and correctly isolates
+            // cache entries per language even when the same page is served
+            // under different URL paths.
+            $pageArgs = $request->getAttribute('routing');
+            $language = $request->getAttribute('language');
+            $pageUid = $pageArgs !== null ? (int)$pageArgs->getPageId() : 0;
+            $languageUid = $language !== null ? (int)$language->getLanguageId() : 0;
 
-            $pageDir  = $this->cacheDirectory->getPageDirectory($requestUri);
-            $filePath = rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
+            $filePath = $this->resolveCacheFilePath($pageUid, $languageUid, $requestUri);
 
-            // Path-traversal guard: the resolved path must live inside the
-            // configured cache base directory.
-            $baseDir = $this->cacheDirectory->getAbsoluteBaseDirectory();
-            if (!str_starts_with($filePath, $baseDir)) {
-                return $handler->handle($request);
-            }
-
-            if (!is_file($filePath) || !is_readable($filePath)) {
+            if ($filePath === null || !is_file($filePath) || !is_readable($filePath)) {
                 return $handler->handle($request);
             }
 
@@ -129,6 +127,50 @@ final class StaticFileServeMiddleware implements MiddlewareInterface
     private function isCacheableGetRequest(ServerRequestInterface $request): bool
     {
         return $request->getMethod() === 'GET';
+    }
+
+    /**
+     * Resolve the absolute cache file path for the given page/language
+     * combination, falling back to the legacy URL-based path when page
+     * routing information is not available.
+     *
+     * Primary:  {baseDir}/{pageUid}_{languageUid}/index.html
+     * Fallback: {baseDir}/{scheme}_{host}_{port}/{url-path}/index.html
+     *
+     * Returns null when neither path can be resolved or when the resolved
+     * path escapes the cache base directory (path-traversal guard).
+     */
+    private function resolveCacheFilePath(int $pageUid, int $languageUid, string $requestUri): ?string
+    {
+        $baseDir = $this->cacheDirectory->getAbsoluteBaseDirectory();
+
+        // Primary: page-ID-based cache key (aligned with early-hints manifest)
+        if ($pageUid > 0) {
+            try {
+                $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid);
+                $filePath = rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
+                if (str_starts_with($filePath, $baseDir)) {
+                    return $filePath;
+                }
+            } catch (\InvalidArgumentException) {
+                // Fall through to URL-based fallback.
+            }
+        }
+
+        // Fallback: legacy URL-based cache key
+        if ($this->cacheDirectory->isValidUri($requestUri)) {
+            try {
+                $pageDir = $this->cacheDirectory->getPageDirectory($requestUri);
+                $filePath = rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
+                if (str_starts_with($filePath, $baseDir)) {
+                    return $filePath;
+                }
+            } catch (\InvalidArgumentException) {
+                // Path resolution failed.
+            }
+        }
+
+        return null;
     }
 
     /**

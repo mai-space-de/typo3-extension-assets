@@ -97,11 +97,13 @@ final class SourceViewHelper extends AbstractViewHelper
             $mimeType = $this->getMimeType((string)$format);
             $srcsetAttr = implode(', ', $srcsetParts);
             $sizesAttr = $sizes !== '' ? ' sizes="' . htmlspecialchars($sizes, ENT_QUOTES) . '"' : '';
+            $fetchPriorityAttr = $isCritical ? ' fetchpriority="high"' : '';
             $output .= '<source'
                 . ' media="' . htmlspecialchars($media, ENT_QUOTES) . '"'
                 . ' srcset="' . $srcsetAttr . '"'
                 . $sizesAttr
                 . ' type="' . htmlspecialchars($mimeType, ENT_QUOTES) . '"'
+                . $fetchPriorityAttr
                 . '>' . "\n";
         }
 

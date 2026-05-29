@@ -24,6 +24,7 @@ final class ExtensionConfiguration
     private int $processingCacheLifetime;
     private bool $enableStaticFileCache;
     private string $staticFileCacheDir;
+    private bool $debugHeaders;
 
     public function __construct(Typo3ExtensionConfiguration $typo3ExtensionConfiguration)
     {
@@ -47,6 +48,7 @@ final class ExtensionConfiguration
         $this->processingCacheLifetime = (int)($raw['processingCacheLifetime'] ?? 0);
         $this->enableStaticFileCache = (bool)($raw['enableStaticFileCache'] ?? false);
         $this->staticFileCacheDir = (string)($raw['staticFileCacheDir'] ?? '');
+        $this->debugHeaders = (bool)($raw['debugHeaders'] ?? false);
     }
 
     public static function getInstance(): self
@@ -121,5 +123,14 @@ final class ExtensionConfiguration
     public function getStaticFileCacheDir(): string
     {
         return $this->staticFileCacheDir;
+    }
+
+    /**
+     * Whether debug headers (x-mai-static-ready, x-mai-static-cache)
+     * should be emitted on responses for ops and QA inspection.
+     */
+    public function isDebugHeaders(): bool
+    {
+        return $this->debugHeaders;
     }
 }

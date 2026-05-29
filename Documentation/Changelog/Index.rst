@@ -4,6 +4,33 @@
 Changelog
 =========
 
+Version 1.1.0
+=============
+
+*Release date: 2026-05-29*
+
+Features
+---------
+
+- Added Apache and Nginx rewrite snippets for pre-compressed static asset delivery
+  (``Resources/Private/ServerConfig/apache-precompressed-assets.conf`` and
+  ``nginx-precompressed-assets.conf``). Snippets cover content-negotiation (Brotli >
+  Gzip > uncompressed), 1-year immutable cache headers, correct MIME types for
+  compressed variants, ``Vary: Accept-Encoding``, and DDEV-specific configuration
+  guidance. Ported from patterns in ``EXT:staticfilecache`` HtaccessGenerator.
+
+Documentation
+--------------
+
+- Added comprehensive static file cache architecture documentation
+  (``Documentation/Architecture/Index.rst``) covering the three-layer compiled asset
+  cache, pre-compression pipeline, TYPO3 caching framework integration, early hints
+  pipeline, cache invalidation strategies, and future ADR considerations.
+- Updated ``Documentation/Index.rst`` toctree to include the new Architecture section.
+- Expanded ``Documentation/Installation/Index.rst`` web server configuration section
+  with complete Apache and Nginx configuration examples, DDEV-specific integration
+  notes, and pre-compressed file layout documentation.
+
 Version 1.0.0
 =============
 

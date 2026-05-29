@@ -15,6 +15,7 @@ font preloading, and self-optimising above-fold detection.
     Introduction/Index
     Installation/Index
     Configuration/Index
+    Architecture/Index
     ViewHelpers/Index
     Events/Index
     Developer/Index

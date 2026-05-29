@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\Cache;
 
 use Maispace\MaiAssets\Event\AfterCriticalUidsUpdatedEvent;
+use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use Maispace\MaiAssets\Traits\CacheKeyTrait;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Cache\CacheManager;
@@ -22,6 +23,7 @@ final class AboveFoldCacheService implements SingletonInterface
     public function __construct(
         private readonly CacheManager $cacheManager,
         private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly StaticFileRemovalService $staticFileRemovalService,
     ) {
         $this->cache = $this->cacheManager->getCache(self::CACHE_IDENTIFIER);
     }
@@ -36,12 +38,24 @@ final class AboveFoldCacheService implements SingletonInterface
         return $data;
     }
 
-    public function getAllCriticalUids(int $pageUid): array
+    /**
+     * @return list<string> Stored bucket names for this page, or empty array if none.
+     */
+    public function getBucketNames(int $pageUid): array
     {
-        // We cannot enumerate cache keys, so we rely on stored bucket index
         $indexKey = 'buckets_' . $pageUid;
         $buckets = $this->cache->get($indexKey);
         if (!is_array($buckets)) {
+            return [];
+        }
+        return array_values(array_map('strval', $buckets));
+    }
+
+    public function getAllCriticalUids(int $pageUid): array
+    {
+        // We cannot enumerate cache keys, so we rely on stored bucket index
+        $buckets = $this->getBucketNames($pageUid);
+        if ($buckets === []) {
             return [];
         }
 
@@ -97,6 +111,8 @@ final class AboveFoldCacheService implements SingletonInterface
             }
         }
         $this->cache->remove($indexKey);
+
+        $this->staticFileRemovalService->purgeByPageUid($pageUid);
     }
 
     public function getResetTimestamp(int $pageUid): int
@@ -110,5 +126,7 @@ final class AboveFoldCacheService implements SingletonInterface
     {
         $key = $this->buildResetKey($pageUid);
         $this->cache->set($key, time(), ['mai_assets', 'maiAssetsAboveFold_' . $pageUid]);
+
+        $this->staticFileRemovalService->purgeByPageUid($pageUid);
     }
 }

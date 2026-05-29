@@ -198,4 +198,95 @@ final class StaticFileCacheDirectoryTest extends TestCase
 
         return new StaticFileCacheDirectory($config);
     }
+
+    // -------------------------------------------------------------------------
+    // buildRelativePagePathById()
+    // -------------------------------------------------------------------------
+
+    public function testBuildRelativePagePathByIdReturnsPageIdAndLanguage(): void
+    {
+        $result = $this->subject->buildRelativePagePathById(42, 3);
+        self::assertSame('42_3/', $result);
+    }
+
+    public function testBuildRelativePagePathByIdWithDefaultLanguage(): void
+    {
+        $result = $this->subject->buildRelativePagePathById(42, 0);
+        self::assertSame('42_0/', $result);
+    }
+
+    public function testBuildRelativePagePathByIdWithLargePageId(): void
+    {
+        $result = $this->subject->buildRelativePagePathById(999999, 1);
+        self::assertSame('999999_1/', $result);
+    }
+
+    public function testBuildRelativePagePathByIdAlwaysEndsWithSlash(): void
+    {
+        $result = $this->subject->buildRelativePagePathById(42, 0);
+        self::assertStringEndsWith('/', $result);
+    }
+
+    public function testBuildRelativePagePathByIdNeverStartsWithSlash(): void
+    {
+        $result = $this->subject->buildRelativePagePathById(42, 0);
+        self::assertStringStartsNotWith('/', $result);
+    }
+
+    public function testBuildRelativePagePathByIdThrowsForZeroPageUid(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->subject->buildRelativePagePathById(0, 0);
+    }
+
+    public function testBuildRelativePagePathByIdThrowsForNegativePageUid(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->subject->buildRelativePagePathById(-1, 0);
+    }
+
+    public function testBuildRelativePagePathByIdThrowsForNegativeLanguageUid(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->subject->buildRelativePagePathById(42, -1);
+    }
+
+    // -------------------------------------------------------------------------
+    // getPageDirectoryById() — invalid input
+    // -------------------------------------------------------------------------
+
+    public function testGetPageDirectoryByIdThrowsForZeroPageUid(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->subject->getPageDirectoryById(0, 0);
+    }
+
+    public function testGetPageDirectoryByIdThrowsForNegativeLanguageUid(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->subject->getPageDirectoryById(42, -1);
+    }
+
+    // -------------------------------------------------------------------------
+    // Consistency: page-ID-based and URL-based paths are separate namespaces
+    // -------------------------------------------------------------------------
+
+    public function testPageIdBasedPathDiffersFromUrlBasedPath(): void
+    {
+        $idPath = $this->subject->buildRelativePagePathById(42, 0);
+        $urlPath = $this->subject->buildRelativePagePath('https://example.com/42_0/');
+        // ID-based path starts with the numeric page UID; URL-based path
+        // starts with a scheme_host_port host segment containing underscores.
+        self::assertStringStartsNotWith('https', $idPath);
+        self::assertStringContainsString('https', $urlPath);
+    }
+
+    public function testDifferentLanguagesProduceDifferentPaths(): void
+    {
+        $dePath = $this->subject->buildRelativePagePathById(42, 0);
+        $enPath = $this->subject->buildRelativePagePathById(42, 1);
+
+        // Each language UID yields a distinct directory so cache entries are isolated.
+        self::assertNotSame($dePath, $enPath);
+    }
 }

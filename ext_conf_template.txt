@@ -24,3 +24,6 @@ enableStaticFileCache = 0
 
 # cat=Static File Cache//20; type=string; label=Static File Cache Directory: Override the root directory for static HTML files (path relative to the TYPO3 public/ docroot). Leave empty to use the default: typo3temp/assets/mai_assets_static/.
 staticFileCacheDir =
+
+# cat=Static File Cache//30; type=boolean; label=Enable Debug Headers: Emit x-mai-static-ready and x-mai-static-cache response headers for ops and QA inspection. Disable in production.
+debugHeaders = 0
