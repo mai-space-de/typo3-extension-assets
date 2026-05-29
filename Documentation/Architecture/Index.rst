@@ -377,43 +377,55 @@ the following reasons:
       - Gzip and Brotli compression are tightly coupled to the compilation
         pipeline — the compressed files are generated immediately after the
         compiled file is written, before any cache extension sees it.
-    * - **Early Hints built in**
-      - HTTP 103 Early Hints are handled by a dedicated middleware and cache
-        manifest within the extension. A static file cache extension cannot
-        integrate with the TYPOSEarly Hints middleware without additional
-        bridging code.
     * - **Observer-driven criticality**
       - The above-fold detection system (IntersectionObserver → API → cache →
         criticality resolution) is unique to this project. No existing cache
         extension supports this workflow out of the box.
-    * - **No HTML output caching**
-      - The static file cache caches **assets** (CSS, JS, images), not full
-        HTML pages. TYPO3's built-in full-page cache already handles HTML
-        caching. An HTML-caching extension would add complexity without value.
+    * - **Native static HTML cache**
+      - Full-page HTML caching is implemented directly in ``mai_assets`` via
+        ``StaticFileServeMiddleware`` and ``StaticHtmlWriterService``. Pages are
+        written to ``typo3temp/assets/mai_assets_static/`` with gzip/brotli variants.
+        The readiness gate (``PageOptimizationReadinessService`` +
+        ``StaticFileCacheReadinessListener``) ensures static caching only occurs
+        after above-fold detection is complete for all viewport buckets.
+    * - **Early Hints integration**
+      - HTTP 103 Early Hints are handled by a dedicated middleware and cache
+        manifest within the extension. A third-party static file cache extension
+        cannot integrate with the Early Hints middleware without additional
+        bridging code.
 
-In short, the native pipeline is purpose-built for asset optimisation. HTML
-page caching is left to TYPO3's own ``cache_pages`` and related core caches.
+In short, the native pipeline is purpose-built for asset optimisation and
+static HTML delivery. Third-party cache extensions would duplicate infrastructure
+and cannot integrate with the observer-driven criticality system.
 
 Readiness Gate: Warm-Up Model
 ==============================
 
 The extension operates an intentional **warm-up model** for criticality-based
-optimisation:
+optimisation and static HTML caching:
 
 1. **First request** — No observer data exists. All assets are served as
    external files (no inlining, no priority hints). The observer script is
-   injected into the page.
+   injected into the page. Static HTML caching is **blocked** by the readiness
+   gate.
 
 2. **Observer report** — After the user's browser loads the page, the
    ``IntersectionObserver`` script posts visible content element UIDs to
    ``POST /api/mai-assets/above-fold-report``.
 
-3. **Subsequent requests** — Observer data is available. Critical CSS is
-   inlined, critical scripts get ``fetchpriority="high"``, images get
-   ``loading="eager"``, and Early Hints are emitted on the next uncached
-   response.
+3. **Readiness validation** — ``PageOptimizationReadinessService::isReady()``
+   checks whether **all** configured viewport buckets (mobile, tablet, desktop)
+   have reported observer data. ``StaticFileCacheReadinessListener`` implements
+   ``SFC\Staticfilecache\Event\CacheRuleEvent`` (loaded from
+   ``.lookup/staticfilecache/`` for type-hinting only; **not** a runtime
+   dependency) to gate static file cache writes on this readiness check.
 
-4. **CLI warm-up** — The ``maispace:assets:warmup`` command pre-compiles
+4. **Subsequent requests** — Observer data is available and readiness is
+   confirmed. Critical CSS is inlined, critical scripts get
+   ``fetchpriority="high"``, images get ``loading="eager"``, Early Hints are
+   emitted, and static HTML files are written to disk for subsequent requests.
+
+5. **CLI warm-up** — The ``maispace:assets:warmup`` command pre-compiles
    configured assets before the first request, ensuring the filesystem cache
    is populated at deploy time. Observer data still needs real user visits.
 
@@ -421,6 +433,10 @@ optimisation:
 
     # Pre-compile configured assets (SCSS, CSS, JS)
     vendor/bin/typo3 maispace:assets:warmup
+
+The readiness gate ensures that incomplete pages (missing observer data for
+any viewport bucket) are **never** statically cached, preventing stale or
+suboptimal HTML from being served.
 
 Request Flow
 =============

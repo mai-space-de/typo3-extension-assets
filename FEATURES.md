@@ -34,12 +34,13 @@
 * Criticality resolver — `AssetCriticalityResolver` provides a single injection point for ViewHelpers to query page-level (`pageHasObserverData`, `pageHasCompleteObserverData`) and element-level (`isElementAboveFold`) criticality without coupling to the detection internals
 * Cache invalidation on save — `ContentElementSaveHook` clears the above-fold cache and invalidates the TYPO3 page cache when a content element is edited so the next render reflects the reset state
 
-## Static HTML Page Cache
+## Static HTML Page Cache (Native Implementation)
 
-* Full-page caching — `StaticFileServeMiddleware` writes rendered HTML pages to `typo3temp/assets/mai_assets_static/{pageUid}_{languageUid}/` with optional Gzip and Brotli variants for fast subsequent serving
-* Readiness validation — `PageOptimizationReadinessService` and `StaticFileCacheReadinessListener` gate caching on completion of above-fold detection; only pages with complete critical data are cached to prevent premature serving of incomplete page metadata
-* Cache invalidation — `StaticFileRemovalService` purges cache entries when the above-fold cache is reset (e.g., on content element save), keeping cached pages in sync with observer data
-* Webserver acceleration — Apache and Nginx configuration examples provided in `Resources/Private/ConfigurationExamples/` for optionally serving static cache files directly from the webserver without PHP (DDEV-optimized templates included)
+* **Full-page caching** — `StaticFileServeMiddleware` writes rendered HTML pages to `typo3temp/assets/mai_assets_static/{pageUid}_{languageUid}/` with optional Gzip and Brotli variants for fast subsequent serving. This is a **native, built-in feature** of `mai_assets` — no third-party cache extension is required or declared as a dependency.
+* **Readiness gate** — `PageOptimizationReadinessService` and `StaticFileCacheReadinessListener` gate caching on completion of above-fold detection; only pages with complete critical data are cached to prevent premature serving of incomplete page metadata. The readiness listener implements `SFC\Staticfilecache\Event\CacheRuleEvent` (loaded from `.lookup/staticfilecache/` for type-hinting only) to integrate with TYPO3's static file cache event system, but the `staticfilecache` extension is **not** a runtime dependency.
+* **Cache invalidation** — `StaticFileRemovalService` purges cache entries when the above-fold cache is reset (e.g., on content element save), keeping cached pages in sync with observer data. The `InvalidationService` coordinates page cache, early-hints manifest, and static HTML purging in a single event-driven flow.
+* **Webserver acceleration** — Apache and Nginx configuration examples provided in `Resources/Private/ConfigurationExamples/` for optionally serving static cache files directly from the webserver without PHP (DDEV-optimized templates included). The rewrite patterns are ported from `EXT:staticfilecache`'s `HtaccessGenerator` as **inspiration only** — the implementation is entirely native to `mai_assets`.
+* **Scheduler warmup** — `StaticFileCacheWarmupTask` processes the boost queue every 5 minutes, warming up pages that have reached optimisation readiness. The task gracefully handles cases where the boost queue is not available (staticfilecache extension not installed).
 
 ## HTTP 103 Early Hints (Hybrid Delivery Path)
 
