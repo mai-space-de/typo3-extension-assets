@@ -1,0 +1,26 @@
+# cat=Asset Processing//10; type=boolean; label=Enable SCSS Processing: Compile .scss source files via scssphp on demand. Disable to serve plain CSS directly.
+enableScssProcessing = 1
+
+# cat=Asset Processing//20; type=boolean; label=Enable Minification: Minify compiled CSS and JavaScript output. Disable to keep human-readable output during development.
+enableMinification = 1
+
+# cat=Asset Processing//30; type=boolean; label=Enable Compression: Write pre-compressed gzip variants alongside every published asset for servers with mod_deflate or equivalent.
+enableCompression = 1
+
+# cat=Asset Processing//40; type=int+; label=Compression Level (1–9): Gzip compression level. Lower values are faster; higher values yield smaller files. Default: 6.
+compressionLevel = 6
+
+# cat=Asset Processing//50; type=boolean; label=Enable Brotli Compression: Write pre-compressed Brotli (.br) variants alongside gzip variants. Requires the PHP brotli extension.
+enableBrotli = 1
+
+# cat=Asset Processing//60; type=string; label=Observer Root Margin: IntersectionObserver rootMargin value used by the above-fold detection script. Increase to mark more elements as critical. Example: 200px.
+observerRootMargin = 200px
+
+# cat=Asset Processing//70; type=int+; label=Processing Cache Lifetime (seconds): How long compiled asset files are kept in the public cache directory. 0 means files are never expired automatically.
+processingCacheLifetime = 0
+
+# cat=Static File Cache//10; type=boolean; label=Enable Static File Cache: Write full-page HTML responses to the filesystem under typo3temp/assets/mai_assets_static/ so Apache can serve them without PHP. Requires the static file cache middleware to be active.
+enableStaticFileCache = 0
+
+# cat=Static File Cache//20; type=string; label=Static File Cache Directory: Override the root directory for static HTML files (path relative to the TYPO3 public/ docroot). Leave empty to use the default: typo3temp/assets/mai_assets_static/.
+staticFileCacheDir =

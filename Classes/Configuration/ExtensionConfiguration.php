@@ -22,6 +22,8 @@ final class ExtensionConfiguration
     private array $fontPreloadFormats;
     private string $observerRootMargin;
     private int $processingCacheLifetime;
+    private bool $enableStaticFileCache;
+    private string $staticFileCacheDir;
 
     public function __construct(Typo3ExtensionConfiguration $typo3ExtensionConfiguration)
     {
@@ -43,6 +45,8 @@ final class ExtensionConfiguration
         $this->fontPreloadFormats = (array)($raw['fontPreloadFormats'] ?? ['woff2']);
         $this->observerRootMargin = (string)($raw['observerRootMargin'] ?? '200px');
         $this->processingCacheLifetime = (int)($raw['processingCacheLifetime'] ?? 0);
+        $this->enableStaticFileCache = (bool)($raw['enableStaticFileCache'] ?? false);
+        $this->staticFileCacheDir = (string)($raw['staticFileCacheDir'] ?? '');
     }
 
     public static function getInstance(): self
@@ -103,5 +107,19 @@ final class ExtensionConfiguration
     public function getProcessingCacheLifetime(): int
     {
         return $this->processingCacheLifetime;
+    }
+
+    public function isEnableStaticFileCache(): bool
+    {
+        return $this->enableStaticFileCache;
+    }
+
+    /**
+     * Override directory for static HTML files, relative to the public docroot.
+     * Empty string means the default path should be used.
+     */
+    public function getStaticFileCacheDir(): string
+    {
+        return $this->staticFileCacheDir;
     }
 }
