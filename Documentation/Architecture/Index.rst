@@ -415,10 +415,12 @@ optimisation and static HTML caching:
 
 3. **Readiness validation** — ``PageOptimizationReadinessService::isReady()``
    checks whether **all** configured viewport buckets (mobile, tablet, desktop)
-   have reported observer data. ``StaticFileCacheReadinessListener`` implements
-   ``SFC\Staticfilecache\Event\CacheRuleEvent`` (loaded from
-   ``.lookup/staticfilecache/`` for type-hinting only; **not** a runtime
-   dependency) to gate static file cache writes on this readiness check.
+   have reported observer data. ``StaticHtmlWriterListener`` and
+   ``StaticFileCacheReadinessListener`` also require a non-empty early-hints
+   manifest (``EarlyHintCacheService::load()``) for the page/language pair.
+   The listener type-hints ``SFC\Staticfilecache\Event\CacheRuleEvent`` from
+   ``.lookup/staticfilecache/`` (**inspiration / type hints only** — not a
+   Composer or runtime dependency).
 
 4. **Subsequent requests** — Observer data is available and readiness is
    confirmed. Critical CSS is inlined, critical scripts get
