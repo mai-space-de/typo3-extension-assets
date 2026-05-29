@@ -17,7 +17,6 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration as Typo3ExtensionConfiguration;
-use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Extbase\Service\ImageService;
@@ -32,9 +31,6 @@ use TYPO3Fluid\Fluid\Core\Rendering\RenderingContext;
  */
 final class ResponsiveImageViewHelperTest extends TestCase
 {
-    /** @var AssetCollector&\PHPUnit\Framework\MockObject\MockObject */
-    private AssetCollector $assetCollector;
-
     /** @var EventDispatcherInterface&\PHPUnit\Framework\MockObject\MockObject */
     private EventDispatcherInterface $eventDispatcher;
 
@@ -44,7 +40,6 @@ final class ResponsiveImageViewHelperTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->assetCollector = $this->createMock(AssetCollector::class);
         $this->eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $this->eventDispatcher->method('dispatch')->willReturnArgument(0);
 
@@ -61,11 +56,17 @@ final class ResponsiveImageViewHelperTest extends TestCase
         $cacheService = $this->noConstructor(AboveFoldCacheService::class);
         $detectionService = $this->noConstructor(CriticalDetectionService::class);
         $this->criticalityResolver = new AssetCriticalityResolver($cacheService, $detectionService, $this->extensionConfiguration);
+
+        // Set up a mock server request for getRequest() calls
+        $mockRequest = $this->createMock(ServerRequestInterface::class);
+        $mockRequest->method('getAttribute')->willReturn(null);
+        $GLOBALS['TYPO3_REQUEST'] = $mockRequest;
     }
 
     protected function tearDown(): void
     {
         unset($GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mai_assets']);
+        unset($GLOBALS['TYPO3_REQUEST']);
     }
 
     /**
@@ -274,7 +275,6 @@ final class ResponsiveImageViewHelperTest extends TestCase
 
         $vh = new ResponsiveImageViewHelper(
             $imageVariantService,
-            $this->assetCollector,
             $this->criticalityResolver,
             $this->earlyHintCollector,
         );
@@ -321,10 +321,7 @@ final class ResponsiveImageViewHelperTest extends TestCase
      */
     private function stubImageService(array $failFormats = []): ImageService
     {
-        return new class($failFormats) extends ImageService {
-            private string $lastFormat = '';
-            private int $lastWidth = 0;
-
+        return new readonly class($failFormats) extends ImageService {
             public function __construct(private readonly array $failFormats)
             {
             }
@@ -338,16 +335,34 @@ final class ResponsiveImageViewHelperTest extends TestCase
                     throw new RuntimeException('Format not supported: ' . $format);
                 }
 
-                $this->lastFormat = $format;
-                $this->lastWidth = $width;
+                return new class($format, $width) extends ProcessedFile {
+                    public function __construct(
+                        private readonly string $format,
+                        private readonly int $width,
+                    ) {
+                    }
 
-                return new class extends ProcessedFile {
+                    public function getFormat(): string
+                    {
+                        return $this->format;
+                    }
+
+                    public function getWidth(): int
+                    {
+                        return $this->width;
+                    }
                 };
             }
 
             public function getImageUri($file, bool $absolute = false): string
             {
-                return '/f/image-' . $this->lastWidth . '.' . $this->lastFormat;
+                $format = ($file instanceof ProcessedFile && method_exists($file, 'getFormat'))
+                    ? $file->getFormat()
+                    : 'jpg';
+                $width = ($file instanceof ProcessedFile && method_exists($file, 'getWidth'))
+                    ? $file->getWidth()
+                    : 0;
+                return '/f/image-' . $width . '.' . $format;
             }
         };
     }

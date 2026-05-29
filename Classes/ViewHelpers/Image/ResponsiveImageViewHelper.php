@@ -8,7 +8,6 @@ use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\ImageVariantService;
-use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class ResponsiveImageViewHelper extends AbstractViewHelper
@@ -56,15 +55,6 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
 
         if ($isCritical && isset($variants['desktop']['avif']) && $variants['desktop']['avif'] !== '') {
             $avifUrl = $variants['desktop']['avif'];
-            $this->assetCollector->addLink(
-                'mai_assets_avif_preload_' . md5($avifUrl),
-                [
-                    'rel'  => 'preload',
-                    'href' => $avifUrl,
-                    'as'   => 'image',
-                    'type' => 'image/avif',
-                ]
-            );
             $this->earlyHintCollector->add(new EarlyHintCandidate(
                 href: $avifUrl,
                 rel: 'preload',

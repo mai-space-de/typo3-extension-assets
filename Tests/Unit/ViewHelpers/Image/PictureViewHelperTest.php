@@ -50,11 +50,17 @@ final class PictureViewHelperTest extends TestCase
         $cacheService = $this->noConstructor(AboveFoldCacheService::class);
         $detectionService = $this->noConstructor(CriticalDetectionService::class);
         $this->criticalityResolver = new AssetCriticalityResolver($cacheService, $detectionService, $this->extensionConfiguration);
+
+        // Set up a mock server request for getRequest() calls
+        $mockRequest = $this->createMock(\Psr\Http\Message\ServerRequestInterface::class);
+        $mockRequest->method('getAttribute')->willReturn(null);
+        $GLOBALS['TYPO3_REQUEST'] = $mockRequest;
     }
 
     protected function tearDown(): void
     {
         unset($GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mai_assets']);
+        unset($GLOBALS['TYPO3_REQUEST']);
     }
 
     /**
