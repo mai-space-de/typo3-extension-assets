@@ -1,0 +1,130 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<h1><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.title" /></h1>
+
+<div class="card-container">
+    <div class="card">
+        <div class="card-header">
+            <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.configuration" />
+        </div>
+        <div class="card-body">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.setting" /></th>
+                        <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.value" /></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.static_file_cache_enabled" /></td>
+                        <td>
+                            <f:if condition="{config.enableStaticFileCache}">
+                                <f:then><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.yes" /></f:then>
+                                <f:else><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.no" /></f:else>
+                            </f:if>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.scss_processing" /></td>
+                        <td>
+                            <f:if condition="{config.enableScssProcessing}">
+                                <f:then><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.yes" /></f:then>
+                                <f:else><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.no" /></f:else>
+                            </f:if>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.minification" /></td>
+                        <td>
+                            <f:if condition="{config.enableMinification}">
+                                <f:then><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.yes" /></f:then>
+                                <f:else><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.no" /></f:else>
+                            </f:if>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.compression" /></td>
+                        <td>
+                            <f:if condition="{config.enableCompression}">
+                                <f:then><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.yes" /></f:then>
+                                <f:else><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.no" /></f:else>
+                            </f:if>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.brotli" /></td>
+                        <td>
+                            <f:if condition="{config.enableBrotli}">
+                                <f:then><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.yes" /></f:then>
+                                <f:else><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.no" /></f:else>
+                            </f:if>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.debug_headers" /></td>
+                        <td>
+                            <f:if condition="{config.debugHeaders}">
+                                <f:then><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.yes" /></f:then>
+                                <f:else><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.no" /></f:else>
+                            </f:if>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.viewport_buckets" /></td>
+                        <td>
+                            <f:for each="{config.viewportBuckets}" as="width" key="name" iteration="iter">
+                                <f:if condition="{iter.isLast}"><f:then>{name} ({width}px)</f:then><f:else>{name} ({width}px), </f:else></f:if>
+                            </f:for>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.cache_info" />
+        </div>
+        <div class="card-body">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.cache" /></th>
+                        <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.backend" /></th>
+                        <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.entries" /></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <f:for each="{cacheInfo}" as="info" key="cacheName">
+                        <tr>
+                            <td><code>{cacheName}</code></td>
+                            <td>{info.backend}</td>
+                            <td>{info.entries}</td>
+                        </tr>
+                    </f:for>
+                    <tr>
+                        <td><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.static_cache_dir" /></td>
+                        <td colspan="2">
+                            <f:if condition="{staticCacheDirExists}">
+                                <f:then><code>{staticCacheDir}</code></f:then>
+                                <f:else>
+                                    <code>{staticCacheDir}</code>
+                                    <span class="badge badge-warning">
+                                        <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:support.not_found" />
+                                    </span>
+                                </f:else>
+                            </f:if>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</html>

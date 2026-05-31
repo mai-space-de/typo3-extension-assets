@@ -7,4 +7,8 @@ return [
         'provider' => \TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider::class,
         'source' => 'EXT:mai_assets/Resources/Public/Icons/Extension.svg',
     ],
+    'ext-maispace-mai_assets-report' => [
+        'provider' => \TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider::class,
+        'source' => 'EXT:mai_assets/Resources/Public/Icons/Extension.svg',
+    ],
 ];

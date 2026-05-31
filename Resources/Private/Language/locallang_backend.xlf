@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file source-language="en" datatype="plaintext" original="messages" product-name="mai_assets">
+        <body>
+            <trans-unit id="module.title">
+                <source>Mai Assets Report</source>
+            </trans-unit>
+            <trans-unit id="module.description">
+                <source>Overview of the static asset cache: optimisation readiness, early hints, and static file cache status per page.</source>
+            </trans-unit>
+
+            <trans-unit id="menu.list">
+                <source>Pages</source>
+            </trans-unit>
+            <trans-unit id="menu.boost">
+                <source>Warmup</source>
+            </trans-unit>
+            <trans-unit id="menu.support">
+                <source>Support</source>
+            </trans-unit>
+
+            <trans-unit id="list.title">
+                <source>Page Optimisation Status</source>
+            </trans-unit>
+            <trans-unit id="list.column.page">
+                <source>Page</source>
+            </trans-unit>
+            <trans-unit id="list.column.uid">
+                <source>UID</source>
+            </trans-unit>
+            <trans-unit id="list.column.ready">
+                <source>Optimisation Ready</source>
+            </trans-unit>
+            <trans-unit id="list.column.language">
+                <source>Language</source>
+            </trans-unit>
+            <trans-unit id="list.column.early_hints">
+                <source>Early Hints</source>
+            </trans-unit>
+            <trans-unit id="list.column.static_cache">
+                <source>Static Cache</source>
+            </trans-unit>
+            <trans-unit id="list.ready">
+                <source>Ready</source>
+            </trans-unit>
+            <trans-unit id="list.not_ready">
+                <source>Not ready</source>
+            </trans-unit>
+            <trans-unit id="list.hints.none">
+                <source>—</source>
+            </trans-unit>
+            <trans-unit id="list.hints.count">
+                <source>{count} hint(s)</source>
+            </trans-unit>
+            <trans-unit id="list.static.present">
+                <source>Present</source>
+            </trans-unit>
+            <trans-unit id="list.static.missing">
+                <source>Missing</source>
+            </trans-unit>
+            <trans-unit id="list.static.disabled">
+                <source>Disabled</source>
+            </trans-unit>
+            <trans-unit id="list.summary">
+                <source>{ready} of {total} pages ready ({percent}%)</source>
+            </trans-unit>
+            <trans-unit id="list.section.default_language">
+                <source>Default</source>
+            </trans-unit>
+
+            <trans-unit id="boost.title">
+                <source>Static File Cache Warmup</source>
+            </trans-unit>
+            <trans-unit id="boost.static_cache_enabled">
+                <source>Static file cache</source>
+            </trans-unit>
+            <trans-unit id="boost.enabled">
+                <source>Enabled</source>
+            </trans-unit>
+            <trans-unit id="boost.disabled">
+                <source>Disabled</source>
+            </trans-unit>
+            <trans-unit id="boost.cache_directory">
+                <source>Cache directory</source>
+            </trans-unit>
+            <trans-unit id="boost.directory_writable">
+                <source>Directory writable</source>
+            </trans-unit>
+            <trans-unit id="boost.directory_not_writable">
+                <source>Directory not writable</source>
+            </trans-unit>
+            <trans-unit id="boost.warmup_queue">
+                <source>Warmup queue</source>
+            </trans-unit>
+            <trans-unit id="boost.queue_not_available">
+                <source>staticfilecache extension not available — warmup queue requires SFC.</source>
+            </trans-unit>
+            <trans-unit id="boost.queue_empty">
+                <source>Queue is empty.</source>
+            </trans-unit>
+            <trans-unit id="boost.queue_count">
+                <source>{count} item(s) waiting</source>
+            </trans-unit>
+
+            <trans-unit id="support.title">
+                <source>System Support Information</source>
+            </trans-unit>
+            <trans-unit id="support.configuration">
+                <source>Extension Configuration</source>
+            </trans-unit>
+            <trans-unit id="support.setting">
+                <source>Setting</source>
+            </trans-unit>
+            <trans-unit id="support.value">
+                <source>Value</source>
+            </trans-unit>
+            <trans-unit id="support.static_file_cache_enabled">
+                <source>Static file cache enabled</source>
+            </trans-unit>
+            <trans-unit id="support.scss_processing">
+                <source>SCSS processing</source>
+            </trans-unit>
+            <trans-unit id="support.minification">
+                <source>Minification</source>
+            </trans-unit>
+            <trans-unit id="support.compression">
+                <source>Compression</source>
+            </trans-unit>
+            <trans-unit id="support.brotli">
+                <source>Brotli</source>
+            </trans-unit>
+            <trans-unit id="support.debug_headers">
+                <source>Debug headers</source>
+            </trans-unit>
+            <trans-unit id="support.viewport_buckets">
+                <source>Viewport buckets</source>
+            </trans-unit>
+            <trans-unit id="support.cache_info">
+                <source>Cache Information</source>
+            </trans-unit>
+            <trans-unit id="support.cache">
+                <source>Cache</source>
+            </trans-unit>
+            <trans-unit id="support.backend">
+                <source>Backend</source>
+            </trans-unit>
+            <trans-unit id="support.entries">
+                <source>Entries</source>
+            </trans-unit>
+            <trans-unit id="support.static_cache_dir">
+                <source>Static cache directory</source>
+            </trans-unit>
+            <trans-unit id="support.yes">
+                <source>Yes</source>
+            </trans-unit>
+            <trans-unit id="support.no">
+                <source>No</source>
+            </trans-unit>
+            <trans-unit id="support.not_found">
+                <source>Not found</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

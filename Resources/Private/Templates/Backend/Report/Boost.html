@@ -1,0 +1,85 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<h1><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.title" /></h1>
+
+<div class="card-container">
+    <div class="card">
+        <div class="card-header">
+            <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.static_cache_enabled" />
+        </div>
+        <div class="card-body">
+            <f:if condition="{isStaticEnabled}">
+                <f:then>
+                    <span class="badge badge-success">
+                        <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.enabled" />
+                    </span>
+                </f:then>
+                <f:else>
+                    <span class="badge badge-warning">
+                        <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.disabled" />
+                    </span>
+                </f:else>
+            </f:if>
+        </div>
+    </div>
+
+    <f:if condition="{isStaticEnabled}">
+        <div class="card">
+            <div class="card-header">
+                <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.cache_directory" />
+            </div>
+            <div class="card-body">
+                <p><code>{cacheDir}</code></p>
+                <f:if condition="{isWritable}">
+                    <f:then>
+                        <span class="badge badge-success">
+                            <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.directory_writable" />
+                        </span>
+                    </f:then>
+                    <f:else>
+                        <span class="badge badge-danger">
+                            <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.directory_not_writable" />
+                        </span>
+                    </f:else>
+                </f:if>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.warmup_queue" />
+            </div>
+            <div class="card-body">
+                <f:if condition="{queueInfo}">
+                    <f:then>
+                        <f:if condition="{queueInfo.available}">
+                            <f:then>
+                                <f:if condition="{queueInfo.count} > 0">
+                                    <f:then>
+                                        <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.queue_count"
+                                            arguments="{count: queueInfo.count}"
+                                        />
+                                    </f:then>
+                                    <f:else>
+                                        <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.queue_empty" />
+                                    </f:else>
+                                </f:if>
+                            </f:then>
+                            <f:else>
+                                <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.queue_not_available" />
+                            </f:else>
+                        </f:if>
+                    </f:then>
+                    <f:else>
+                        <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:boost.queue_not_available" />
+                    </f:else>
+                </f:if>
+            </div>
+        </div>
+    </f:if>
+</div>
+
+</html>

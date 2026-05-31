@@ -1,0 +1,107 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<f:be.pageRenderer
+    includeJavaScriptModules="1"
+    includeCssFiles="{0: 'EXT:backend/Resources/Public/Css/backend.css'}"
+/>
+
+<h1><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.title" /></h1>
+
+<p>
+    <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.summary"
+        arguments="{ready: readyCount, total: totalPages, percent: readyPercent}"
+    />
+</p>
+
+<f:if condition="{rows -> f:count()} > 0">
+    <f:then>
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.column.page" /></th>
+                    <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.column.uid" /></th>
+                    <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.column.ready" /></th>
+                    <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.column.language" /></th>
+                    <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.column.early_hints" /></th>
+                    <th><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.column.static_cache" /></th>
+                </tr>
+            </thead>
+            <tbody>
+                <f:for each="{rows}" as="row">
+                    <tr>
+                        <td>{row.title}</td>
+                        <td>{row.uid}</td>
+                        <td>
+                            <f:if condition="{row.isReady}">
+                                <f:then>
+                                    <span class="badge badge-success">
+                                        <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.ready" />
+                                    </span>
+                                </f:then>
+                                <f:else>
+                                    <span class="badge badge-warning">
+                                        <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.not_ready" />
+                                    </span>
+                                </f:else>
+                            </f:if>
+                        </td>
+                        <td colspan="3">
+                            <f:for each="{row.languages}" as="lang" iteration="langIteration">
+                                <f:if condition="{langIteration.isFirst}"><table class="table table-borderless table-sm mb-0"></f:if>
+                                <tr>
+                                    <td>{lang.languageTitle}</td>
+                                    <td>
+                                        <f:if condition="{lang.earlyHintsCount} > 0">
+                                            <f:then>
+                                                <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.hints.count"
+                                                    arguments="{count: lang.earlyHintsCount}"
+                                                />
+                                            </f:then>
+                                            <f:else>
+                                                <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.hints.none" />
+                                            </f:else>
+                                        </f:if>
+                                    </td>
+                                    <td>
+                                        <f:if condition="{isStaticFileCacheEnabled}">
+                                            <f:then>
+                                                <f:if condition="{lang.staticCacheExists}">
+                                                    <f:then>
+                                                        <span class="badge badge-success">
+                                                            <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.static.present" />
+                                                        </span>
+                                                    </f:then>
+                                                    <f:else>
+                                                        <span class="badge badge-default">
+                                                            <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.static.missing" />
+                                                        </span>
+                                                    </f:else>
+                                                </f:if>
+                                            </f:then>
+                                            <f:else>
+                                                <span class="badge badge-default">
+                                                    <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.static.disabled" />
+                                                </span>
+                                            </f:else>
+                                        </f:if>
+                                    </td>
+                                </tr>
+                                <f:if condition="{langIteration.isLast}"></table></f:if>
+                            </f:for>
+                        </td>
+                    </tr>
+                </f:for>
+            </tbody>
+        </table>
+    </f:then>
+    <f:else>
+        <div class="alert alert-info">
+            <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf:list.hints.none" />
+        </div>
+    </f:else>
+</f:if>
+
+</html>
