@@ -14,7 +14,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * Removes static HTML cache files from the filesystem when page content
  * changes or bucket data is cleared.
  *
- * Uses the same URL-to-filesystem mapping as StaticFileCacheDirectory.
+ * Uses the page-ID-based directory layout from StaticFileCacheDirectory.
  * On bucket reset (clearCriticalUids / bumpResetTimestamp), all language
  * variants of a page are purged from the static cache directory so that
  * the next request serves dynamic content.
@@ -62,7 +62,12 @@ class StaticFileRemovalService implements LoggerAwareInterface
 
     /**
      * Purge static cache files for the given page in exactly one language.
-     * Allows callers that already know the target language to skip iteration.
+     *
+     * Uses the page-ID-based directory layout ({pageUid}_{languageUid}/) so
+     * purging aligns with StaticHtmlWriterService::writeByPageId and
+     * StaticFileServeMiddleware lookups.
+     *
+     * @param Site|null $site Unused; kept for backward-compatible call signatures.
      */
     public function purgeForLanguage(int $pageUid, int $languageUid, ?Site $site = null): void
     {
@@ -71,51 +76,7 @@ class StaticFileRemovalService implements LoggerAwareInterface
         }
 
         try {
-            $site ??= $this->resolveSiteByPageId($pageUid);
-        } catch (\Throwable $e) {
-            $this->logger?->warning(
-                sprintf('Could not find site for page %d: %s', $pageUid, $e->getMessage())
-            );
-            return;
-        }
-
-        $targetLanguage = null;
-        foreach ($site->getLanguages() as $language) {
-            if ($language->getLanguageId() === $languageUid) {
-                $targetLanguage = $language;
-                break;
-            }
-        }
-
-        if ($targetLanguage === null) {
-            return;
-        }
-
-        try {
-            $uri = $site->getRouter()->generateUri(
-                $pageUid,
-                ['language' => $targetLanguage]
-            );
-        } catch (\Throwable $e) {
-            $this->logger?->warning(
-                sprintf(
-                    'Could not generate URI for page %d, language %d: %s',
-                    $pageUid,
-                    $languageUid,
-                    $e->getMessage()
-                )
-            );
-            return;
-        }
-
-        $fullUrl = $this->buildAbsoluteUrlFromSite($site, (string)$uri);
-
-        if (!$this->cacheDirectory->isValidUri($fullUrl)) {
-            return;
-        }
-
-        try {
-            $pageDir = $this->cacheDirectory->getPageDirectory($fullUrl);
+            $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid);
             if (is_dir($pageDir)) {
                 GeneralUtility::rmdir($pageDir, true);
             }
@@ -141,9 +102,4 @@ class StaticFileRemovalService implements LoggerAwareInterface
         return GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pageUid);
     }
 
-    private function buildAbsoluteUrlFromSite(Site $site, string $pagePath): string
-    {
-        $siteBase = rtrim((string)$site->getBase(), '/');
-        return $siteBase . '/' . ltrim($pagePath, '/');
-    }
 }

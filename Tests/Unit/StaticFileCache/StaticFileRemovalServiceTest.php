@@ -7,12 +7,9 @@ namespace Maispace\MaiAssets\Tests\Unit\StaticFileCache;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
 use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\UriInterface;
 use Psr\Log\NullLogger;
-use TYPO3\CMS\Core\Routing\RouterInterface;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class StaticFileRemovalServiceTest extends TestCase
 {
@@ -36,25 +33,14 @@ final class StaticFileRemovalServiceTest extends TestCase
     {
         $site = $this->createMock(Site::class);
         $languages = [];
-        $router = $this->createMock(RouterInterface::class);
 
         foreach ($languageIds as $langId) {
             $language = $this->createMock(SiteLanguage::class);
             $language->method('getLanguageId')->willReturn($langId);
-
-            $uri = $this->createMock(UriInterface::class);
-            $uri->method('__toString')->willReturn("/lang-{$langId}/page-title");
-            $router->method('generateUri')->willReturn($uri);
-
             $languages[] = $language;
         }
 
         $site->method('getLanguages')->willReturn($languages);
-        $site->method('getRouter')->willReturn($router);
-
-        $baseUri = $this->createMock(UriInterface::class);
-        $baseUri->method('__toString')->willReturn('https://example.com/');
-        $site->method('getBase')->willReturn($baseUri);
 
         return $site;
     }
@@ -63,13 +49,13 @@ final class StaticFileRemovalServiceTest extends TestCase
 
     public function testPurgeByPageUidSkipsZeroPageUid(): void
     {
-        $this->cacheDirectory->expects(self::never())->method('getPageDirectory');
+        $this->cacheDirectory->expects(self::never())->method('getPageDirectoryById');
         $this->subject->purgeByPageUid(0);
     }
 
     public function testPurgeByPageUidSkipsNegativePageUid(): void
     {
-        $this->cacheDirectory->expects(self::never())->method('getPageDirectory');
+        $this->cacheDirectory->expects(self::never())->method('getPageDirectoryById');
         $this->subject->purgeByPageUid(-1);
     }
 
@@ -82,15 +68,8 @@ final class StaticFileRemovalServiceTest extends TestCase
 
         $this->cacheDirectory
             ->expects(self::exactly(3))
-            ->method('getPageDirectory')
-            ->willReturnCallback(fn(string $url): string => match (true) {
-                str_starts_with($url, 'https://example.com/lang-0/') => '/tmp/mai-test/lang-0',
-                str_starts_with($url, 'https://example.com/lang-1/') => '/tmp/mai-test/lang-1',
-                str_starts_with($url, 'https://example.com/lang-2/') => '/tmp/mai-test/lang-2',
-                default => '/tmp/mai-test/unknown',
-            });
-
-        $this->cacheDirectory->method('isValidUri')->willReturn(true);
+            ->method('getPageDirectoryById')
+            ->willReturnCallback(fn(int $uid, int $langId): string => "/tmp/mai-test/{$uid}_{$langId}");
 
         $this->subject->purgeByPageUid($pageUid, $site);
     }
@@ -99,104 +78,22 @@ final class StaticFileRemovalServiceTest extends TestCase
 
     public function testPurgeForLanguageSkipsZeroPageUid(): void
     {
-        $this->cacheDirectory->expects(self::never())->method('getPageDirectory');
+        $this->cacheDirectory->expects(self::never())->method('getPageDirectoryById');
         $this->subject->purgeForLanguage(0, 0);
     }
 
-    // ─── purgeForLanguage — skip when language not configured ──────────────
-
-    public function testPurgeForLanguageSkipsWhenLanguageNotFound(): void
-    {
-        $site = $this->createMock(Site::class);
-        $defaultLanguage = $this->createMock(SiteLanguage::class);
-        $defaultLanguage->method('getLanguageId')->willReturn(0);
-        $site->method('getLanguages')->willReturn([$defaultLanguage]);
-
-        $this->cacheDirectory->expects(self::never())->method('getPageDirectory');
-
-        $this->subject->purgeForLanguage(42, 1, $site);
-    }
-
-    // ─── purgeForLanguage — router exception ───────────────────────────────
-
-    public function testPurgeForLanguageHandlesRouterException(): void
-    {
-        $site = $this->createMock(Site::class);
-        $language = $this->createMock(SiteLanguage::class);
-        $language->method('getLanguageId')->willReturn(0);
-        $site->method('getLanguages')->willReturn([$language]);
-
-        $router = $this->createMock(RouterInterface::class);
-        $router
-            ->method('generateUri')
-            ->willThrowException(new \RuntimeException('Routing failed'));
-        $site->method('getRouter')->willReturn($router);
-
-        $this->cacheDirectory->expects(self::never())->method('getPageDirectory');
-
-        $this->subject->purgeForLanguage(42, 0, $site);
-    }
-
-    // ─── purgeForLanguage — invalid URI skip ───────────────────────────────
-
-    public function testPurgeForLanguageSkipsInvalidUri(): void
-    {
-        $site = $this->createMock(Site::class);
-        $language = $this->createMock(SiteLanguage::class);
-        $language->method('getLanguageId')->willReturn(0);
-        $site->method('getLanguages')->willReturn([$language]);
-
-        $uri = $this->createMock(UriInterface::class);
-        $uri->method('__toString')->willReturn('');
-
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generateUri')->willReturn($uri);
-        $site->method('getRouter')->willReturn($router);
-
-        $baseUri = $this->createMock(UriInterface::class);
-        $baseUri->method('__toString')->willReturn('https://example.com/');
-        $site->method('getBase')->willReturn($baseUri);
-
-        $this->cacheDirectory
-            ->expects(self::once())
-            ->method('isValidUri')
-            ->willReturn(false);
-
-        $this->cacheDirectory->expects(self::never())->method('getPageDirectory');
-
-        $this->subject->purgeForLanguage(42, 0, $site);
-    }
-
-    // ─── purgeForLanguage — getPageDirectory exception ─────────────────────
+    // ─── purgeForLanguage — getPageDirectoryById exception ─────────────────
 
     public function testPurgeForLanguageHandlesGetPageDirectoryException(): void
     {
         $this->expectNotToPerformAssertions();
         $pageUid = 42;
 
-        $site = $this->createMock(Site::class);
-        $language = $this->createMock(SiteLanguage::class);
-        $language->method('getLanguageId')->willReturn(0);
-        $site->method('getLanguages')->willReturn([$language]);
-
-        $uri = $this->createMock(UriInterface::class);
-        $uri->method('__toString')->willReturn('/page-title');
-
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generateUri')->willReturn($uri);
-        $site->method('getRouter')->willReturn($router);
-
-        $baseUri = $this->createMock(UriInterface::class);
-        $baseUri->method('__toString')->willReturn('https://example.com/');
-        $site->method('getBase')->willReturn($baseUri);
-
-        $this->cacheDirectory->method('isValidUri')->willReturn(true);
-
         $this->cacheDirectory
-            ->method('getPageDirectory')
+            ->method('getPageDirectoryById')
             ->willThrowException(new \InvalidArgumentException('Path outside base'));
 
-        $this->subject->purgeForLanguage($pageUid, 0, $site);
+        $this->subject->purgeForLanguage($pageUid, 0);
     }
 
     // ─── purgeForLanguage — filesystem integration ─────────────────────────
@@ -209,31 +106,13 @@ final class StaticFileRemovalServiceTest extends TestCase
         @mkdir($tempDir, 0777, true);
         self::assertDirectoryExists($tempDir);
 
-        $site = $this->createMock(Site::class);
-        $language = $this->createMock(SiteLanguage::class);
-        $language->method('getLanguageId')->willReturn(0);
-        $site->method('getLanguages')->willReturn([$language]);
-
-        $uri = $this->createMock(UriInterface::class);
-        $uri->method('__toString')->willReturn('/page-title');
-
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generateUri')->with($pageUid, self::anything())->willReturn($uri);
-        $site->method('getRouter')->willReturn($router);
-
-        $baseUri = $this->createMock(UriInterface::class);
-        $baseUri->method('__toString')->willReturn('https://example.com/');
-        $site->method('getBase')->willReturn($baseUri);
-
-        $this->cacheDirectory->method('isValidUri')->willReturn(true);
-
         $this->cacheDirectory
             ->expects(self::once())
-            ->method('getPageDirectory')
-            ->with('https://example.com/page-title')
+            ->method('getPageDirectoryById')
+            ->with($pageUid, 0)
             ->willReturn($tempDir);
 
-        $this->subject->purgeForLanguage($pageUid, 0, $site);
+        $this->subject->purgeForLanguage($pageUid, 0);
 
         self::assertDirectoryDoesNotExist($tempDir);
     }
@@ -244,56 +123,21 @@ final class StaticFileRemovalServiceTest extends TestCase
         $nonExistentDir = '/tmp/mai-test-nonexistent-' . uniqid();
         self::assertDirectoryDoesNotExist($nonExistentDir);
 
-        $site = $this->createMock(Site::class);
-        $language = $this->createMock(SiteLanguage::class);
-        $language->method('getLanguageId')->willReturn(0);
-        $site->method('getLanguages')->willReturn([$language]);
-
-        $uri = $this->createMock(UriInterface::class);
-        $uri->method('__toString')->willReturn('/page-title');
-
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generateUri')->with($pageUid, self::anything())->willReturn($uri);
-        $site->method('getRouter')->willReturn($router);
-
-        $baseUri = $this->createMock(UriInterface::class);
-        $baseUri->method('__toString')->willReturn('https://example.com/');
-        $site->method('getBase')->willReturn($baseUri);
-
-        $this->cacheDirectory->method('isValidUri')->willReturn(true);
         $this->cacheDirectory
-            ->method('getPageDirectory')
+            ->method('getPageDirectoryById')
             ->willReturn($nonExistentDir);
 
-        $this->subject->purgeForLanguage($pageUid, 0, $site);
+        $this->subject->purgeForLanguage($pageUid, 0);
     }
 
-    // ─── purgeForLanguage — pre-resolved site passthrough ──────────────────
-
-    public function testPurgeForLanguageAcceptsPreResolvedSite(): void
+    public function testPurgeForLanguageAcceptsUnusedSiteParameter(): void
     {
         $this->expectNotToPerformAssertions();
         $pageUid = 42;
-
         $site = $this->createMock(Site::class);
-        $language = $this->createMock(SiteLanguage::class);
-        $language->method('getLanguageId')->willReturn(0);
-        $site->method('getLanguages')->willReturn([$language]);
 
-        $uri = $this->createMock(UriInterface::class);
-        $uri->method('__toString')->willReturn('/page-title');
-
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generateUri')->willReturn($uri);
-        $site->method('getRouter')->willReturn($router);
-
-        $baseUri = $this->createMock(UriInterface::class);
-        $baseUri->method('__toString')->willReturn('https://example.com/');
-        $site->method('getBase')->willReturn($baseUri);
-
-        $this->cacheDirectory->method('isValidUri')->willReturn(true);
         $this->cacheDirectory
-            ->method('getPageDirectory')
+            ->method('getPageDirectoryById')
             ->willReturn('/tmp/mai-test/dir');
 
         $this->subject->purgeForLanguage($pageUid, 0, $site);
@@ -313,38 +157,14 @@ final class StaticFileRemovalServiceTest extends TestCase
             $tempDirs[$langId] = $dir;
         }
 
-        $site = $this->createMock(Site::class);
-        $languages = [];
-        $router = $this->createMock(RouterInterface::class);
-
-        foreach ($langIds as $langId) {
-            $language = $this->createMock(SiteLanguage::class);
-            $language->method('getLanguageId')->willReturn($langId);
-
-            $uri = $this->createMock(UriInterface::class);
-            $uri->method('__toString')->willReturn("/lang-{$langId}/title");
-            $router
-                ->method('generateUri')
-                ->with($pageUid, self::anything())
-                ->willReturn($uri);
-
-            $languages[] = $language;
-        }
-
-        $site->method('getLanguages')->willReturn($languages);
-        $site->method('getRouter')->willReturn($router);
-
-        $baseUri = $this->createMock(UriInterface::class);
-        $baseUri->method('__toString')->willReturn('https://example.com/');
-        $site->method('getBase')->willReturn($baseUri);
-
-        $this->cacheDirectory->method('isValidUri')->willReturn(true);
+        $site = $this->createSiteWithLanguages($langIds);
 
         $invocationCount = 0;
         $this->cacheDirectory
             ->expects(self::exactly(2))
-            ->method('getPageDirectory')
-            ->willReturnCallback(function () use (&$invocationCount, $tempDirs, $langIds): string {
+            ->method('getPageDirectoryById')
+            ->willReturnCallback(function (int $uid, int $langId) use (&$invocationCount, $tempDirs, $langIds, $pageUid): string {
+                self::assertSame($pageUid, $uid);
                 $dir = $tempDirs[$langIds[$invocationCount]];
                 $invocationCount++;
                 return $dir;
@@ -355,5 +175,19 @@ final class StaticFileRemovalServiceTest extends TestCase
         foreach ($tempDirs as $dir) {
             self::assertDirectoryDoesNotExist($dir);
         }
+    }
+
+    public function testPageIdPathUsesSameIdentifiersAsEarlyHintCacheKey(): void
+    {
+        $pageUid = 42;
+        $languageUid = 3;
+
+        $this->cacheDirectory
+            ->expects(self::once())
+            ->method('getPageDirectoryById')
+            ->with($pageUid, $languageUid)
+            ->willReturn('/tmp/mai-test/42_3');
+
+        $this->subject->purgeForLanguage($pageUid, $languageUid);
     }
 }
