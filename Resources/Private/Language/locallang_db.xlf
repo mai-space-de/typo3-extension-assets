@@ -3,6 +3,36 @@
     <file source-language="en" datatype="plaintext" original="EXT:mai_assets/Resources/Private/Language/locallang_db.xlf">
         <header/>
         <body>
+            <!-- sys_file_metadata: YouTube consent -->
+            <trans-unit id="sys_file_metadata.tx_maiassets_youtube_consent_enabled">
+                <source>Enable YouTube consent gate</source>
+            </trans-unit>
+            <trans-unit id="sys_file_metadata.tx_maiassets_youtube_consent_enabled.description">
+                <source>When enabled, the YouTube video is hidden behind a GDPR consent overlay. The visitor must click "Accept" before the YouTube player loads. Recommended for GDPR compliance.</source>
+            </trans-unit>
+            <trans-unit id="sys_file_metadata.tx_maiassets_youtube_consent_text">
+                <source>Consent message</source>
+            </trans-unit>
+            <trans-unit id="sys_file_metadata.tx_maiassets_youtube_consent_text.description">
+                <source>Custom consent message shown to the visitor before the YouTube player loads. Leave empty to use the default message.</source>
+            </trans-unit>
+            <trans-unit id="palette.mai_assets_youtube_consent">
+                <source>YouTube Consent (GDPR)</source>
+            </trans-unit>
+            <trans-unit id="youtube_consent.default_text">
+                <source>This video is hosted on YouTube. By clicking "Accept" you agree that YouTube may set cookies and process your personal data. Please refer to our privacy policy for more information.</source>
+            </trans-unit>
+            <trans-unit id="youtube_consent.accept_button">
+                <source>Accept &amp; play video</source>
+            </trans-unit>
+            <!-- sys_file_metadata: icon source folder -->
+            <trans-unit id="sys_file_metadata.tx_maiassets_icon_source_folder">
+                <source>Icon source folder</source>
+            </trans-unit>
+            <trans-unit id="sys_file_metadata.tx_maiassets_icon_source_folder.description">
+                <source>EXT: path to the folder that contains this SVG icon file (e.g. "EXT:my_theme/Resources/Public/Icons/Sprites/"). Used by the SpriteIcon partial to register the icon in the SVG sprite at render time.</source>
+            </trans-unit>
+            <!-- tt_content: above-fold flags -->
             <trans-unit id="tt_content.tx_maiassets_force_critical">
                 <source>Always render critical (above-fold)</source>
             </trans-unit>
