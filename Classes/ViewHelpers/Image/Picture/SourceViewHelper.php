@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\ViewHelpers\Image\Picture;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
+use Maispace\MaiAssets\ViewHelpers\Image\PictureViewHelper;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
@@ -34,19 +35,19 @@ class SourceViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        $templateVariableContainer = $this->renderingContext->getVariableProvider();
+        $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
 
-        if (!$templateVariableContainer->exists('__pictureFileReference')) {
+        if (!$viewHelperVariableContainer->exists(PictureViewHelper::class, 'fileReference')) {
             return '';
         }
 
-        $fileReference = $templateVariableContainer->get('__pictureFileReference');
-        $isCritical = (bool)($templateVariableContainer->exists('__pictureIsCritical')
-            ? $templateVariableContainer->get('__pictureIsCritical')
+        $fileReference = $viewHelperVariableContainer->get(PictureViewHelper::class, 'fileReference');
+        $isCritical = (bool)($viewHelperVariableContainer->exists(PictureViewHelper::class, 'isCritical')
+            ? $viewHelperVariableContainer->get(PictureViewHelper::class, 'isCritical')
             : false);
         /** @var EarlyHintCandidateCollector|null $earlyHintCollector */
-        $earlyHintCollector = $templateVariableContainer->exists('__pictureEarlyHintCollector')
-            ? $templateVariableContainer->get('__pictureEarlyHintCollector')
+        $earlyHintCollector = $viewHelperVariableContainer->exists(PictureViewHelper::class, 'earlyHintCollector')
+            ? $viewHelperVariableContainer->get(PictureViewHelper::class, 'earlyHintCollector')
             : null;
 
         $media = (string)$this->arguments['media'];

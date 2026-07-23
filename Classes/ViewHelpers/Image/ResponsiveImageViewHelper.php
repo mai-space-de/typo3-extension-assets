@@ -8,6 +8,7 @@ use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\ImageVariantService;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class ResponsiveImageViewHelper extends AbstractViewHelper
@@ -42,7 +43,10 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
         $alt = (string)$this->arguments['alt'];
         $class = (string)$this->arguments['class'];
 
-        $pageUid = (int)($this->renderingContext->getRequest()?->getAttribute('routing')?->getPageId() ?? 0);
+        $request = $this->renderingContext->hasAttribute(ServerRequestInterface::class)
+            ? $this->renderingContext->getAttribute(ServerRequestInterface::class)
+            : null;
+        $pageUid = (int)($request?->getAttribute('routing')?->getPageId() ?? 0);
 
         $isCritical = match ($critical) {
             'true'  => true,

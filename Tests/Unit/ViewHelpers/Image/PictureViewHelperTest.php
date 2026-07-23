@@ -257,7 +257,7 @@ final class PictureViewHelperTest extends TestCase
     }
 
     /**
-     * __pictureFileReference is cleaned up from variable provider after render.
+     * Picture ViewHelper scoped variables are cleaned up after render.
      */
     public function testVariableProviderIsCleanedUpAfterRender(): void
     {
@@ -266,9 +266,10 @@ final class PictureViewHelperTest extends TestCase
 
         $subject->render();
 
-        self::assertFalse($renderingContext->getVariableProvider()->exists('__pictureFileReference'));
-        self::assertFalse($renderingContext->getVariableProvider()->exists('__pictureIsCritical'));
-        self::assertFalse($renderingContext->getVariableProvider()->exists('__pictureEarlyHintCollector'));
+        $container = $renderingContext->getViewHelperVariableContainer();
+        self::assertFalse($container->exists(PictureViewHelper::class, 'fileReference'));
+        self::assertFalse($container->exists(PictureViewHelper::class, 'isCritical'));
+        self::assertFalse($container->exists(PictureViewHelper::class, 'earlyHintCollector'));
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────────
@@ -372,14 +373,13 @@ final class PictureViewHelperTest extends TestCase
                     ) {
                     }
 
-                    public function getWidth(): int
+                    public function getProperty(string $key): mixed
                     {
-                        return $this->width;
-                    }
-
-                    public function getHeight(): int
-                    {
-                        return $this->height;
+                        return match ($key) {
+                            'width' => $this->width,
+                            'height' => $this->height,
+                            default => null,
+                        };
                     }
                 };
             }
@@ -407,12 +407,23 @@ final class PictureViewHelperTest extends TestCase
             public function __construct(string $childrenOutput)
             {
                 $this->childrenOutput = $childrenOutput;
-                $this->variableProvider = $this->createPictureVariableProvider();
+                $this->setVariableProvider($this->createPictureVariableProvider());
+                $this->setViewHelperVariableContainer(new \TYPO3Fluid\Fluid\Core\ViewHelper\ViewHelperVariableContainer());
             }
 
-            public function getRequest(): \Psr\Http\Message\ServerRequestInterface
+            public function hasAttribute(string $className): bool
             {
-                return $GLOBALS['TYPO3_REQUEST'];
+                return $className === \Psr\Http\Message\ServerRequestInterface::class
+                    && isset($GLOBALS['TYPO3_REQUEST']);
+            }
+
+            public function getAttribute(string $className): object
+            {
+                if ($className === \Psr\Http\Message\ServerRequestInterface::class) {
+                    return $GLOBALS['TYPO3_REQUEST'];
+                }
+
+                throw new \RuntimeException('Attribute not set: ' . $className, 1774260001);
             }
 
             private function createPictureVariableProvider(): StandardVariableProvider
@@ -470,14 +481,13 @@ final class PictureViewHelperTest extends TestCase
                         return $this->format;
                     }
 
-                    public function getWidth(): int
+                    public function getProperty(string $key): mixed
                     {
-                        return $this->width;
-                    }
-
-                    public function getHeight(): int
-                    {
-                        return 0;
+                        return match ($key) {
+                            'width' => $this->width,
+                            'height' => 0,
+                            default => null,
+                        };
                     }
                 };
             }

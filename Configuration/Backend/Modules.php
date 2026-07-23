@@ -10,8 +10,8 @@ return [
         'access' => 'admin',
         'workspaces' => 'online',
         'path' => '/module/system/mai-assets-report',
-        'iconIdentifier' => 'ext-maispace-mai_assets-report',
-        'labels' => 'LLL:EXT:mai_assets/Resources/Private/Language/locallang_backend.xlf',
+        'iconIdentifier' => 'mai-backend-module',
+        'labels' => 'LLL:EXT:mai_assets/Resources/Private/Language/locallang_mod.xlf',
         'extensionName' => 'MaiAssets',
         'controllerActions' => [
             ReportController::class => ['list', 'boost', 'support'],

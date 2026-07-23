@@ -7,6 +7,7 @@ namespace Maispace\MaiAssets\ViewHelpers\Image;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -62,7 +63,10 @@ class PictureViewHelper extends AbstractViewHelper
         $crossorigin = (string)$this->arguments['crossorigin'];
         $class = (string)$this->arguments['class'];
 
-        $pageUid = (int)($this->renderingContext->getRequest()?->getAttribute('routing')?->getPageId() ?? 0);
+        $request = $this->renderingContext->hasAttribute(ServerRequestInterface::class)
+            ? $this->renderingContext->getAttribute(ServerRequestInterface::class)
+            : null;
+        $pageUid = (int)($request?->getAttribute('routing')?->getPageId() ?? 0);
 
         $isCritical = match ($critical) {
             'true'  => true,
@@ -71,10 +75,10 @@ class PictureViewHelper extends AbstractViewHelper
                        && $this->criticalityResolver->isElementAboveFold($elementUid, $pageUid),
         };
 
-        $variableProvider = $this->renderingContext->getVariableProvider();
-        $variableProvider->add('__pictureFileReference', $image);
-        $variableProvider->add('__pictureIsCritical', $isCritical);
-        $variableProvider->add('__pictureEarlyHintCollector', $this->earlyHintCollector);
+        $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
+        $viewHelperVariableContainer->add(self::class, 'fileReference', $image);
+        $viewHelperVariableContainer->add(self::class, 'isCritical', $isCritical);
+        $viewHelperVariableContainer->add(self::class, 'earlyHintCollector', $this->earlyHintCollector);
 
         $sources = $this->renderChildSources();
 
@@ -89,9 +93,9 @@ class PictureViewHelper extends AbstractViewHelper
             );
         }
 
-        $variableProvider->remove('__pictureFileReference');
-        $variableProvider->remove('__pictureIsCritical');
-        $variableProvider->remove('__pictureEarlyHintCollector');
+        $viewHelperVariableContainer->remove(self::class, 'fileReference');
+        $viewHelperVariableContainer->remove(self::class, 'isCritical');
+        $viewHelperVariableContainer->remove(self::class, 'earlyHintCollector');
 
         $processingInstructions = [];
         if ($width > 0) {
@@ -112,10 +116,10 @@ class PictureViewHelper extends AbstractViewHelper
             $imgSrc = $this->imageService->getImageUri($processedImage, true);
             if ($processedImage instanceof ProcessedFile) {
                 if ($imgWidth <= 0) {
-                    $imgWidth = $processedImage->getWidth();
+                    $imgWidth = (int)($processedImage->getProperty('width') ?? 0);
                 }
                 if ($imgHeight <= 0) {
-                    $imgHeight = $processedImage->getHeight();
+                    $imgHeight = (int)($processedImage->getProperty('height') ?? 0);
                 }
             }
         } catch (\Exception) {
@@ -156,7 +160,7 @@ class PictureViewHelper extends AbstractViewHelper
      */
     protected function renderChildSources(): string
     {
-        if ($this->viewHelperNode === null || $this->viewHelperNode->getChildren() === []) {
+        if ($this->viewHelperNode === null) {
             return '';
         }
 

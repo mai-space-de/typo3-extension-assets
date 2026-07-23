@@ -2,13 +2,6 @@
 <xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
     <file source-language="en" datatype="plaintext" original="messages" product-name="mai_assets">
         <body>
-            <trans-unit id="module.title">
-                <source>Mai Assets Report</source>
-            </trans-unit>
-            <trans-unit id="module.description">
-                <source>Overview of the static asset cache: optimisation readiness, early hints, and static file cache status per page.</source>
-            </trans-unit>
-
             <trans-unit id="menu.list">
                 <source>Pages</source>
             </trans-unit>
