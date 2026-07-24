@@ -449,6 +449,9 @@ fonts/images) handle delivery with zero PHP overhead. No middleware code is need
 exists for the current page+language. 103 is disabled in Development context (DDEV) due to
 a known `mod_proxy_fcgi` bug where Link headers are auto-promoted to 103 responses before
 `mod_headers` can suppress them, causing downstream proxies (e.g. Traefik) to fail with 500.
+On Hetzner contexts (`Production/Hetzner`) 103 is also skipped: the managed-hosting TLS
+front-end mishandles informational responses (HTML body without status line). In that case
+the same preload candidates are attached as `Link` headers on the final 200 response.
 
 **For full HTML page caching in production:** The project may optionally use
 `EXT:staticfilecache`. In that case the `.htaccess` redirect path (PrepareMiddleware →

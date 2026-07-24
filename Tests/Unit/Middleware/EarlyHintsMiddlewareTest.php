@@ -198,6 +198,76 @@ final class EarlyHintsMiddlewareTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // Hetzner: no HTTP 103 — Link headers on the final 200 response
+    // -------------------------------------------------------------------------
+
+    public function testProcessAttachesLinkHeadersOnHetznerInsteadOfHttp103(): void
+    {
+        Environment::initialize(
+            new ApplicationContext('Production/Hetzner'),
+            true,
+            true,
+            '/project',
+            '/project/public',
+            '/project/var',
+            '/project/config',
+            '/project/public/index.php',
+            'UNIX',
+        );
+
+        $this->cacheFrontend->method('get')->willReturn([
+            ['href' => '/assets/style.css', 'rel' => 'preload', 'as' => 'style', 'type' => '', 'crossorigin' => ''],
+            ['href' => '/assets/app.js', 'rel' => 'modulepreload', 'as' => '', 'type' => '', 'crossorigin' => ''],
+        ]);
+
+        $responseWithLink = $this->createMock(ResponseInterface::class);
+        $this->response
+            ->expects(self::once())
+            ->method('withHeader')
+            ->with(
+                'Link',
+                '</assets/style.css>; rel=preload; as=style, </assets/app.js>; rel=modulepreload',
+            )
+            ->willReturn($responseWithLink);
+
+        $request = $this->makeGetRequest(
+            pageArguments: $this->makePageArguments(1),
+            language: $this->makeLanguage(0),
+        );
+
+        $result = (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+
+        self::assertSame($responseWithLink, $result);
+    }
+
+    public function testProcessDoesNotAttachLinkHeadersOnHetznerWhenCacheEmpty(): void
+    {
+        Environment::initialize(
+            new ApplicationContext('Production/Hetzner'),
+            true,
+            true,
+            '/project',
+            '/project/public',
+            '/project/var',
+            '/project/config',
+            '/project/public/index.php',
+            'UNIX',
+        );
+
+        $this->cacheFrontend->method('get')->willReturn(false);
+        $this->response->expects(self::never())->method('withHeader');
+
+        $request = $this->makeGetRequest(
+            pageArguments: $this->makePageArguments(1),
+            language: $this->makeLanguage(0),
+        );
+
+        $result = (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+
+        self::assertSame($this->response, $result);
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 

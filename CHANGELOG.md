@@ -14,6 +14,7 @@
 
 ### Changed
 
+- `EarlyHintsMiddleware` skips HTTP 103 on Hetzner contexts (`Production/Hetzner`) and attaches `Link` preload headers on the final 200 response instead — Hetzner managed-hosting TLS front-ends mishandle informational responses (body without status line).
 - `InvalidationService::resolveContentSaveTargets()` now invalidates above-fold cache (readiness) for ALL content changes, not just position-relevant field changes. This ensures readiness is reset whenever any content field changes, forcing re-detection of critical elements.
 - `SourceViewHelper` delegates source markup to `PictureSourceRenderer`.
 
