@@ -68,7 +68,9 @@ The path is defined as a class constant in two places:
 Cache Key Strategy
 
 Cache keys are **content-hash based**, ensuring automatic invalidation when source
-files change — no manual cache flush is required.
+files change — no manual cache flush is required. For SCSS entries the hash covers
+the entry file **and** its resolved ``@import`` / ``@use`` / ``@forward`` tree
+(``ScssDependencyHasher``), so partial edits also bust the compiled CSS cache.
 
 .. list-table:: Cache Key Components
     :header-rows: 1
@@ -76,8 +78,8 @@ files change — no manual cache flush is required.
 
     * - Component
       - Description
-    * - ``sha256(source_file)``
-      - Cryptographic hash of the full source file content.
+    * - ``sha256(source tree)``
+      - Cryptographic hash of the source file; for SCSS, the entry file plus all resolved partials.
     * - ``:scss=1|0``
       - Whether SCSS compilation was applied.
     * - ``:min=1|0``

@@ -13,8 +13,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * Single source of truth for "compile a CSS/SCSS source and return an absolute
  * file path the AssetCollector can register and the browser can fetch".
  *
- * Cache key is content-hash based, so edits to the source file invalidate the
- * cached output naturally — no manual cache flush required.
+ * Cache key is content-hash based (entry file + SCSS import tree), so edits to
+ * the source or any partial invalidate the cached output naturally.
  */
 final class CompiledAssetPublisher
 {
@@ -24,6 +24,7 @@ final class CompiledAssetPublisher
         private readonly ScssProcessor $scssProcessor,
         private readonly MinificationProcessor $minificationProcessor,
         private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly ScssDependencyHasher $scssDependencyHasher,
     ) {}
 
     /**
@@ -63,8 +64,12 @@ final class CompiledAssetPublisher
 
     private function getCachePath(string $sourcePath, bool $compileScss, bool $minify): string
     {
+        $sourceFingerprint = $compileScss
+            ? $this->scssDependencyHasher->hash($sourcePath)
+            : (string)hash_file('sha256', $sourcePath);
+
         $hash = md5(
-            (string)hash_file('sha256', $sourcePath)
+            $sourceFingerprint
             . ':scss=' . ($compileScss ? '1' : '0')
             . ':min=' . ($minify ? '1' : '0')
         );

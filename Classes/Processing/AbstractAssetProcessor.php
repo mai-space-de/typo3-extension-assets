@@ -22,7 +22,7 @@ abstract class AbstractAssetProcessor implements AssetProcessorInterface
 
     final public function process(string $content, string $sourcePath): string
     {
-        $cacheKey = md5(hash_file('sha256', $sourcePath) . serialize($this->getSettingsHash()));
+        $cacheKey = md5($this->getSourceFingerprint($sourcePath) . serialize($this->getSettingsHash()));
         $cacheFile = $this->getCacheDir() . $cacheKey . '.' . $this->getCacheExtension();
 
         if (file_exists($cacheFile)) {
@@ -53,6 +53,15 @@ abstract class AbstractAssetProcessor implements AssetProcessorInterface
     }
 
     abstract protected function doProcess(string $content, string $sourcePath): string;
+
+    /**
+     * Content fingerprint used for the processor cache key.
+     * SCSS overrides this to include the resolved import tree.
+     */
+    protected function getSourceFingerprint(string $sourcePath): string
+    {
+        return (string)hash_file('sha256', $sourcePath);
+    }
 
     protected function getSettingsHash(): array
     {

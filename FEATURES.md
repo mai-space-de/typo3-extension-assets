@@ -1,6 +1,6 @@
 ## Asset Processing
 
-* SCSS compilation — compiles `.scss` files via `scssphp/scssphp` with automatic import-path resolution and cached output written to `typo3temp/`
+* SCSS compilation — compiles `.scss` files via `scssphp/scssphp` with automatic import-path resolution and cached output written to `typo3temp/` (cache fingerprint includes the resolved import tree)
 * CSS & JS minification — minifies processed stylesheets and scripts via `matthiasmullie/minify`; can be toggled globally or overridden per ViewHelper call
 * Gzip & Brotli compression — writes compressed variants of compiled assets alongside the uncompressed file for servers that support pre-compressed delivery
 * Deploy-time warmup — `maispace:assets:warmup` CLI command pre-warms the SVG sprite and configured SCSS/CSS assets before the first request

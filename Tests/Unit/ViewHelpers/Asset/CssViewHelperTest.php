@@ -115,6 +115,7 @@ final class CssViewHelperTest extends TestCase
         $this->setProp($this->compiledAssetPublisher, 'scssProcessor', $this->scssProcessor);
         $this->setProp($this->compiledAssetPublisher, 'minificationProcessor', $this->minificationProcessor);
         $this->setProp($this->compiledAssetPublisher, 'extensionConfiguration', $this->extensionConfiguration);
+        $this->setProp($this->compiledAssetPublisher, 'scssDependencyHasher', new \Maispace\MaiAssets\Service\ScssDependencyHasher());
 
         // SriHashService (final, unused — we supply integrity)
         $this->sriHashService = $this->noConstructor(SriHashService::class);
