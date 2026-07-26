@@ -10,10 +10,12 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class IconViewHelper extends AbstractViewHelper
 {
+    use FileResolutionTrait;
+
     protected $escapeOutput = false;
 
     public function __construct(
-        private readonly SvgSpriteCollector $spriteCollector,
+        private readonly SvgSpriteCollector $svgSpriteCollector,
     ) {
     }
 

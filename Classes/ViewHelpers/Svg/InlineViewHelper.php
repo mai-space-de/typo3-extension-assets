@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Svg;
 
-use Maispace\MaiAssets\Collector\SvgSpriteCollector;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class InlineViewHelper extends AbstractViewHelper
 {
+    use FileResolutionTrait;
+
     protected $escapeOutput = false;
 
     public function __construct(
-        private readonly SvgSpriteCollector $spriteCollector,
+        private readonly CacheManager $cacheManager,
     ) {
     }
 
