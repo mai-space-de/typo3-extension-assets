@@ -14,6 +14,7 @@
 
 ### Changed
 
+- `StaticFileServeMiddleware` bypasses the full-page static HTML cache when `Turbo-Frame` or `Mai-Turbo-Context` headers are present (Mai Turbo / Hotwired frame partials).
 - SCSS compile cache fingerprint now includes the resolved `@import` / `@use` / `@forward` tree (`ScssDependencyHasher`), so edits to theme partials invalidate `CompiledAssetPublisher` and `ScssProcessor` caches without manually bumping the entry file.
 - `EarlyHintsMiddleware` skips HTTP 103 on Hetzner contexts (`Production/Hetzner`) and attaches `Link` preload headers on the final 200 response instead — Hetzner managed-hosting TLS front-ends mishandle informational responses (body without status line).
 - `InvalidationService::resolveContentSaveTargets()` now invalidates above-fold cache (readiness) for ALL content changes, not just position-relevant field changes. This ensures readiness is reset whenever any content field changes, forcing re-detection of critical elements.

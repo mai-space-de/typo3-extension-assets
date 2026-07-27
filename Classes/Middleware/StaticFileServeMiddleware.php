@@ -73,6 +73,12 @@ final class StaticFileServeMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
+        // Turbo / Mai Turbo frame requests must always hit the dynamic
+        // rendering pipeline (partial HTML), never the full-page static cache.
+        if ($this->isTurboPartialRequest($request)) {
+            return $handler->handle($request);
+        }
+
         try {
             $requestUri = (string)$request->getUri();
 
@@ -127,6 +133,19 @@ final class StaticFileServeMiddleware implements MiddlewareInterface
     private function isCacheableGetRequest(ServerRequestInterface $request): bool
     {
         return $request->getMethod() === 'GET';
+    }
+
+    /**
+     * Detect Hotwired Turbo frame / Mai Turbo context requests.
+     *
+     * These arrive without a query string when the signed context is sent
+     * via the ``Mai-Turbo-Context`` header, so the query-string guard alone
+     * is insufficient.
+     */
+    private function isTurboPartialRequest(ServerRequestInterface $request): bool
+    {
+        return $request->getHeaderLine('Turbo-Frame') !== ''
+            || $request->getHeaderLine('Mai-Turbo-Context') !== '';
     }
 
     /**

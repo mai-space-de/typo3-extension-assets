@@ -247,6 +247,25 @@ final class StaticFileServeMiddlewareTest extends TestCase
         self::assertSame($this->fallbackResponse, $result);
     }
 
+    public function testFallsThroughForTurboFrameRequestsEvenWithoutQueryString(): void
+    {
+        $this->writeStaticFileById(1, 0, '<html><body>Cached</body></html>');
+        $this->handler->expects(self::once())->method('handle')->willReturn($this->fallbackResponse);
+
+        $middleware = $this->makeMiddleware();
+        $request = $this->makeGetRequest(
+            'https://example.com/de/',
+            [
+                'Turbo-Frame' => ['news-list'],
+                'Mai-Turbo-Context' => ['payload::hash::hmac'],
+            ],
+            $this->makePageArguments(1),
+        );
+        $result = $middleware->process($request, $this->handler);
+
+        self::assertSame($this->fallbackResponse, $result);
+    }
+
     // -----------------------------------------------------------------
     // URL-based fallback: when page args are unavailable
     // -----------------------------------------------------------------
@@ -589,7 +608,17 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $headers = array_merge(['accept-encoding' => []], $extraHeaders);
         $request->method('getHeader')->willReturnCallback(
             static function (string $name) use ($headers): array {
-                return $headers[$name] ?? [];
+                $key = strtolower($name);
+
+                return $headers[$key] ?? $headers[$name] ?? [];
+            }
+        );
+        $request->method('getHeaderLine')->willReturnCallback(
+            static function (string $name) use ($headers): string {
+                $key = strtolower($name);
+                $values = $headers[$key] ?? $headers[$name] ?? [];
+
+                return is_array($values) ? implode(', ', $values) : (string)$values;
             }
         );
 
