@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file source-language="en" target-language="de" datatype="plaintext" original="messages"
+          date="2025-01-01T00:00:00Z" product-name="mai_assets">
+        <header/>
+        <body>
+            <trans-unit id="tt_content.tx_maiassets_force_critical">
+                <source>Always render critical (above-fold)</source>
+                <target>Immer als kritisch rendern (above-the-fold)</target>
+            </trans-unit>
+            <trans-unit id="tt_content.tx_maiassets_force_critical.description">
+                <source>Force this content element to always be treated as above-fold critical, regardless of automatic detection.</source>
+                <target>Erzwingt, dass dieses Inhaltselement unabhängig von der automatischen Erkennung immer als above-the-fold kritisch behandelt wird.</target>
+            </trans-unit>
+            <trans-unit id="tt_content.tx_maiassets_is_critical">
+                <source>Override: Is critical (above-fold)</source>
+                <target>Überschreiben: Ist kritisch (above-the-fold)</target>
+            </trans-unit>
+            <trans-unit id="tt_content.tx_maiassets_is_critical.description">
+                <source>Editor override for the above-fold detection. When checked, marks this element as critical. Only visible when "Always render critical" is not enabled.</source>
+                <target>Manuelle Überschreibung der Above-the-fold-Erkennung. Wenn aktiviert, wird dieses Element als kritisch markiert. Nur sichtbar, wenn „Immer als kritisch rendern“ nicht aktiviert ist.</target>
+            </trans-unit>
+            <trans-unit id="palette.mai_assets_critical">
+                <source>Asset Loading Strategy</source>
+                <target>Asset-Ladestrategie</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>
