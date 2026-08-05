@@ -1,0 +1,93 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<!--
+    Fluid partial: YouTube video with GDPR consent gate.
+
+    Expected variables:
+      {youtubeId}       — YouTube video ID (string, required)
+      {consentEnabled}  — Whether to show the consent gate (bool, default: true)
+                          Typically taken from sys_file_metadata.tx_maiassets_youtube_consent_enabled
+      {consentText}     — Custom consent message (string, optional).
+                          Typically taken from sys_file_metadata.tx_maiassets_youtube_consent_text.
+                          Falls back to the default localised message when empty.
+      {title}           — Accessible title/label for the video (string)
+      {posterUrl}       — Optional URL of a poster/thumbnail image (string)
+      {class}           — Optional CSS class string for the wrapper element
+
+    Usage in a Fluid template (with sys_file_metadata fields available):
+      <f:render partial="File/YoutubeConsent" arguments="{
+          youtubeId:      youtubeId,
+          consentEnabled: fileMetadata.tx_maiassets_youtube_consent_enabled,
+          consentText:    fileMetadata.tx_maiassets_youtube_consent_text,
+          title:          'My video title',
+          posterUrl:      posterUrl,
+          class:          'my-video'
+      }" />
+-->
+
+<f:if condition="{youtubeId} != ''">
+    <f:variable name="wrapperClass">mai-video-facade mai-video-youtube<f:if condition="{class} != ''"> {class}</f:if></f:variable>
+    <f:variable name="iframeUrl">https://www.youtube-nocookie.com/embed/{youtubeId}?autoplay=1</f:variable>
+
+    <f:if condition="{consentEnabled}">
+        <f:then>
+            <!-- Consent gate: poster + play button, iframe injected on click via JS -->
+            <f:variable name="effectivePosterUrl">{posterUrl}</f:variable>
+            <f:if condition="{effectivePosterUrl} == ''">
+                <f:variable name="effectivePosterUrl">https://img.youtube.com/vi/{youtubeId}/maxresdefault.jpg</f:variable>
+            </f:if>
+
+            <f:variable name="effectiveConsentText">{consentText}</f:variable>
+            <f:if condition="{effectiveConsentText} == ''">
+                <f:variable name="effectiveConsentText"><f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_db.xlf:youtube_consent.default_text" /></f:variable>
+            </f:if>
+
+            <div class="{wrapperClass}" data-youtube-consent="1">
+                <img
+                    src="{effectivePosterUrl}"
+                    alt="{title}"
+                    loading="lazy"
+                    class="mai-video-poster"
+                />
+                <div class="mai-video-consent-overlay" role="region" aria-label="{title}">
+                    <p class="mai-video-consent-text">{effectiveConsentText}</p>
+                    <button
+                        class="mai-video-consent-accept mai-video-play"
+                        type="button"
+                        aria-label="{title}"
+                        data-src="{iframeUrl}"
+                    >
+                        <svg aria-hidden="true" focusable="false"><use href="#mai-icon-play"/></svg>
+                        <f:translate key="LLL:EXT:mai_assets/Resources/Private/Language/locallang_db.xlf:youtube_consent.accept_button" />
+                    </button>
+                </div>
+                <template>
+                    <iframe
+                        src="{iframeUrl}"
+                        title="{title}"
+                        frameborder="0"
+                        allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    ></iframe>
+                </template>
+            </div>
+        </f:then>
+        <f:else>
+            <!-- Consent gate disabled: render iframe directly -->
+            <div class="{wrapperClass}">
+                <iframe
+                    src="{iframeUrl}"
+                    title="{title}"
+                    frameborder="0"
+                    allowfullscreen
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    loading="lazy"
+                ></iframe>
+            </div>
+        </f:else>
+    </f:if>
+</f:if>
+</html>
+

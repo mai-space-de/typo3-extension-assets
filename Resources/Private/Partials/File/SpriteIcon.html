@@ -1,0 +1,83 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    xmlns:mai="http://typo3.org/ns/Maispace/MaiAssets/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<!--
+    Fluid partial: SVG sprite icon using the mai_assets sprite system.
+
+    The SVG file is registered with the SvgSpriteCollector at render time (when
+    sourceFolder is provided) so that it appears in the hidden sprite injected
+    after <body> by SvgSpriteInjectionListener.
+
+    Expected variables:
+      {identifier}      — Sprite symbol identifier (string, required).
+                          Typically taken from sys_file_metadata.tx_maiassets_icon_source_folder
+                          combined with the file name.
+      {sourceFolder}    — EXT: path of the folder containing the SVG file, e.g.
+                          "EXT:my_theme/Resources/Public/Icons/Sprites/"
+                          (string, optional). Taken from
+                          sys_file_metadata.tx_maiassets_icon_source_folder.
+                          When provided, <mai:svg.icon> registers the SVG in the
+                          sprite automatically.
+      {label}           — Accessible aria-label for meaningful icons (string).
+                          Leave empty for decorative icons.
+      {class}           — Optional CSS class string for the <svg> element (string)
+      {size}            — CSS size value (string, default: "1em")
+
+    Usage in a Fluid template (with sys_file_metadata fields available):
+      <f:render partial="File/SpriteIcon" arguments="{
+          identifier:    iconIdentifier,
+          sourceFolder:  fileMetadata.tx_maiassets_icon_source_folder,
+          label:         'Description for screen readers',
+          class:         'icon--lg',
+          size:          '2em'
+      }" />
+-->
+
+<f:variable name="iconSize">{size}</f:variable>
+<f:if condition="{iconSize} == ''">
+    <f:variable name="iconSize">1em</f:variable>
+</f:if>
+
+<f:if condition="{identifier} != ''">
+    <f:if condition="{sourceFolder} != ''">
+        <f:then>
+            <!--
+                Register the icon with the sprite collector and render the <svg><use> reference.
+                mai:svg.icon handles both registration and output.
+            -->
+            <mai:svg.icon
+                identifier="{identifier}"
+                source="{sourceFolder}{identifier}.svg"
+                label="{label}"
+                class="{class}"
+                size="{iconSize}"
+            />
+        </f:then>
+        <f:else>
+            <!--
+                No source folder: render <svg><use> directly.
+                The icon must have been registered elsewhere (e.g. SpriteIcons.php).
+            -->
+            <f:if condition="{label} != ''">
+                <svg
+                    style="width:{iconSize};height:{iconSize}"
+                    role="img"
+                    aria-label="{label}"
+                    <f:if condition="{class} != ''">class="{class}"</f:if>
+                ><title>{label}</title><use href="#{identifier}"/></svg>
+            </f:if>
+            <f:if condition="{label} == ''">
+                <svg
+                    style="width:{iconSize};height:{iconSize}"
+                    aria-hidden="true"
+                    focusable="false"
+                    <f:if condition="{class} != ''">class="{class}"</f:if>
+                ><use href="#{identifier}"/></svg>
+            </f:if>
+        </f:else>
+    </f:if>
+</f:if>
+</html>
+
