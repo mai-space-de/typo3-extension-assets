@@ -12,6 +12,7 @@ return [
         ],
         'maispace/mai-assets/above-fold-report' => [
             'target' => \Maispace\MaiAssets\Middleware\AboveFoldReportMiddleware::class,
+            'before' => ['typo3/cms-frontend/page-resolver'],
             'after' => ['typo3/cms-frontend/site'],
         ],
         'maispace/mai-assets/early-hints' => [
