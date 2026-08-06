@@ -24,5 +24,19 @@ return [
             'after' => ['typo3/cms-frontend/page-resolver'],
             'before' => ['typo3/cms-frontend/page-argument-validator'],
         ],
+        'maispace/mai-assets/add-csp-nonce-meta-tag' => [
+            'target' => \Maispace\MaiAssets\Middleware\AddCspNonceMetaTagMiddleware::class,
+            'after' => [
+                'typo3/cms-frontend/csp-headers',
+            ],
+        ],
+    ],
+    'backend' => [
+        'maispace/mai-assets/add-csp-nonce-meta-tag' => [
+            'target' => \Maispace\MaiAssets\Middleware\AddCspNonceMetaTagMiddleware::class,
+            'after' => [
+                'typo3/cms-backend/csp-headers',
+            ],
+        ],
     ],
 ];

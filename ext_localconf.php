@@ -18,6 +18,11 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets
     'groups'   => ['pages'],
 ];
 
+// Register transient memory cache for compiled asset paths (per-request)
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets_compiled'] ??= [
+    'backend' => \TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend::class,
+];
+
 // Register Early Hints manifest cache (keyed by page + language)
 $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets_early_hints'] ??= [
     'frontend' => \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend::class,
@@ -36,3 +41,6 @@ $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['proc
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTypoScriptSetup(
     '@import "EXT:mai_assets/Configuration/TypoScript/setup.typoscript"'
 );
+
+// Register YAML placeholder processor for asset paths
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['yamlLoader']['placeholderProcessors'][\Maispace\MaiAssets\Configuration\AssetPlaceholderProcessor::class] = [];

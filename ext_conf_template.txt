@@ -27,3 +27,9 @@ staticFileCacheDir =
 
 # cat=Static File Cache//30; type=boolean; label=Enable Debug Headers: Emit x-mai-static-ready and x-mai-static-cache response headers for ops and QA inspection. Disable in production.
 debugHeaders = 0
+
+# cat=Dev Server//10; type=options[auto,1,0]; label=Use Dev Server: Enable to load assets from a Vite dev server instead of compiled files. "auto" enables this in Development context only.
+useDevServer = auto
+
+# cat=Dev Server//20; type=string; label=Dev Server URI: Full URI of the Vite dev server (e.g. http://localhost:5173). Only used when "Use Dev Server" is enabled.
+devServerUri = http://localhost:5173

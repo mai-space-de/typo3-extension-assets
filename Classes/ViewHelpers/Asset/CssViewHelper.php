@@ -14,6 +14,7 @@ use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\CompiledAssetPublisher;
 use Maispace\MaiAssets\Service\SriHashService;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
+use Maispace\MaiAssets\Utility\AttributeUtility;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -107,6 +108,7 @@ class CssViewHelper extends AbstractViewHelper
         }
 
         $tagAttributes = ['media' => $media];
+        $tagAttributes = AttributeUtility::normalizeCssAttributes($tagAttributes);
         if ($integrity !== '') {
             $tagAttributes['integrity'] = $integrity;
         }
@@ -115,6 +117,11 @@ class CssViewHelper extends AbstractViewHelper
         }
 
         $options = ['priority' => $priority];
+
+        $typo3Version = new \TYPO3\CMS\Core\Information\Typo3Version();
+        if ($typo3Version->getMajorVersion() >= 13) {
+            $options['external'] = true;
+        }
 
         $this->assetCollector->addStyleSheet($identifier, $publicPath, $tagAttributes, $options);
 

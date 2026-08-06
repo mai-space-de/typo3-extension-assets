@@ -25,6 +25,8 @@ final class ExtensionConfiguration
     private bool $enableStaticFileCache;
     private string $staticFileCacheDir;
     private bool $debugHeaders;
+    private string $useDevServer;
+    private string $devServerUri;
 
     public function __construct(Typo3ExtensionConfiguration $typo3ExtensionConfiguration)
     {
@@ -49,6 +51,8 @@ final class ExtensionConfiguration
         $this->enableStaticFileCache = (bool)($raw['enableStaticFileCache'] ?? false);
         $this->staticFileCacheDir = (string)($raw['staticFileCacheDir'] ?? '');
         $this->debugHeaders = (bool)($raw['debugHeaders'] ?? false);
+        $this->useDevServer = (string)($raw['useDevServer'] ?? 'auto');
+        $this->devServerUri = (string)($raw['devServerUri'] ?? 'http://localhost:5173');
     }
 
     public static function getInstance(): self
@@ -132,5 +136,18 @@ final class ExtensionConfiguration
     public function isDebugHeaders(): bool
     {
         return $this->debugHeaders;
+    }
+
+    public function isUseDevServer(): bool
+    {
+        if ($this->useDevServer === 'auto') {
+            return \TYPO3\CMS\Core\Core\Environment::getContext()->isDevelopment();
+        }
+        return (bool)$this->useDevServer;
+    }
+
+    public function getDevServerUri(): \Psr\Http\Message\UriInterface
+    {
+        return new \TYPO3\CMS\Core\Http\Uri($this->devServerUri);
     }
 }

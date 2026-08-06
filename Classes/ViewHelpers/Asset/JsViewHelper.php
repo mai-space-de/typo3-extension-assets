@@ -12,6 +12,7 @@ use Maispace\MaiAssets\Processing\MinificationProcessor;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\SriHashService;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
+use Maispace\MaiAssets\Utility\AttributeUtility;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -103,6 +104,7 @@ class JsViewHelper extends AbstractViewHelper
         }
 
         $tagAttributes = [];
+        $tagAttributes = AttributeUtility::normalizeScriptAttributes($tagAttributes);
         // type="module" is always deferred by browser spec; only add defer for non-module scripts
         if ($type === 'module') {
             $tagAttributes['type'] = 'module';
@@ -133,6 +135,11 @@ class JsViewHelper extends AbstractViewHelper
         }
 
         $options = ['priority' => $priority];
+
+        $typo3Version = new \TYPO3\CMS\Core\Information\Typo3Version();
+        if ($typo3Version->getMajorVersion() >= 13) {
+            $options['external'] = true;
+        }
 
         $this->assetCollector->addJavaScript($identifier, $publicPath, $tagAttributes, $options);
 
