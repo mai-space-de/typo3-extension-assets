@@ -75,4 +75,69 @@ final class ScssDependencyHasherTest extends TestCase
 
         self::assertSame($this->subject->hash($entry), $this->subject->hash($entry));
     }
+
+    #[Test]
+    public function getDependencyTreeReturnsAllImportedFiles(): void
+    {
+        $partial1 = $this->tempDir . '/partials/_grid.scss';
+        $partial2 = $this->tempDir . '/partials/_colors.scss';
+        $entry = $this->tempDir . '/bundle.scss';
+        
+        file_put_contents($partial1, ".grid{display:grid}\n");
+        file_put_contents($partial2, "\$red: #ff0000;\n");
+        file_put_contents($entry, "@import \"partials/grid\";\n@use \"partials/colors\";\n");
+
+        $tree = $this->subject->getDependencyTree($entry);
+
+        self::assertCount(3, $tree);
+        self::assertContains(realpath($entry), $tree);
+        self::assertContains(realpath($partial1), $tree);
+        self::assertContains(realpath($partial2), $tree);
+    }
+
+    #[Test]
+    public function getDependencyTreeHandlesNestedImports(): void
+    {
+        $nested = $this->tempDir . '/partials/_nested.scss';
+        $partial = $this->tempDir . '/partials/_grid.scss';
+        $entry = $this->tempDir . '/bundle.scss';
+        
+        file_put_contents($nested, ".nested{color:blue}\n");
+        file_put_contents($partial, "@import \"nested\";\n.grid{display:grid}\n");
+        file_put_contents($entry, "@import \"partials/grid\";\n");
+
+        $tree = $this->subject->getDependencyTree($entry);
+
+        self::assertCount(3, $tree);
+        self::assertContains(realpath($entry), $tree);
+        self::assertContains(realpath($partial), $tree);
+        self::assertContains(realpath($nested), $tree);
+    }
+
+    #[Test]
+    public function getDependencyTreeHandlesCircularImports(): void
+    {
+        $partial1 = $this->tempDir . '/partials/_a.scss';
+        $partial2 = $this->tempDir . '/partials/_b.scss';
+        $entry = $this->tempDir . '/bundle.scss';
+        
+        file_put_contents($partial1, "@import \"b\";\n.a{color:red}\n");
+        file_put_contents($partial2, "@import \"a\";\n.b{color:blue}\n");
+        file_put_contents($entry, "@import \"partials/a\";\n");
+
+        $tree = $this->subject->getDependencyTree($entry);
+
+        self::assertCount(3, $tree);
+        self::assertContains(realpath($entry), $tree);
+        self::assertContains(realpath($partial1), $tree);
+        self::assertContains(realpath($partial2), $tree);
+    }
+
+    #[Test]
+    public function getDependencyTreeReturnsEmptyArrayForNonExistentFile(): void
+    {
+        $tree = $this->subject->getDependencyTree($this->tempDir . '/nonexistent.scss');
+        
+        self::assertSame([], $tree);
+    }
 }

@@ -73,6 +73,10 @@ class CssViewHelper extends AbstractViewHelper
             default => $pageUid > 0 && $this->criticalityResolver->pageHasObserverData($pageUid),
         };
 
+        if ($this->extensionConfiguration->isUseDevServer()) {
+            return $this->renderFromDevServer($src, $identifier, $priority, $media, $nonce);
+        }
+
         $resolvedPath = $this->requireFile($src);
 
         if ($isCritical) {
@@ -130,6 +134,29 @@ class CssViewHelper extends AbstractViewHelper
             rel: 'preload',
             as: 'style',
         ));
+
+        return '';
+    }
+
+    private function renderFromDevServer(string $src, string $identifier, bool $priority, string $media, string $nonce): string
+    {
+        $devServerUri = $this->extensionConfiguration->getDevServerUri();
+        $publicPath = rtrim((string)$devServerUri, '/') . '/' . ltrim($src, '/');
+
+        $tagAttributes = ['media' => $media];
+        $tagAttributes = AttributeUtility::normalizeCssAttributes($tagAttributes);
+        if ($nonce !== '') {
+            $tagAttributes['nonce'] = $nonce;
+        }
+
+        $options = ['priority' => $priority];
+
+        $typo3Version = new \TYPO3\CMS\Core\Information\Typo3Version();
+        if ($typo3Version->getMajorVersion() >= 13) {
+            $options['external'] = true;
+        }
+
+        $this->assetCollector->addStyleSheet($identifier, $publicPath, $tagAttributes, $options);
 
         return '';
     }

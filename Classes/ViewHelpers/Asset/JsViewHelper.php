@@ -76,6 +76,10 @@ class JsViewHelper extends AbstractViewHelper
             default => $pageUid > 0 && $this->criticalityResolver->pageHasObserverData($pageUid),
         };
 
+        if ($this->extensionConfiguration->isUseDevServer()) {
+            return $this->renderFromDevServer($src, $identifier, $priority, $defer, $async, $type, $nomodule, $nonce, $isCritical);
+        }
+
         $resolvedPath = $this->requireFile($src);
 
         if ($minify) {
@@ -152,6 +156,57 @@ class JsViewHelper extends AbstractViewHelper
                 as: $as,
             ));
         }
+
+        return '';
+    }
+
+    private function renderFromDevServer(
+        string $src,
+        string $identifier,
+        bool $priority,
+        bool $defer,
+        bool $async,
+        string $type,
+        bool $nomodule,
+        string $nonce,
+        bool $isCritical
+    ): string {
+        $devServerUri = $this->extensionConfiguration->getDevServerUri();
+        $publicPath = rtrim((string)$devServerUri, '/') . '/' . ltrim($src, '/');
+
+        $tagAttributes = [];
+        $tagAttributes = AttributeUtility::normalizeScriptAttributes($tagAttributes);
+        
+        if ($type === 'module') {
+            $tagAttributes['type'] = 'module';
+        } else {
+            if ($async) {
+                $tagAttributes['async'] = 'async';
+            } elseif ($defer && !$isCritical) {
+                $tagAttributes['defer'] = 'defer';
+            }
+            if ($type !== '') {
+                $tagAttributes['type'] = $type;
+            }
+        }
+        if ($isCritical) {
+            $tagAttributes['fetchpriority'] = 'high';
+        }
+        if ($nomodule) {
+            $tagAttributes['nomodule'] = 'nomodule';
+        }
+        if ($nonce !== '') {
+            $tagAttributes['nonce'] = $nonce;
+        }
+
+        $options = ['priority' => $priority];
+
+        $typo3Version = new \TYPO3\CMS\Core\Information\Typo3Version();
+        if ($typo3Version->getMajorVersion() >= 13) {
+            $options['external'] = true;
+        }
+
+        $this->assetCollector->addJavaScript($identifier, $publicPath, $tagAttributes, $options);
 
         return '';
     }

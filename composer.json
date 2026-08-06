@@ -59,7 +59,12 @@
         "check:phpstan:baseline": "phpstan analyse --no-progress --generate-baseline=phpstan-baseline.neon",
         "check:typoscript": "typoscript-lint --fail-on-warnings -c typoscript-lint.yml Configuration/",
         "test": "phpunit --configuration phpunit.xml.dist",
-        "test:unit": "phpunit --configuration phpunit.xml.dist --testsuite Unit"
+        "test:unit": "phpunit --configuration phpunit.xml.dist --testsuite Unit",
+        "docs:viewhelpers": [
+            "echo 'To generate ViewHelper documentation, install t3docs/fluid-documentation-generator:'",
+            "echo 'composer require --dev t3docs/fluid-documentation-generator'",
+            "echo 'Then run: vendor/bin/typo3 fluid:documentation:generate --extension=mai_assets --output=Documentation/ViewHelpers/'"
+        ]
     },
     "config": {
         "allow-plugins": {

@@ -54,6 +54,43 @@ final class ScssDependencyHasher
     }
 
     /**
+     * Returns the full dependency tree of an SCSS entry file.
+     *
+     * @return list<string> List of absolute file paths in the dependency tree
+     */
+    public function getDependencyTree(string $absoluteSourcePath): array
+    {
+        $tree = [];
+        $queue = [$absoluteSourcePath];
+        $seen = [];
+
+        while ($queue !== []) {
+            $path = array_shift($queue);
+            $real = realpath($path) ?: $path;
+            if (isset($seen[$real])) {
+                continue;
+            }
+            $seen[$real] = true;
+
+            if (!is_file($real)) {
+                continue;
+            }
+
+            $tree[] = $real;
+
+            if (!str_ends_with(strtolower($real), '.scss')) {
+                continue;
+            }
+
+            foreach ($this->collectImports($real) as $importPath) {
+                $queue[] = $importPath;
+            }
+        }
+
+        return $tree;
+    }
+
+    /**
      * @return list<string>
      */
     private function collectImports(string $absoluteFilePath): array
