@@ -13,11 +13,12 @@ trait FileResolutionTrait
 {
     protected function resolveFilePath(string $path): string
     {
-        if (str_starts_with($path, 'EXT:')) {
+        if (str_starts_with($path, 'EXT:') || str_starts_with($path, 'PKG:')) {
             $resolved = GeneralUtility::getFileAbsFileName($path);
             if ($resolved === '') {
+                $prefix = str_starts_with($path, 'PKG:') ? 'PKG' : 'EXT';
                 throw new AssetFileNotFoundException(
-                    sprintf('Cannot resolve EXT: path: "%s". Extension may not be installed.', $path),
+                    sprintf('Cannot resolve %s: path: "%s". Package may not be installed.', $prefix, $path),
                     1700000020
                 );
             }
