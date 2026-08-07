@@ -102,7 +102,7 @@ class PictureSourceRenderer
             }
 
             if ($isCritical && !$registeredEarlyHint && $format === 'avif'
-                && $firstUrl !== '' && $earlyHintCollector !== null) {
+                && $firstUrl !== '' && $earlyHintCollector instanceof EarlyHintCandidateCollector) {
                 $earlyHintCollector->add(new EarlyHintCandidate(
                     href: $firstUrl,
                     rel: 'preload',

@@ -37,12 +37,12 @@ use Psr\Http\Server\RequestHandlerInterface;
  * @see PageOptimizationReadinessService
  * @see EarlyHintCacheService
  */
-final class DebugHeadersMiddleware implements MiddlewareInterface
+final readonly class DebugHeadersMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private readonly ExtensionConfiguration $extensionConfiguration,
-        private readonly PageOptimizationReadinessService $readinessService,
-        private readonly EarlyHintCacheService $earlyHintCacheService,
+        private ExtensionConfiguration $extensionConfiguration,
+        private PageOptimizationReadinessService $readinessService,
+        private EarlyHintCacheService $earlyHintCacheService,
     ) {}
 
     public function process(

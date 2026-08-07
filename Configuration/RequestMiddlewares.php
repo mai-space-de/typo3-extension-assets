@@ -2,31 +2,37 @@
 
 declare(strict_types=1);
 
+use Maispace\MaiAssets\Middleware\StaticFileServeMiddleware;
+use Maispace\MaiAssets\Middleware\AboveFoldReportMiddleware;
+use Maispace\MaiAssets\Middleware\EarlyHintsMiddleware;
+use Maispace\MaiAssets\Middleware\DebugHeadersMiddleware;
+use Maispace\MaiAssets\Middleware\AddCspNonceMetaTagMiddleware;
+
 return [
     'frontend' => [
         'maispace/mai-assets/static-file-serve' => [
-            'target' => \Maispace\MaiAssets\Middleware\StaticFileServeMiddleware::class,
+            'target' => StaticFileServeMiddleware::class,
             'after' => [
                 'maispace/mai-assets/early-hints',
             ],
         ],
         'maispace/mai-assets/above-fold-report' => [
-            'target' => \Maispace\MaiAssets\Middleware\AboveFoldReportMiddleware::class,
+            'target' => AboveFoldReportMiddleware::class,
             'before' => ['typo3/cms-frontend/page-resolver'],
             'after' => ['typo3/cms-frontend/site'],
         ],
         'maispace/mai-assets/early-hints' => [
-            'target' => \Maispace\MaiAssets\Middleware\EarlyHintsMiddleware::class,
+            'target' => EarlyHintsMiddleware::class,
             'after' => ['typo3/cms-frontend/page-resolver'],
             'before' => ['typo3/cms-frontend/page-argument-validator'],
         ],
         'maispace/mai-assets/debug-headers' => [
-            'target' => \Maispace\MaiAssets\Middleware\DebugHeadersMiddleware::class,
+            'target' => DebugHeadersMiddleware::class,
             'after' => ['typo3/cms-frontend/page-resolver'],
             'before' => ['typo3/cms-frontend/page-argument-validator'],
         ],
         'maispace/mai-assets/add-csp-nonce-meta-tag' => [
-            'target' => \Maispace\MaiAssets\Middleware\AddCspNonceMetaTagMiddleware::class,
+            'target' => AddCspNonceMetaTagMiddleware::class,
             'after' => [
                 'typo3/cms-frontend/csp-headers',
             ],
@@ -34,7 +40,7 @@ return [
     ],
     'backend' => [
         'maispace/mai-assets/add-csp-nonce-meta-tag' => [
-            'target' => \Maispace\MaiAssets\Middleware\AddCspNonceMetaTagMiddleware::class,
+            'target' => AddCspNonceMetaTagMiddleware::class,
             'after' => [
                 'typo3/cms-backend/csp-headers',
             ],

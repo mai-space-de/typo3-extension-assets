@@ -26,7 +26,7 @@ class StaticFileCacheDirectory
     /**
      * Default cache root, relative to the TYPO3 public/ docroot.
      */
-    private const DEFAULT_RELATIVE_DIR = 'typo3temp/assets/mai_assets_static/';
+    private const string DEFAULT_RELATIVE_DIR = 'typo3temp/assets/mai_assets_static/';
 
     public function __construct(
         private readonly ExtensionConfiguration $extensionConfiguration,

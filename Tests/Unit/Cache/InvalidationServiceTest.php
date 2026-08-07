@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\Cache;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\Cache\InvalidationService;
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use Maispace\MaiAssets\Event\AfterCacheInvalidationEvent;
@@ -16,13 +17,13 @@ use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 
 final class InvalidationServiceTest extends TestCase
 {
-    /** @var CacheManager&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var CacheManager&MockObject */
     private CacheManager $cacheManager;
-    /** @var EventDispatcherInterface&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var EventDispatcherInterface&MockObject */
     private EventDispatcherInterface $eventDispatcher;
-    /** @var FrontendInterface&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var FrontendInterface&MockObject */
     private FrontendInterface $aboveFoldFrontend;
-    /** @var StaticFileRemovalService&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var StaticFileRemovalService&MockObject */
     private StaticFileRemovalService $staticFileRemovalService;
     private AboveFoldCacheService $aboveFoldCacheService;
 

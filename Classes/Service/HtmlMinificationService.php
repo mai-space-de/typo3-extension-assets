@@ -13,7 +13,7 @@ final class HtmlMinificationService
     /**
      * TYPO3-internal comment markers that must never be stripped.
      */
-    private const PRESERVED_COMMENT_PATTERNS = [
+    private const array PRESERVED_COMMENT_PATTERNS = [
         'INT_SCRIPT',
         'HD_',
         'TDS_',
@@ -36,7 +36,7 @@ final class HtmlMinificationService
     /**
      * Tags that are always protected regardless of configuration.
      */
-    private const ALWAYS_PROTECTED_TAGS = ['script', 'style', 'textarea'];
+    private const array ALWAYS_PROTECTED_TAGS = ['script', 'style', 'textarea'];
 
     public function minify(string $html, array $config): string
     {
@@ -46,7 +46,7 @@ final class HtmlMinificationService
 
         $stripComments = (bool)($config['stripComments'] ?? true);
         $preserveTagsRaw = (string)($config['preserveTags'] ?? 'pre,code,textarea');
-        $preserveTags = array_filter(array_map('trim', explode(',', $preserveTagsRaw)));
+        $preserveTags = array_filter(array_map(trim(...), explode(',', $preserveTagsRaw)));
 
         // Merge always-protected tags with configurable ones (deduplicated)
         $allProtectedTags = array_unique(array_merge(self::ALWAYS_PROTECTED_TAGS, $preserveTags));

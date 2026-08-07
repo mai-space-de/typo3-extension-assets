@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Service;
 
+use Symfony\Component\Filesystem\Path;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Processing\MinificationProcessor;
 use Maispace\MaiAssets\Processing\ScssProcessor;
@@ -18,15 +19,15 @@ use TYPO3\CMS\Core\Utility\PathUtility;
  * Cache key is content-hash based (entry file + SCSS import tree), so edits to
  * the source or any partial invalidate the cached output naturally.
  */
-final class CompiledAssetPublisher
+final readonly class CompiledAssetPublisher
 {
-    private const PUBLIC_CACHE_DIR = 'typo3temp/assets/mai_assets/compiled/';
+    private const string PUBLIC_CACHE_DIR = 'typo3temp/assets/mai_assets/compiled/';
 
     public function __construct(
-        private readonly ScssProcessor $scssProcessor,
-        private readonly MinificationProcessor $minificationProcessor,
-        private readonly ExtensionConfiguration $extensionConfiguration,
-        private readonly ScssDependencyHasher $scssDependencyHasher,
+        private ScssProcessor $scssProcessor,
+        private MinificationProcessor $minificationProcessor,
+        private ExtensionConfiguration $extensionConfiguration,
+        private ScssDependencyHasher $scssDependencyHasher,
     ) {}
 
     /**
@@ -86,8 +87,8 @@ final class CompiledAssetPublisher
                 $absolutePath = $sourceDir . '/' . $url;
                 
                 // Normalize the path using Symfony's Path normalizer if available, otherwise manual
-                if (class_exists('\Symfony\Component\Filesystem\Path')) {
-                    $absolutePath = \Symfony\Component\Filesystem\Path::canonicalize($absolutePath);
+                if (class_exists(Path::class)) {
+                    $absolutePath = Path::canonicalize($absolutePath);
                 } else {
                     // Manual normalization: remove /./ and resolve /../
                     $absolutePath = preg_replace('#/\./#', '/', $absolutePath);

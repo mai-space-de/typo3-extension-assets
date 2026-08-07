@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Configuration;
 
+use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Core\Environment;
+use Psr\Http\Message\UriInterface;
+use TYPO3\CMS\Core\Http\Uri;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration as Typo3ExtensionConfiguration;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class ExtensionConfiguration
 {
-    private const EXTENSION_KEY = 'mai_assets';
+    private const string EXTENSION_KEY = 'mai_assets';
 
     private bool $enableScssProcessing;
     private bool $enableMinification;
@@ -33,7 +37,7 @@ final class ExtensionConfiguration
         $raw = [];
         try {
             $raw = $typo3ExtensionConfiguration->get(self::EXTENSION_KEY);
-        } catch (\TYPO3\CMS\Core\Exception $e) {
+        } catch (Exception) {
             // Extension configuration not yet saved — use defaults
         }
 
@@ -141,13 +145,13 @@ final class ExtensionConfiguration
     public function isUseDevServer(): bool
     {
         if ($this->useDevServer === 'auto') {
-            return \TYPO3\CMS\Core\Core\Environment::getContext()->isDevelopment();
+            return Environment::getContext()->isDevelopment();
         }
         return (bool)$this->useDevServer;
     }
 
-    public function getDevServerUri(): \Psr\Http\Message\UriInterface
+    public function getDevServerUri(): UriInterface
     {
-        return new \TYPO3\CMS\Core\Http\Uri($this->devServerUri);
+        return new Uri($this->devServerUri);
     }
 }

@@ -81,12 +81,6 @@ services:
               identifier: 'mai-assets/critical-cache-invalidation'
               event: Maispace\MaiAssets\Event\AfterCriticalUidsUpdatedEvent
 
-    Maispace\MaiAssets\EventListener\StaticFileCacheReadinessListener:
-        tags:
-            - name: event.listener
-              identifier: 'mai-assets/static-file-cache-readiness'
-              event: SFC\Staticfilecache\Event\CacheRuleEvent
-
     Maispace\MaiAssets\EventListener\CacheWarmupListener:
         tags:
             - name: event.listener

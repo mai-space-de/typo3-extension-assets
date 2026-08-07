@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Video;
 
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class VideoViewHelper extends AbstractViewHelper
@@ -190,7 +191,7 @@ class VideoViewHelper extends AbstractViewHelper
         $variantPath = $base . '.' . $codec . '.mp4';
 
         // Check if variant file exists on filesystem
-        $absPath = \TYPO3\CMS\Core\Core\Environment::getPublicPath() . $variantPath;
+        $absPath = Environment::getPublicPath() . $variantPath;
         if (file_exists($absPath)) {
             return $variantPath;
         }

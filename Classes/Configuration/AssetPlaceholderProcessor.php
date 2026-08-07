@@ -11,12 +11,12 @@ use TYPO3\CMS\Core\Configuration\Processor\Placeholder\PlaceholderProcessorInter
 use TYPO3\CMS\Core\Utility\PathUtility;
 
 #[Autoconfigure(public: true)]
-final class AssetPlaceholderProcessor implements PlaceholderProcessorInterface
+final readonly class AssetPlaceholderProcessor implements PlaceholderProcessorInterface
 {
     use FileResolutionTrait;
 
     public function __construct(
-        private readonly CompiledAssetPublisher $compiledAssetPublisher,
+        private CompiledAssetPublisher $compiledAssetPublisher,
     ) {}
 
     public function canProcess(string $placeholder, array $referenceArray): bool

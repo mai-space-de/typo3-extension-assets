@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Integration;
 
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
-use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
-use Maispace\MaiAssets\EventListener\StaticFileCacheReadinessListener;
 use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
@@ -25,10 +23,10 @@ use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
  * read/write cycle of AboveFoldCacheService and EarlyHintCacheService is
  * exercised against a real TYPO3 cache stack.
  *
- * The StaticFileCacheReadinessListener unit tests already verify the
- * listener's decision logic. These integration tests verify that the
- * underlying services correctly interact with the TYPO3 caching framework,
- * ensuring the readiness gate works end-to-end:
+ * These integration tests verify that the underlying services correctly
+ * interact with the TYPO3 caching framework, ensuring the readiness gate
+ * (consumed directly by StaticHtmlWriterListener and CacheWarmupService)
+ * works end-to-end:
  *
  * - Incomplete viewport buckets → PageOptimizationReadinessService::isReady
  *   returns false → listener gates on cache writes.
@@ -75,10 +73,10 @@ final class StaticFileCacheReadinessIntegrationTest extends TestCase
 
     private function createExtensionConfiguration(): ExtensionConfiguration
     {
-        $config = (new \ReflectionClass(ExtensionConfiguration::class))
+        $config = new \ReflectionClass(ExtensionConfiguration::class)
             ->newInstanceWithoutConstructor();
 
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets')
             ->setValue($config, [
                 'mobile'  => 768,
                 'tablet'  => 1024,
@@ -96,10 +94,10 @@ final class StaticFileCacheReadinessIntegrationTest extends TestCase
             ->with('mai_assets_above_fold')
             ->willReturn($this->aboveFoldFrontend);
 
-        return new \Maispace\MaiAssets\Cache\AboveFoldCacheService(
+        return new AboveFoldCacheService(
             $cacheManager,
-            $this->createStub(\Psr\EventDispatcher\EventDispatcherInterface::class),
-            $this->createStub(\Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService::class),
+            $this->createStub(EventDispatcherInterface::class),
+            $this->createStub(StaticFileRemovalService::class),
         );
     }
 
@@ -230,85 +228,6 @@ final class StaticFileCacheReadinessIntegrationTest extends TestCase
     }
 
     /**
-     * End-to-end: incomplete buckets → listener gates on CacheRuleEvent.
-     */
-    public function testListenerGatesWhenBucketsIncomplete(): void
-    {
-        $this->requireCacheRuleEvent();
-
-        $this->writeBucketData(42, 'mobile', [1, 2]);
-
-        $listener = new StaticFileCacheReadinessListener(
-            $this->createReadinessService(),
-            $this->earlyHintCacheService,
-        );
-
-        $request = $this->createRequestWithPageUid(42, 0);
-        $response = $this->createMock(ResponseInterface::class);
-        $event = new \SFC\Staticfilecache\Event\CacheRuleEvent($request, [], false, $response);
-
-        $listener($event);
-
-        self::assertTrue($event->isSkipProcessing());
-        $explanations = $event->getExplanation();
-        self::assertStringContainsString('missing viewport bucket data', reset($explanations));
-    }
-
-    /**
-     * End-to-end: all buckets filled + manifest exists → listener allows caching.
-     */
-    public function testListenerAllowsWhenReadyAndManifestExists(): void
-    {
-        $this->requireCacheRuleEvent();
-
-        $this->writeBucketData(42, 'mobile', [1, 2, 3]);
-        $this->writeBucketData(42, 'tablet', [4, 5]);
-        $this->writeBucketData(42, 'desktop', [6, 7, 8]);
-        $this->writeEarlyHintManifest(42, 0);
-
-        $listener = new StaticFileCacheReadinessListener(
-            $this->createReadinessService(),
-            $this->earlyHintCacheService,
-        );
-
-        $request = $this->createRequestWithPageUid(42, 0);
-        $response = $this->createMock(ResponseInterface::class);
-        $event = new \SFC\Staticfilecache\Event\CacheRuleEvent($request, [], false, $response);
-
-        $listener($event);
-
-        self::assertFalse($event->isSkipProcessing());
-        self::assertSame([], $event->getExplanation());
-    }
-
-    /**
-     * End-to-end: all buckets filled but NO manifest → listener gates.
-     */
-    public function testListenerGatesWhenManifestMissing(): void
-    {
-        $this->requireCacheRuleEvent();
-
-        $this->writeBucketData(42, 'mobile', [1, 2, 3]);
-        $this->writeBucketData(42, 'tablet', [4, 5]);
-        $this->writeBucketData(42, 'desktop', [6, 7, 8]);
-
-        $listener = new StaticFileCacheReadinessListener(
-            $this->createReadinessService(),
-            $this->earlyHintCacheService,
-        );
-
-        $request = $this->createRequestWithPageUid(42, 0);
-        $response = $this->createMock(ResponseInterface::class);
-        $event = new \SFC\Staticfilecache\Event\CacheRuleEvent($request, [], false, $response);
-
-        $listener($event);
-
-        self::assertTrue($event->isSkipProcessing());
-        $explanations = $event->getExplanation();
-        self::assertStringContainsString('No early-hints manifest', reset($explanations));
-    }
-
-    /**
      * Integration: AboveFoldCacheService reads back what was written.
      */
     public function testAboveFoldCacheServiceReadsWrittenData(): void
@@ -339,59 +258,5 @@ final class StaticFileCacheReadinessIntegrationTest extends TestCase
 
         $this->writeBucketData(1, 'desktop', [3]);
         self::assertTrue($readiness->isReady(1), 'Ready when all buckets filled');
-    }
-
-    private function requireCacheRuleEvent(): void
-    {
-        $baseDir = \dirname(__DIR__, 4) . '/.lookup/staticfilecache/Classes/Event/';
-        require_once $baseDir . 'CacheRuleEventInterface.php';
-        require_once $baseDir . 'CacheRuleEvent.php';
-    }
-
-    /**
-     * @return object{getPageRecord(): array}
-     */
-    private function createPageInformation(int $pageUid): object
-    {
-        return new class($pageUid) {
-            public function __construct(
-                private readonly int $pageUid,
-            ) {}
-
-            /** @return array{uid: int} */
-            public function getPageRecord(): array
-            {
-                return ['uid' => $this->pageUid];
-            }
-        };
-    }
-
-    private function createRequestWithPageUid(int $pageUid, int $languageUid = 0): ServerRequestInterface
-    {
-        $pageInformation = $this->createPageInformation($pageUid);
-
-        $language = new class($languageUid) {
-            public function __construct(
-                private readonly int $languageId,
-            ) {}
-
-            public function getLanguageId(): int
-            {
-                return $this->languageId;
-            }
-        };
-
-        $request = $this->createMock(ServerRequestInterface::class);
-        $request
-            ->method('getAttribute')
-            ->willReturnCallback(function (string $name) use ($pageInformation, $language) {
-                return match ($name) {
-                    'frontend.page.information' => $pageInformation,
-                    'language' => $language,
-                    default => null,
-                };
-            });
-
-        return $request;
     }
 }

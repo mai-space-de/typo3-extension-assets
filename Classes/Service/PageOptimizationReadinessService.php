@@ -16,11 +16,11 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
  * the page may serve non-optimised assets (no inlining, no priority hints) on
  * uncached requests, which is the intended warm-up model.
  */
-final class PageOptimizationReadinessService
+final readonly class PageOptimizationReadinessService
 {
     public function __construct(
-        private readonly AboveFoldCacheService $aboveFoldCacheService,
-        private readonly ExtensionConfiguration $extensionConfiguration,
+        private AboveFoldCacheService $aboveFoldCacheService,
+        private ExtensionConfiguration $extensionConfiguration,
     ) {}
 
     /**

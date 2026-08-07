@@ -10,11 +10,11 @@ use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
 #[AsEventListener(identifier: 'mai-assets/early-hint-manifest')]
-final class EarlyHintManifestListener
+final readonly class EarlyHintManifestListener
 {
     public function __construct(
-        private readonly EarlyHintCandidateCollector $collector,
-        private readonly EarlyHintCacheService $cacheService,
+        private EarlyHintCandidateCollector $collector,
+        private EarlyHintCacheService $cacheService,
     ) {}
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void

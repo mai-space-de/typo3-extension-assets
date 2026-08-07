@@ -9,11 +9,11 @@ use Maispace\MaiAssets\Event\BeforeImageProcessingEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Extbase\Service\ImageService;
 
-final class ImageVariantService
+final readonly class ImageVariantService
 {
     public function __construct(
-        private readonly ImageService $imageService,
-        private readonly EventDispatcherInterface $eventDispatcher,
+        private ImageService $imageService,
+        private EventDispatcherInterface $eventDispatcher,
     ) {}
 
     /**
@@ -48,7 +48,7 @@ final class ImageVariantService
                         ]
                     );
                     $bucketData[$format] = $this->imageService->getImageUri($processedImage, true);
-                } catch (\Exception $e) {
+                } catch (\Exception) {
                     // Format may not be supported — skip
                     $bucketData[$format] = '';
                 }

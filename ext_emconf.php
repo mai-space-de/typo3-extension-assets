@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 $EM_CONF[$_EXTKEY] = [
     'title' => 'Mai Assets',
     'description' => 'Intelligent asset pipeline for TYPO3 with critical CSS, SVG sprites, responsive images, font preloading, and self-optimising above-fold detection.',

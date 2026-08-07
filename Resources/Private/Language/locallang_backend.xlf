@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+<xliff
+    xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
     <file source-language="en" datatype="plaintext" original="messages" product-name="mai_assets">
         <body>
             <trans-unit id="menu.list">
@@ -11,7 +12,6 @@
             <trans-unit id="menu.support">
                 <source>Support</source>
             </trans-unit>
-
             <trans-unit id="list.title">
                 <source>Page Optimisation Status</source>
             </trans-unit>
@@ -60,7 +60,6 @@
             <trans-unit id="list.section.default_language">
                 <source>Default</source>
             </trans-unit>
-
             <trans-unit id="boost.title">
                 <source>Static File Cache Warmup</source>
             </trans-unit>
@@ -94,7 +93,6 @@
             <trans-unit id="boost.queue_count">
                 <source>{count} item(s) waiting</source>
             </trans-unit>
-
             <trans-unit id="support.title">
                 <source>System Support Information</source>
             </trans-unit>

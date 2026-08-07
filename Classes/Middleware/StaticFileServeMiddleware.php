@@ -53,12 +53,12 @@ use TYPO3\CMS\Core\Http\HtmlResponse;
  * @see EarlyHintsMiddleware
  * @see ExtensionConfiguration::isEnableStaticFileCache()
  */
-final class StaticFileServeMiddleware implements MiddlewareInterface
+final readonly class StaticFileServeMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private readonly StaticFileCacheDirectory $cacheDirectory,
-        private readonly ExtensionConfiguration $extensionConfiguration,
-        private readonly EarlyHintCacheService $earlyHintCacheService,
+        private StaticFileCacheDirectory $cacheDirectory,
+        private ExtensionConfiguration $extensionConfiguration,
+        private EarlyHintCacheService $earlyHintCacheService,
     ) {}
 
     public function process(
@@ -238,9 +238,7 @@ final class StaticFileServeMiddleware implements MiddlewareInterface
             $linkValues[] = $candidate->toLinkHeaderValue();
         }
 
-        if ($linkValues !== []) {
-            $headers['Link'] = implode(', ', $linkValues);
-        }
+        $headers['Link'] = implode(', ', $linkValues);
     }
 
     /**

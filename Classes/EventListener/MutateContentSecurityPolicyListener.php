@@ -6,7 +6,6 @@ namespace Maispace\MaiAssets\EventListener;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\Directive;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\Event\PolicyMutatedEvent;
@@ -14,10 +13,10 @@ use TYPO3\CMS\Core\Security\ContentSecurityPolicy\SourceKeyword;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\UriValue;
 
 #[AsEventListener(identifier: 'mai-assets/csp-mutation')]
-final class MutateContentSecurityPolicyListener
+final readonly class MutateContentSecurityPolicyListener
 {
     public function __construct(
-        private readonly ExtensionConfiguration $extensionConfiguration,
+        private ExtensionConfiguration $extensionConfiguration,
     ) {}
 
     public function __invoke(PolicyMutatedEvent $event): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\Service;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\ImageVariantService;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
@@ -14,7 +15,7 @@ use TYPO3\CMS\Extbase\Service\ImageService;
 
 final class PictureSourceRendererTest extends TestCase
 {
-    /** @var EventDispatcherInterface&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var EventDispatcherInterface&MockObject */
     private EventDispatcherInterface $eventDispatcher;
 
     protected function setUp(): void
@@ -141,7 +142,7 @@ final class PictureSourceRendererTest extends TestCase
             }
         };
 
-        $service = (new \ReflectionClass(ImageVariantService::class))->newInstanceWithoutConstructor();
+        $service = new \ReflectionClass(ImageVariantService::class)->newInstanceWithoutConstructor();
         $this->setProp($service, 'imageService', $imageService);
         $this->setProp($service, 'eventDispatcher', $this->eventDispatcher);
 
@@ -152,13 +153,12 @@ final class PictureSourceRendererTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
+        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void
     {
         $prop = new \ReflectionProperty($target::class, $property);
-        $prop->setAccessible(true);
         $prop->setValue($target, $value);
     }
 }

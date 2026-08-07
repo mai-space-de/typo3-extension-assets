@@ -8,15 +8,15 @@ plugin.tx_maispace_assets {
     settings {
         # Asset processing
         css {
-            minify           = 1
-            outputDir        = typo3temp/assets/mai_assets/compiled/
+            minify = 1
+            outputDir = typo3temp/assets/mai_assets/compiled/
         }
         js {
-            minify           = 1
-            defer            = 1
+            minify = 1
+            defer = 1
         }
         scss {
-            minify           = 1
+            minify = 1
             defaultImportPaths =
         }
 
@@ -29,19 +29,19 @@ plugin.tx_maispace_assets {
 
         # SVG sprite
         svgSprite {
-            symbolIdPrefix   = icon-
+            symbolIdPrefix = icon-
         }
 
         # Fonts
         fonts {
-            preloadFormats   = woff2
+            preloadFormats = woff2
         }
 
         # Image variants
         image {
-            lazyloading      = 1
-            lazyloadClass    = lazyload
-            forceFormat      =
+            lazyloading = 1
+            lazyloadClass = lazyload
+            forceFormat =
             alternativeFormats = avif,webp
         }
 
@@ -49,14 +49,14 @@ plugin.tx_maispace_assets {
         compression {
             enable = 1
             brotli = 1
-            gzip   = 1
+            gzip = 1
         }
 
         # HTML output minification (opt-in, disabled by default)
         htmlMinification {
-            enable           = 0
-            stripComments    = 1
-            preserveTags     = pre,code,textarea
+            enable = 0
+            stripComments = 1
+            preserveTags = pre,code,textarea
         }
     }
 }

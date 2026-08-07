@@ -14,13 +14,13 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
 #[AsEventListener(identifier: 'mai-assets/above-fold-observer')]
-final class AboveFoldObserverListener
+final readonly class AboveFoldObserverListener
 {
     public function __construct(
-        private readonly AboveFoldCacheService $aboveFoldCacheService,
-        private readonly AboveFoldTokenService $tokenService,
-        private readonly EventDispatcherInterface $eventDispatcher,
-        private readonly ExtensionConfiguration $extensionConfiguration,
+        private AboveFoldCacheService $aboveFoldCacheService,
+        private AboveFoldTokenService $tokenService,
+        private EventDispatcherInterface $eventDispatcher,
+        private ExtensionConfiguration $extensionConfiguration,
     ) {}
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void

@@ -46,11 +46,11 @@ final class DebugHeadersMiddlewareTest extends TestCase
 
     private function makeConfig(bool $debugHeaders): ExtensionConfiguration
     {
-        $config = (new \ReflectionClass(ExtensionConfiguration::class))
+        $config = new \ReflectionClass(ExtensionConfiguration::class)
             ->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders')
             ->setValue($config, $debugHeaders);
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets')
             ->setValue($config, [
                 'mobile' => 768,
                 'tablet' => 1024,
@@ -62,7 +62,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
 
     private function makeAboveFoldCacheService(): AboveFoldCacheService
     {
-        $service = (new \ReflectionClass(AboveFoldCacheService::class))
+        $service = new \ReflectionClass(AboveFoldCacheService::class)
             ->newInstanceWithoutConstructor();
         $cacheProp = new \ReflectionProperty(AboveFoldCacheService::class, 'cache');
         $cacheProp->setValue($service, $this->aboveFoldFrontend);
@@ -137,12 +137,10 @@ final class DebugHeadersMiddlewareTest extends TestCase
 
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getAttribute')
-            ->willReturnCallback(function (string $name) use ($pageInformation) {
-                return match ($name) {
-                    'frontend.page.information' => $pageInformation,
-                    'language' => null,
-                    default => null,
-                };
+            ->willReturnCallback(fn(string $name) => match ($name) {
+                'frontend.page.information' => $pageInformation,
+                'language' => null,
+                default => null,
             });
 
         $this->response
@@ -187,12 +185,10 @@ final class DebugHeadersMiddlewareTest extends TestCase
 
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getAttribute')
-            ->willReturnCallback(function (string $name) use ($pageInformation) {
-                return match ($name) {
-                    'frontend.page.information' => $pageInformation,
-                    'language' => null,
-                    default => null,
-                };
+            ->willReturnCallback(fn(string $name) => match ($name) {
+                'frontend.page.information' => $pageInformation,
+                'language' => null,
+                default => null,
             });
 
         $this->response
@@ -229,12 +225,10 @@ final class DebugHeadersMiddlewareTest extends TestCase
 
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getAttribute')
-            ->willReturnCallback(function (string $name) use ($pageInformation) {
-                return match ($name) {
-                    'frontend.page.information' => $pageInformation,
-                    'language' => null,
-                    default => null,
-                };
+            ->willReturnCallback(fn(string $name) => match ($name) {
+                'frontend.page.information' => $pageInformation,
+                'language' => null,
+                default => null,
             });
 
         $this->response
@@ -277,9 +271,9 @@ final class DebugHeadersMiddlewareTest extends TestCase
     {
         $pageInformation = $this->createPageInformation(7);
 
-        $language = new class(1) {
+        $language = new readonly class(1) {
             public function __construct(
-                private readonly int $languageId,
+                private int $languageId,
             ) {}
 
             public function getLanguageId(): int
@@ -290,12 +284,10 @@ final class DebugHeadersMiddlewareTest extends TestCase
 
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getAttribute')
-            ->willReturnCallback(function (string $name) use ($pageInformation, $language) {
-                return match ($name) {
-                    'frontend.page.information' => $pageInformation,
-                    'language' => $language,
-                    default => null,
-                };
+            ->willReturnCallback(fn(string $name) => match ($name) {
+                'frontend.page.information' => $pageInformation,
+                'language' => $language,
+                default => null,
             });
 
         $this->response
@@ -340,11 +332,9 @@ final class DebugHeadersMiddlewareTest extends TestCase
 
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getAttribute')
-            ->willReturnCallback(function (string $name) use ($pageInformation) {
-                return match ($name) {
-                    'frontend.page.information' => $pageInformation,
-                    default => null,
-                };
+            ->willReturnCallback(fn(string $name) => match ($name) {
+                'frontend.page.information' => $pageInformation,
+                default => null,
             });
 
         $this->response
@@ -370,9 +360,9 @@ final class DebugHeadersMiddlewareTest extends TestCase
      */
     private function createPageInformation(int $pageUid): object
     {
-        return new class($pageUid) {
+        return new readonly class($pageUid) {
             public function __construct(
-                private readonly int $pageUid,
+                private int $pageUid,
             ) {}
 
             /** @return array{uid: int} */

@@ -30,16 +30,19 @@ final class MinificationProcessor extends AbstractAssetProcessor
         return $minifier->minify();
     }
 
+    #[\Override]
     protected function getSettingsHash(): array
     {
         return ['type' => 'minify'];
     }
 
+    #[\Override]
     protected function getCacheExtension(): string
     {
         return 'css';
     }
 
+    #[\Override]
     protected function getContentType(string $sourcePath): string
     {
         $ext = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));

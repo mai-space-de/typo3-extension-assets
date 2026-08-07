@@ -114,6 +114,6 @@ final class WarmupCommand extends Command
         if (!is_array($assets)) {
             return [];
         }
-        return array_values(array_filter(array_map('strval', $assets)));
+        return array_values(array_filter(array_map(strval(...), $assets)));
     }
 }

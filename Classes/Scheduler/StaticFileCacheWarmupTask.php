@@ -4,20 +4,28 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Scheduler;
 
+use Maispace\MaiAssets\Service\WarmupHttpClientService;
+use Maispace\MaiAssets\StaticFileCache\WarmupQueueRepository;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\Task\AbstractTask;
 
 /**
- * Scheduler task that processes the staticfilecache boost queue.
+ * Scheduler task that processes the native warmup queue.
  *
- * This task should be scheduled to run every 5 minutes. It processes
- * URLs that have been added to the queue by CacheWarmupService when
- * pages reach readiness. If the staticfilecache extension is not installed,
- * the task completes silently.
+ * This task should be scheduled to run every 5 minutes. It processes URLs
+ * that have been added to the queue by CacheWarmupService when pages reach
+ * readiness, crawling them via WarmupHttpClientService so real HTTP
+ * requests trigger AfterCacheableContentIsGeneratedEvent and populate the
+ * static HTML cache.
  *
- * The actual queue processing is handled by staticfilecache's QueueService.
+ * The class name is kept stable even though it no longer touches
+ * staticfilecache, since existing scheduled task records reference it by
+ * FQCN.
+ *
+ * @see \Maispace\MaiAssets\StaticFileCache\WarmupQueueRepository
+ * @see \Maispace\MaiAssets\Service\WarmupHttpClientService
  */
 final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwareInterface
 {
@@ -28,33 +36,15 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
      */
     public function execute(): bool
     {
-        if (!class_exists(\SFC\Staticfilecache\Service\QueueService::class)) {
-            $this->logger?->info(
-                'staticfilecache extension not installed, skipping queue processing'
-            );
-            return true;
-        }
-
-        if (!class_exists(\SFC\Staticfilecache\Domain\Repository\QueueRepository::class)) {
-            return false;
-        }
+        $queueRepository = GeneralUtility::makeInstance(WarmupQueueRepository::class);
+        $httpClientService = GeneralUtility::makeInstance(WarmupHttpClientService::class);
 
         try {
-            /** @var \SFC\Staticfilecache\Domain\Repository\QueueRepository $queueRepository */
-            $queueRepository = GeneralUtility::makeInstance(
-                \SFC\Staticfilecache\Domain\Repository\QueueRepository::class
-            );
-
             $queueCount = $queueRepository->countOpen();
             if ($queueCount === 0) {
-                $this->logger?->debug('No items in staticfilecache queue');
+                $this->logger?->debug('No items in warmup queue');
                 return true;
             }
-
-            /** @var \SFC\Staticfilecache\Service\QueueService $queueService */
-            $queueService = GeneralUtility::makeInstance(
-                \SFC\Staticfilecache\Service\QueueService::class
-            );
 
             $startTime = time();
             $totalProcessed = 0;
@@ -69,7 +59,7 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
                 if (time() >= $startTime + $stopProcessingAfter) {
                     $this->logger?->info(
                         sprintf(
-                            'Stopped staticfilecache queue processing after %d seconds',
+                            'Stopped warmup queue processing after %d seconds',
                             $stopProcessingAfter
                         )
                     );
@@ -82,13 +72,24 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
                     break;
                 }
 
-                $statusResults = $queueService->runBatchRequests($entriesBatch, $concurrency);
+                $urlsByUid = [];
+                foreach ($entriesBatch as $entry) {
+                    $urlsByUid[(int)$entry['uid']] = (string)$entry['cache_url'];
+                }
 
-                $batchSuccess = count(array_filter($statusResults, fn($status) => $status === 200));
+                $statusResults = $httpClientService->runBatch($urlsByUid, $concurrency);
+
+                $batchSuccess = count(array_filter($statusResults, static fn(int $status): bool => $status === 200));
                 $successCount += $batchSuccess;
                 $failedCount += (count($entriesBatch) - $batchSuccess);
 
                 $totalProcessed += count($entriesBatch);
+
+                $markResults = [];
+                foreach ($statusResults as $uid => $status) {
+                    $markResults[] = ['uid' => $uid, 'call_result' => $status];
+                }
+                $queueRepository->markProcessed($markResults);
 
                 if (count($entriesBatch) < $batchSize) {
                     break;
@@ -101,7 +102,7 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
 
             $this->logger?->info(
                 sprintf(
-                    'Processed %d staticfilecache queue items in %d seconds (success: %d, failed: %d)',
+                    'Processed %d warmup queue items in %d seconds (success: %d, failed: %d)',
                     $totalProcessed,
                     $duration,
                     $successCount,
@@ -115,7 +116,7 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
         } catch (\Throwable $e) {
             $this->logger?->error(
                 sprintf(
-                    'Error processing staticfilecache queue: %s',
+                    'Error processing warmup queue: %s',
                     $e->getMessage()
                 )
             );
@@ -123,30 +124,17 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
         }
     }
 
-    /**
-     * Clean up old queue entries.
-     *
-     * @param \SFC\Staticfilecache\Domain\Repository\QueueRepository $queueRepository
-     * @return void
-     */
-    private function cleanupQueue(
-        \SFC\Staticfilecache\Domain\Repository\QueueRepository $queueRepository
-    ): void {
+    private function cleanupQueue(WarmupQueueRepository $queueRepository): void
+    {
         try {
             $batchSize = 1000;
             $totalDeleted = 0;
 
             while (true) {
-                $batch = $queueRepository->findOldBatch($batchSize);
-                if (empty($batch)) {
-                    break;
-                }
+                $deleted = $queueRepository->cleanupOld($batchSize);
+                $totalDeleted += $deleted;
 
-                $uids = array_column($batch, 'uid');
-                $count = $queueRepository->bulkDelete($uids);
-                $totalDeleted += $count;
-
-                if (count($batch) < $batchSize) {
+                if ($deleted < $batchSize) {
                     break;
                 }
             }

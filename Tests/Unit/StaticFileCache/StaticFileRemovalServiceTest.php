@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\StaticFileCache;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
 use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use TYPO3\CMS\Core\Site\SiteFinder;
 
 final class StaticFileRemovalServiceTest extends TestCase
 {
-    /** @var StaticFileCacheDirectory&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var StaticFileCacheDirectory&MockObject */
     private StaticFileCacheDirectory $cacheDirectory;
 
     private StaticFileRemovalService $subject;
@@ -23,8 +25,14 @@ final class StaticFileRemovalServiceTest extends TestCase
         parent::setUp();
         $this->cacheDirectory = $this->createMock(StaticFileCacheDirectory::class);
 
+        // SiteFinder is readonly (cannot be mocked) and is never called in these
+        // tests — every case either guards before resolving a site or passes one
+        // explicitly, so an uninitialized instance is sufficient.
+        $siteFinder = new \ReflectionClass(SiteFinder::class)->newInstanceWithoutConstructor();
+
         $this->subject = new StaticFileRemovalService(
             $this->cacheDirectory,
+            $siteFinder,
         );
         $this->subject->setLogger(new NullLogger());
     }

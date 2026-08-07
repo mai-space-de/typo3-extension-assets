@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
-    <file source-language="en" target-language="de" datatype="plaintext" original="messages"
-          date="2025-01-01T00:00:00Z" product-name="mai_assets">
+<xliff
+    xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="de" datatype="plaintext" original="messages" date="2025-01-01T00:00:00Z" product-name="mai_assets">
         <header/>
         <body>
             <trans-unit id="tt_content.tx_maiassets_force_critical">

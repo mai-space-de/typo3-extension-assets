@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Image;
 
+use TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\ViewHelperNode;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
@@ -114,13 +114,11 @@ class PictureViewHelper extends AbstractViewHelper
         try {
             $processedImage = $this->imageService->applyProcessingInstructions($image, $processingInstructions);
             $imgSrc = $this->imageService->getImageUri($processedImage, true);
-            if ($processedImage instanceof ProcessedFile) {
-                if ($imgWidth <= 0) {
-                    $imgWidth = (int)($processedImage->getProperty('width') ?? 0);
-                }
-                if ($imgHeight <= 0) {
-                    $imgHeight = (int)($processedImage->getProperty('height') ?? 0);
-                }
+            if ($imgWidth <= 0) {
+                $imgWidth = (int)($processedImage->getProperty('width') ?? 0);
+            }
+            if ($imgHeight <= 0) {
+                $imgHeight = (int)($processedImage->getProperty('height') ?? 0);
             }
         } catch (\Exception) {
             $imgSrc = '';
@@ -160,7 +158,7 @@ class PictureViewHelper extends AbstractViewHelper
      */
     protected function renderChildSources(): string
     {
-        if ($this->viewHelperNode === null) {
+        if (!$this->viewHelperNode instanceof ViewHelperNode) {
             return '';
         }
 

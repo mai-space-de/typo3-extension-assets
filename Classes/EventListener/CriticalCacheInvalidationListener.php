@@ -15,11 +15,11 @@ use TYPO3\CMS\Core\Attribute\AsEventListener;
  * with inlined critical CSS before static file cache write.
  */
 #[AsEventListener(identifier: 'mai-assets/critical-cache-invalidation')]
-final class CriticalCacheInvalidationListener
+final readonly class CriticalCacheInvalidationListener
 {
     public function __construct(
-        private readonly InvalidationService $invalidationService,
-        private readonly PageOptimizationReadinessService $readinessService,
+        private InvalidationService $invalidationService,
+        private PageOptimizationReadinessService $readinessService,
     ) {}
 
     public function __invoke(AfterCriticalUidsUpdatedEvent $event): void

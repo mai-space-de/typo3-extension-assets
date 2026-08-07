@@ -13,7 +13,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 final class CriticalCssRegressionService
 {
-    private const BASELINE_FILE = 'EXT:mai_assets/Resources/Private/Baselines/critical-css-baseline.json';
+    private const string BASELINE_FILE = 'EXT:mai_assets/Resources/Private/Baselines/critical-css-baseline.json';
 
     private ?string $overrideBaselinePath = null;
 
@@ -92,7 +92,7 @@ final class CriticalCssRegressionService
                 return [];
             }
 
-            return array_filter($baseline, static fn($value) => is_int($value));
+            return array_filter($baseline, is_int(...));
         } catch (\Exception) {
             return [];
         }

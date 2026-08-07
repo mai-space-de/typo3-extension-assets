@@ -13,7 +13,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 abstract class AbstractAssetProcessor implements AssetProcessorInterface
 {
-    private const CACHE_DIR = 'typo3temp/assets/mai_assets/compiled/';
+    private const string CACHE_DIR = 'typo3temp/assets/mai_assets/compiled/';
 
     public function __construct(
         protected readonly EventDispatcherInterface $eventDispatcher,

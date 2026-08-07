@@ -13,13 +13,13 @@ use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
 #[AsEventListener(identifier: 'mai-assets/svg-sprite-injection')]
-final class SvgSpriteInjectionListener
+final readonly class SvgSpriteInjectionListener
 {
     public function __construct(
-        private readonly SvgSpriteCollector $svgSpriteCollector,
-        private readonly FontPreloadCollector $fontPreloadCollector,
-        private readonly ExtensionConfigurationDiscovery $extensionConfigurationDiscovery,
-        private readonly EarlyHintCandidateCollector $earlyHintCollector,
+        private SvgSpriteCollector $svgSpriteCollector,
+        private FontPreloadCollector $fontPreloadCollector,
+        private ExtensionConfigurationDiscovery $extensionConfigurationDiscovery,
+        private EarlyHintCandidateCollector $earlyHintCollector,
     ) {}
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void

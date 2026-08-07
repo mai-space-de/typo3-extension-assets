@@ -40,10 +40,9 @@ final class EarlyHintsMiddlewareTest extends TestCase
         // control what load() returns without a real TYPO3 cache manager.
         $this->cacheFrontend = $this->createMock(FrontendInterface::class);
 
-        $this->cacheService = (new \ReflectionClass(EarlyHintCacheService::class))
+        $this->cacheService = new \ReflectionClass(EarlyHintCacheService::class)
             ->newInstanceWithoutConstructor();
         $cacheProp = new \ReflectionProperty(EarlyHintCacheService::class, 'cache');
-        $cacheProp->setAccessible(true);
         $cacheProp->setValue($this->cacheService, $this->cacheFrontend);
 
         // Stub handler to return a response so process() always has something to return.
@@ -75,7 +74,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
     {
         $request = $this->makeGetRequest(pageArguments: null, language: null);
 
-        $result = (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        $result = new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
 
         self::assertSame($this->response, $result);
     }
@@ -84,7 +83,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
     {
         $request = $this->makeRequest('POST', pageArguments: $this->makePageArguments(1), language: null);
 
-        $result = (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        $result = new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
 
         self::assertSame($this->response, $result);
     }
@@ -94,7 +93,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
         $this->cacheFrontend->method('get')->willReturn(false);
         $request = $this->makeGetRequest(pageArguments: $this->makePageArguments(1), language: null);
 
-        $result = (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        $result = new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
 
         self::assertSame($this->response, $result);
     }
@@ -109,7 +108,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
 
         $request = $this->makeGetRequest(pageArguments: null, language: null);
 
-        (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
     }
 
     public function testProcessNeverLoadsCacheWhenRequestIsPost(): void
@@ -118,7 +117,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
 
         $request = $this->makeRequest('POST', pageArguments: $this->makePageArguments(7), language: null);
 
-        (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
     }
 
     // -------------------------------------------------------------------------
@@ -141,7 +140,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
             language: $this->makeLanguage(3),
         );
 
-        (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
     }
 
     public function testProcessUsesDefaultLanguageUidZeroWhenLanguageIsNull(): void
@@ -157,7 +156,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
             language: null,
         );
 
-        (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
     }
 
     // -------------------------------------------------------------------------
@@ -178,7 +177,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
             language: $this->makeLanguage(0),
         );
 
-        $result = (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        $result = new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
 
         self::assertSame($this->response, $result);
     }
@@ -194,7 +193,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
             language: $this->makeLanguage(0),
         );
 
-        (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
     }
 
     // -------------------------------------------------------------------------
@@ -235,7 +234,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
             language: $this->makeLanguage(0),
         );
 
-        $result = (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        $result = new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
 
         self::assertSame($responseWithLink, $result);
     }
@@ -262,7 +261,7 @@ final class EarlyHintsMiddlewareTest extends TestCase
             language: $this->makeLanguage(0),
         );
 
-        $result = (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+        $result = new EarlyHintsMiddleware($this->cacheService)->process($request, $this->handler);
 
         self::assertSame($this->response, $result);
     }
@@ -284,12 +283,10 @@ final class EarlyHintsMiddlewareTest extends TestCase
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getMethod')->willReturn($method);
         $request->method('getAttribute')->willReturnCallback(
-            static function (string $name) use ($pageArguments, $language): mixed {
-                return match ($name) {
-                    'routing'  => $pageArguments,
-                    'language' => $language,
-                    default    => null,
-                };
+            static fn(string $name): mixed => match ($name) {
+                'routing'  => $pageArguments,
+                'language' => $language,
+                default    => null,
             }
         );
         return $request;

@@ -16,7 +16,7 @@ final class AboveFoldCacheService implements SingletonInterface
 {
     use CacheKeyTrait;
 
-    private const CACHE_IDENTIFIER = 'mai_assets_above_fold';
+    private const string CACHE_IDENTIFIER = 'mai_assets_above_fold';
 
     private FrontendInterface $cache;
 
@@ -48,7 +48,7 @@ final class AboveFoldCacheService implements SingletonInterface
         if (!is_array($buckets)) {
             return [];
         }
-        return array_values(array_map('strval', $buckets));
+        return array_values(array_map(strval(...), $buckets));
     }
 
     public function getAllCriticalUids(int $pageUid): array

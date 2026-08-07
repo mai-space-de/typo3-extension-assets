@@ -27,6 +27,7 @@ final class ScssProcessor extends AbstractAssetProcessor
         return strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === 'scss';
     }
 
+    #[\Override]
     protected function getSourceFingerprint(string $sourcePath): string
     {
         return $this->scssDependencyHasher->hash($sourcePath);
@@ -57,11 +58,13 @@ final class ScssProcessor extends AbstractAssetProcessor
         }
     }
 
+    #[\Override]
     protected function getSettingsHash(): array
     {
         return ['type' => 'scss'];
     }
 
+    #[\Override]
     protected function getCacheExtension(): string
     {
         return 'css';

@@ -10,7 +10,6 @@ use Maispace\MaiAssets\Service\ImageVariantService;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
-use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Extbase\Service\ImageService;
 
@@ -260,7 +259,7 @@ final class ImageVariantServiceTest extends TestCase
     private function stubFormatFails(string $format): ImageService
     {
         return new readonly class ($format) extends ImageService {
-            public function __construct(private readonly string $failFormat)
+            public function __construct(private string $failFormat)
             {
             }
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
@@ -270,7 +269,7 @@ final class ImageVariantServiceTest extends TestCase
                     ? $fmt === 'jpg'
                     : $fmt === $this->failFormat;
                 if ($isFail) {
-                    throw new RuntimeException('Unsupported format');
+                    throw new RuntimeException('Unsupported format', 5463614710);
                 }
                 return new class extends ProcessedFile {
                     public function __construct()
@@ -288,7 +287,7 @@ final class ImageVariantServiceTest extends TestCase
     private function stubFormatsFail(array $formats): ImageService
     {
         return new readonly class ($formats) extends ImageService {
-            public function __construct(private readonly array $failFormats)
+            public function __construct(private array $failFormats)
             {
             }
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
@@ -296,7 +295,7 @@ final class ImageVariantServiceTest extends TestCase
                 $fmt = $instructions['format'];
                 foreach ($this->failFormats as $fail) {
                     if ($fail === 'jpeg' ? $fmt === 'jpg' : $fmt === $fail) {
-                        throw new RuntimeException('Unsupported format');
+                        throw new RuntimeException('Unsupported format', 9763711906);
                     }
                 }
                 return new class extends ProcessedFile {
@@ -315,13 +314,13 @@ final class ImageVariantServiceTest extends TestCase
     private function stubWidthFails(int $width): ImageService
     {
         return new readonly class ($width) extends ImageService {
-            public function __construct(private readonly int $failWidth)
+            public function __construct(private int $failWidth)
             {
             }
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
                 if ($instructions['width'] === $this->failWidth) {
-                    throw new RuntimeException('Processing failed');
+                    throw new RuntimeException('Processing failed', 5563968320);
                 }
                 return new class extends ProcessedFile {
                     public function __construct()
@@ -344,11 +343,11 @@ final class ImageVariantServiceTest extends TestCase
             }
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
-                throw new \LogicException('must not be called');
+                throw new \LogicException('must not be called', 8773899132);
             }
             public function getImageUri($file, bool $absolute = false): string
             {
-                throw new \LogicException('must not be called');
+                throw new \LogicException('must not be called', 2363266190);
             }
         };
     }
@@ -356,7 +355,7 @@ final class ImageVariantServiceTest extends TestCase
     private function stubRecordCalls(\ArrayObject $log): ImageService
     {
         return new readonly class ($log) extends ImageService {
-            public function __construct(private readonly \ArrayObject $log)
+            public function __construct(private \ArrayObject $log)
             {
             }
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile

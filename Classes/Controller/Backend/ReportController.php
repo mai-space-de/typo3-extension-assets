@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Controller\Backend;
 
-use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
+use Maispace\MaiAssets\StaticFileCache\WarmupQueueRepository;
+use Doctrine\DBAL\ParameterType;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -17,7 +18,6 @@ use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
-use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
@@ -32,15 +32,14 @@ class ReportController extends ActionController implements LoggerAwareInterface
 
     public function __construct(
         private readonly ModuleTemplateFactory $moduleTemplateFactory,
-        private readonly IconFactory $iconFactory,
         private readonly PageOptimizationReadinessService $readinessService,
         private readonly EarlyHintCacheService $earlyHintCacheService,
-        private readonly AboveFoldCacheService $aboveFoldCacheService,
         private readonly ExtensionConfiguration $extensionConfiguration,
         private readonly StaticFileCacheDirectory $staticFileCacheDirectory,
         private readonly SiteFinder $siteFinder,
         private readonly CacheManager $cacheManager,
         private readonly ConnectionPool $connectionPool,
+        private readonly WarmupQueueRepository $warmupQueueRepository,
     ) {}
 
     public function listAction(): ResponseInterface
@@ -133,7 +132,7 @@ class ReportController extends ActionController implements LoggerAwareInterface
                 $cache = $this->cacheManager->getCache($cacheName);
                 $backend = $cache->getBackend();
                 $cacheInfo[$cacheName] = [
-                    'backend' => get_class($backend),
+                    'backend' => $backend::class,
                     'entries' => method_exists($backend, 'getNumberOfEntries')
                         ? $backend->getNumberOfEntries()
                         : 'n/a',
@@ -198,8 +197,8 @@ class ReportController extends ActionController implements LoggerAwareInterface
 
         if ($pageUid > 0) {
             $parentClause = $queryBuilder->expr()->or(
-                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($pageUid, \PDO::PARAM_INT)),
-                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageUid, \PDO::PARAM_INT)),
+                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($pageUid, ParameterType::INTEGER)),
+                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageUid, ParameterType::INTEGER)),
             );
             $constraints[] = $parentClause;
         } else {
@@ -230,7 +229,7 @@ class ReportController extends ActionController implements LoggerAwareInterface
 
         try {
             $site = $this->siteFinder->getSiteByPageId($pageUid);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $languageData[] = [
                 'languageUid' => 0,
                 'languageTitle' => 'Default',
@@ -257,7 +256,7 @@ class ReportController extends ActionController implements LoggerAwareInterface
     {
         try {
             return count($this->earlyHintCacheService->load($pageUid, $languageUid));
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return 0;
         }
     }
@@ -271,29 +270,18 @@ class ReportController extends ActionController implements LoggerAwareInterface
         try {
             $dir = $this->staticFileCacheDirectory->getPageDirectoryById($pageUid, $languageUid);
             return is_dir($dir);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return false;
         }
     }
 
     /**
-     * @return array{available: bool, count: int|null}|null
+     * @return array{available: bool, count: int|null}
      */
-    private function getWarmupQueueInfo(): ?array
+    private function getWarmupQueueInfo(): array
     {
-        if (!class_exists(\SFC\Staticfilecache\Domain\Repository\QueueRepository::class)) {
-            return [
-                'available' => false,
-                'count' => null,
-            ];
-        }
-
         try {
-            /** @var \SFC\Staticfilecache\Domain\Repository\QueueRepository $queueRepository */
-            $queueRepository = GeneralUtility::makeInstance(
-                \SFC\Staticfilecache\Domain\Repository\QueueRepository::class
-            );
-            $count = $queueRepository->countOpen();
+            $count = $this->warmupQueueRepository->countOpen();
 
             return [
                 'available' => true,

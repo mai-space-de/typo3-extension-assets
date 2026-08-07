@@ -14,17 +14,17 @@ use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Http\JsonResponse;
 
-final class AboveFoldReportMiddleware implements MiddlewareInterface
+final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
 {
-    private const ROUTE_PATH = '/api/mai-assets/above-fold-report';
-    private const RATE_LIMIT_MAX   = 10;
-    private const RATE_LIMIT_WINDOW = 60;
+    private const string ROUTE_PATH = '/api/mai-assets/above-fold-report';
+    private const int RATE_LIMIT_MAX   = 10;
+    private const int RATE_LIMIT_WINDOW = 60;
 
     public function __construct(
-        private readonly AboveFoldCacheService $aboveFoldCacheService,
-        private readonly ExtensionConfiguration $extensionConfiguration,
-        private readonly AboveFoldTokenService $tokenService,
-        private readonly CacheManager $cacheManager,
+        private AboveFoldCacheService $aboveFoldCacheService,
+        private ExtensionConfiguration $extensionConfiguration,
+        private AboveFoldTokenService $tokenService,
+        private CacheManager $cacheManager,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -47,7 +47,7 @@ final class AboveFoldReportMiddleware implements MiddlewareInterface
 
         // IP-based rate limiting
         $rateLimitResponse = $this->checkRateLimit($request);
-        if ($rateLimitResponse !== null) {
+        if ($rateLimitResponse instanceof ResponseInterface) {
             return $rateLimitResponse;
         }
 
@@ -84,7 +84,7 @@ final class AboveFoldReportMiddleware implements MiddlewareInterface
 
         $pageUid = (int)$data['pageUid'];
         $bucket = (string)$data['bucket'];
-        $criticalUids = array_map('intval', (array)$data['criticalUids']);
+        $criticalUids = array_map(intval(...), (array)$data['criticalUids']);
 
         $changed = $this->aboveFoldCacheService->updateCriticalUids($pageUid, $bucket, $criticalUids);
 
@@ -121,12 +121,7 @@ final class AboveFoldReportMiddleware implements MiddlewareInterface
 
     private function isArrayOfIntegers(array $array): bool
     {
-        foreach ($array as $item) {
-            if (!(is_int($item) || ctype_digit((string)$item)) || (int)$item <= 0) {
-                return false;
-            }
-        }
-        return true;
+        return array_all($array, fn($item) => (is_int($item) || ctype_digit((string)$item)) && (int)$item > 0);
     }
 
     private function checkRateLimit(ServerRequestInterface $request): ?ResponseInterface

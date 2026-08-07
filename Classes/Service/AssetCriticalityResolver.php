@@ -7,12 +7,12 @@ namespace Maispace\MaiAssets\Service;
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 
-final class AssetCriticalityResolver
+final readonly class AssetCriticalityResolver
 {
     public function __construct(
-        private readonly AboveFoldCacheService $aboveFoldCacheService,
-        private readonly CriticalDetectionService $criticalDetectionService,
-        private readonly ExtensionConfiguration $extensionConfiguration,
+        private AboveFoldCacheService $aboveFoldCacheService,
+        private CriticalDetectionService $criticalDetectionService,
+        private ExtensionConfiguration $extensionConfiguration,
     ) {}
 
     /**

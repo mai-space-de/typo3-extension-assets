@@ -12,10 +12,10 @@ use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
     identifier: 'mai-assets/html-minification',
     after: 'mai-assets/svg-sprite-injection',
 )]
-final class HtmlMinificationListener
+final readonly class HtmlMinificationListener
 {
     public function __construct(
-        private readonly HtmlMinificationService $htmlMinificationService,
+        private HtmlMinificationService $htmlMinificationService,
     ) {}
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void

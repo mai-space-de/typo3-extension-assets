@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\ViewHelpers\Image;
 
+use Psr\Http\Message\ServerRequestInterface;
+use TYPO3Fluid\Fluid\Core\ViewHelper\ViewHelperVariableContainer;
+use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
@@ -27,7 +30,7 @@ use TYPO3Fluid\Fluid\Core\Variables\StandardVariableProvider;
  */
 final class PictureViewHelperTest extends TestCase
 {
-    /** @var EventDispatcherInterface&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var EventDispatcherInterface&MockObject */
     private EventDispatcherInterface $eventDispatcher;
 
     private EarlyHintCandidateCollector $earlyHintCollector;
@@ -53,7 +56,7 @@ final class PictureViewHelperTest extends TestCase
         $this->criticalityResolver = new AssetCriticalityResolver($cacheService, $detectionService, $this->extensionConfiguration);
 
         // Set up a mock server request for getRequest() calls
-        $mockRequest = $this->createMock(\Psr\Http\Message\ServerRequestInterface::class);
+        $mockRequest = $this->createMock(ServerRequestInterface::class);
         $mockRequest->method('getAttribute')->willReturn(null);
         $GLOBALS['TYPO3_REQUEST'] = $mockRequest;
     }
@@ -202,7 +205,7 @@ final class PictureViewHelperTest extends TestCase
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
-                throw new RuntimeException('Processing failed');
+                throw new RuntimeException('Processing failed', 9139849507);
             }
 
             public function getImageUri($file, bool $absolute = false): string
@@ -325,7 +328,7 @@ final class PictureViewHelperTest extends TestCase
         int $width = 0,
         int $height = 0,
     ): PictureViewHelper {
-        if ($pictureSourceRenderer === null) {
+        if (!$pictureSourceRenderer instanceof PictureSourceRenderer) {
             $pictureSourceRenderer = $this->createMock(PictureSourceRenderer::class);
             $pictureSourceRenderer->method('renderDefaultSources')->willReturn('');
         }
@@ -360,8 +363,8 @@ final class PictureViewHelperTest extends TestCase
     {
         return new readonly class($width, $height) extends ImageService {
             public function __construct(
-                private readonly int $width,
-                private readonly int $height,
+                private int $width,
+                private int $height,
             ) {}
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
@@ -402,24 +405,21 @@ final class PictureViewHelperTest extends TestCase
     private function createRenderingContext(string $childrenOutput = ''): RenderingContext
     {
         return new class($childrenOutput) extends RenderingContext {
-            private string $childrenOutput;
-
-            public function __construct(string $childrenOutput)
+            public function __construct(private readonly string $childrenOutput)
             {
-                $this->childrenOutput = $childrenOutput;
                 $this->setVariableProvider($this->createPictureVariableProvider());
-                $this->setViewHelperVariableContainer(new \TYPO3Fluid\Fluid\Core\ViewHelper\ViewHelperVariableContainer());
+                $this->setViewHelperVariableContainer(new ViewHelperVariableContainer());
             }
 
             public function hasAttribute(string $className): bool
             {
-                return $className === \Psr\Http\Message\ServerRequestInterface::class
+                return $className === ServerRequestInterface::class
                     && isset($GLOBALS['TYPO3_REQUEST']);
             }
 
             public function getAttribute(string $className): object
             {
-                if ($className === \Psr\Http\Message\ServerRequestInterface::class) {
+                if ($className === ServerRequestInterface::class) {
                     return $GLOBALS['TYPO3_REQUEST'];
                 }
 
@@ -503,13 +503,12 @@ final class PictureViewHelperTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
+        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void
     {
         $prop = new \ReflectionProperty($target::class, $property);
-        $prop->setAccessible(true);
         $prop->setValue($target, $value);
     }
 }

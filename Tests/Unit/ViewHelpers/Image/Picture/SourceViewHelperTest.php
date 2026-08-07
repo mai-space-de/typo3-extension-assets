@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\ViewHelpers\Image\Picture;
 
+use Psr\Http\Message\ServerRequestInterface;
+use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\ImageVariantService;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
@@ -21,7 +23,7 @@ use TYPO3Fluid\Fluid\Core\Variables\StandardVariableProvider;
  */
 final class SourceViewHelperTest extends TestCase
 {
-    /** @var EventDispatcherInterface&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var EventDispatcherInterface&MockObject */
     private EventDispatcherInterface $eventDispatcher;
 
     protected function setUp(): void
@@ -346,7 +348,7 @@ final class SourceViewHelperTest extends TestCase
                 };
             }
 
-            public function getRequest(): \Psr\Http\Message\ServerRequestInterface
+            public function getRequest(): ServerRequestInterface
             {
                 return $GLOBALS['TYPO3_REQUEST'];
             }
@@ -361,13 +363,13 @@ final class SourceViewHelperTest extends TestCase
     private function stubVariantService(array $failFormats = []): ImageVariantService
     {
         $imageService = new readonly class($failFormats) extends ImageService {
-            public function __construct(private readonly array $failFormats) {}
+            public function __construct(private array $failFormats) {}
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
                 $format = (string)($instructions['format'] ?? 'jpg');
                 if (in_array($format, $this->failFormats, true)) {
-                    throw new \RuntimeException('Format failed: ' . $format);
+                    throw new \RuntimeException('Format failed: ' . $format, 4184561690);
                 }
 
                 $width = (int)($instructions['width'] ?? 0);
@@ -414,13 +416,12 @@ final class SourceViewHelperTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
+        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void
     {
         $prop = new \ReflectionProperty($target::class, $property);
-        $prop->setAccessible(true);
         $prop->setValue($target, $value);
     }
 }

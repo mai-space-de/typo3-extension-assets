@@ -15,6 +15,7 @@ final class SvgSpriteCollector extends AbstractAssetCollector implements Singlet
 {
     private bool $discovered = false;
 
+    #[\Override]
     public function register(string $identifier, string $filePath): void
     {
         $event = new BeforeSpriteSymbolRegisteredEvent($identifier, $filePath);

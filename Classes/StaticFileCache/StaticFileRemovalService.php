@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\StaticFileCache;
 
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -27,7 +28,7 @@ class StaticFileRemovalService implements LoggerAwareInterface
     use LoggerAwareTrait;
 
     public function __construct(
-        private readonly StaticFileCacheDirectory $cacheDirectory,
+        private readonly StaticFileCacheDirectory $cacheDirectory, private readonly SiteFinder $siteFinder,
     ) {}
 
     /**
@@ -95,11 +96,11 @@ class StaticFileRemovalService implements LoggerAwareInterface
     /**
      * Resolve a Site by page UID using the SiteFinder.
      *
-     * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
+     * @throws SiteNotFoundException
      */
     private function resolveSiteByPageId(int $pageUid): Site
     {
-        return GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pageUid);
+        return $this->siteFinder->getSiteByPageId($pageUid);
     }
 
 }

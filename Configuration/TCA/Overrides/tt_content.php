@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-defined('TYPO3') or die();
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+
+defined('TYPO3') || die();
 
 // Add tx_maiassets_force_critical field
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTCAcolumns(
+ExtensionManagementUtility::addTCAcolumns(
     'tt_content',
     [
         'tx_maiassets_force_critical' => [
@@ -39,7 +41,7 @@ $criticalPalette = '
     --palette--;LLL:EXT:mai_assets/Resources/Private/Language/locallang_db.xlf:palette.mai_assets_critical;mai_assets_critical,
 ';
 
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addFieldsToPalette(
+ExtensionManagementUtility::addFieldsToPalette(
     'tt_content',
     'mai_assets_critical',
     'tx_maiassets_force_critical, tx_maiassets_is_critical'
@@ -65,7 +67,7 @@ $contentTypes = [
 ];
 
 foreach ($contentTypes as $cType) {
-    \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(
+    ExtensionManagementUtility::addToAllTCAtypes(
         'tt_content',
         '--palette--;;mai_assets_critical',
         $cType,
@@ -74,7 +76,7 @@ foreach ($contentTypes as $cType) {
 }
 
 // Fallback: add to all CTypes via generic approach
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(
+ExtensionManagementUtility::addToAllTCAtypes(
     'tt_content',
     'tx_maiassets_force_critical, tx_maiassets_is_critical',
     '',

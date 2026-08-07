@@ -11,10 +11,10 @@ use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\ConsumableNonce;
 
-final class AddCspNonceMetaTagMiddleware implements MiddlewareInterface
+final readonly class AddCspNonceMetaTagMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private readonly PageRenderer $pageRenderer,
+        private PageRenderer $pageRenderer,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface

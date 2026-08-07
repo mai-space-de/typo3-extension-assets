@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\Middleware;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\Middleware\StaticFileServeMiddleware;
@@ -26,9 +27,9 @@ final class StaticFileServeMiddlewareTest extends TestCase
 {
     private string $tempBaseDir;
     private StaticFileCacheDirectory $cacheDirectory;
-    private RequestHandlerInterface&\PHPUnit\Framework\MockObject\MockObject $handler;
-    private ResponseInterface&\PHPUnit\Framework\MockObject\MockObject $fallbackResponse;
-    private FrontendInterface&\PHPUnit\Framework\MockObject\MockObject $cacheFrontend;
+    private RequestHandlerInterface&MockObject $handler;
+    private ResponseInterface&MockObject $fallbackResponse;
+    private FrontendInterface&MockObject $cacheFrontend;
     private EarlyHintCacheService $earlyHintCacheService;
 
     protected function setUp(): void
@@ -60,10 +61,9 @@ final class StaticFileServeMiddlewareTest extends TestCase
         // load() to return [] just like a cache miss.
         $this->cacheFrontend = $this->createMock(FrontendInterface::class);
 
-        $this->earlyHintCacheService = (new \ReflectionClass(EarlyHintCacheService::class))
+        $this->earlyHintCacheService = new \ReflectionClass(EarlyHintCacheService::class)
             ->newInstanceWithoutConstructor();
         $cacheProp = new \ReflectionProperty(EarlyHintCacheService::class, 'cache');
-        $cacheProp->setAccessible(true);
         $cacheProp->setValue($this->earlyHintCacheService, $this->cacheFrontend);
     }
 
@@ -503,14 +503,14 @@ final class StaticFileServeMiddlewareTest extends TestCase
         bool $enableStaticFileCache = true,
         bool $debugHeaders = false,
     ): StaticFileServeMiddleware {
-        $config = (new \ReflectionClass(ExtensionConfiguration::class))
+        $config = new \ReflectionClass(ExtensionConfiguration::class)
             ->newInstanceWithoutConstructor();
 
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache')
             ->setValue($config, $enableStaticFileCache);
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir')
             ->setValue($config, '');
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders')
             ->setValue($config, $debugHeaders);
 
         return new StaticFileServeMiddleware($this->cacheDirectory, $config, $this->earlyHintCacheService);
@@ -518,9 +518,9 @@ final class StaticFileServeMiddlewareTest extends TestCase
 
     private function makeCacheDirectory(): StaticFileCacheDirectory
     {
-        $config = (new \ReflectionClass(ExtensionConfiguration::class))
+        $config = new \ReflectionClass(ExtensionConfiguration::class)
             ->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir')
             ->setValue($config, '');
 
         return new StaticFileCacheDirectory($config);
@@ -623,12 +623,10 @@ final class StaticFileServeMiddlewareTest extends TestCase
         );
 
         $request->method('getAttribute')->willReturnCallback(
-            static function (string $name) use ($pageArguments, $language): mixed {
-                return match ($name) {
-                    'routing'  => $pageArguments,
-                    'language' => $language,
-                    default    => null,
-                };
+            static fn(string $name): mixed => match ($name) {
+                'routing'  => $pageArguments,
+                'language' => $language,
+                default    => null,
             }
         );
 

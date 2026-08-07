@@ -27,13 +27,13 @@ use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
     identifier: 'mai-assets/static-html-writer',
     after: 'mai-assets/html-minification',
 )]
-final class StaticHtmlWriterListener
+final readonly class StaticHtmlWriterListener
 {
     public function __construct(
-        private readonly ExtensionConfiguration $extensionConfiguration,
-        private readonly StaticHtmlWriterService $staticHtmlWriterService,
-        private readonly PageOptimizationReadinessService $readinessService,
-        private readonly EarlyHintCacheService $earlyHintCacheService,
+        private ExtensionConfiguration $extensionConfiguration,
+        private StaticHtmlWriterService $staticHtmlWriterService,
+        private PageOptimizationReadinessService $readinessService,
+        private EarlyHintCacheService $earlyHintCacheService,
     ) {}
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void

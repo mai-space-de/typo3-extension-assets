@@ -37,7 +37,7 @@ class StaticHtmlWriterService
      * TYPO3 non-cacheable page marker. Pages containing this string are
      * rendered with USER_INT / COA_INT objects and must not be statically cached.
      */
-    private const INT_MARKER = '<!--INT_SCRIPT.';
+    private const string INT_MARKER = '<!--INT_SCRIPT.';
 
     public function __construct(
         private readonly StaticFileCacheDirectory $cacheDirectory,

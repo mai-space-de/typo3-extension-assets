@@ -8,10 +8,10 @@ use Maispace\MaiAssets\Service\CriticalDetectionService;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\ContentObject\DataProcessorInterface;
 
-final class CriticalAssetDataProcessor implements DataProcessorInterface
+final readonly class CriticalAssetDataProcessor implements DataProcessorInterface
 {
     public function __construct(
-        private readonly CriticalDetectionService $criticalDetectionService,
+        private CriticalDetectionService $criticalDetectionService,
     ) {}
 
     public function process(

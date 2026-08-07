@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\ViewHelpers\Asset;
 
+use Maispace\MaiAssets\Service\ScssDependencyHasher;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
@@ -40,7 +42,7 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 final class CssViewHelperTest extends TestCase
 {
-    private const CSS_CONTENT = 'body{color:red}';
+    private const string CSS_CONTENT = 'body{color:red}';
 
     private string $tempCssFile;
     private string $publicDir;
@@ -115,7 +117,7 @@ final class CssViewHelperTest extends TestCase
         $this->setProp($this->compiledAssetPublisher, 'scssProcessor', $this->scssProcessor);
         $this->setProp($this->compiledAssetPublisher, 'minificationProcessor', $this->minificationProcessor);
         $this->setProp($this->compiledAssetPublisher, 'extensionConfiguration', $this->extensionConfiguration);
-        $this->setProp($this->compiledAssetPublisher, 'scssDependencyHasher', new \Maispace\MaiAssets\Service\ScssDependencyHasher());
+        $this->setProp($this->compiledAssetPublisher, 'scssDependencyHasher', new ScssDependencyHasher());
 
         // SriHashService (final, unused — we supply integrity)
         $this->sriHashService = $this->noConstructor(SriHashService::class);
@@ -125,8 +127,8 @@ final class CssViewHelperTest extends TestCase
         $this->cacheFrontend = $this->createMock(FrontendInterface::class);
         $cacheService = $this->noConstructor(AboveFoldCacheService::class);
         $this->setProp($cacheService, 'cache', $this->cacheFrontend);
-        $this->setProp($cacheService, 'cacheManager', $this->createMock(\TYPO3\CMS\Core\Cache\CacheManager::class));
-        $this->setProp($cacheService, 'eventDispatcher', $this->createMock(\Psr\EventDispatcher\EventDispatcherInterface::class));
+        $this->setProp($cacheService, 'cacheManager', $this->createMock(CacheManager::class));
+        $this->setProp($cacheService, 'eventDispatcher', $this->createMock(EventDispatcherInterface::class));
 
         $detectionService = $this->noConstructor(CriticalDetectionService::class);
         $this->criticalityResolver = new AssetCriticalityResolver($cacheService, $detectionService, $this->extensionConfiguration);
@@ -247,8 +249,6 @@ final class CssViewHelperTest extends TestCase
     private function createViewHelper(): CssViewHelper
     {
         return new CssViewHelper(
-            $this->scssProcessor,
-            $this->minificationProcessor,
             $this->compiledAssetPublisher,
             $this->sriHashService,
             $this->assetCollector,
@@ -294,13 +294,12 @@ final class CssViewHelperTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
+        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void
     {
         $prop = new \ReflectionProperty($target::class, $property);
-        $prop->setAccessible(true);
         $prop->setValue($target, $value);
     }
 

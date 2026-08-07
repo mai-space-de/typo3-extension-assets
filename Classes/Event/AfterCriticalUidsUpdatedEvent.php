@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Event;
 
-final class AfterCriticalUidsUpdatedEvent
+final readonly class AfterCriticalUidsUpdatedEvent
 {
     public function __construct(
-        private readonly int $pageUid,
-        private readonly string $bucket,
-        private readonly array $previousUids,
-        private readonly array $newUids,
+        private int $pageUid,
+        private string $bucket,
+        private array $previousUids,
+        private array $newUids,
     ) {}
 
     public function getPageUid(): int

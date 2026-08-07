@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\Hook;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\Cache\InvalidationService;
 use Maispace\MaiAssets\Hook\ContentElementSaveHook;
 use PHPUnit\Framework\TestCase;
@@ -11,7 +12,7 @@ use TYPO3\CMS\Core\DataHandling\DataHandler;
 
 final class ContentElementSaveHookTest extends TestCase
 {
-    /** @var InvalidationService&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var InvalidationService&MockObject */
     private InvalidationService $invalidationService;
 
     protected function setUp(): void

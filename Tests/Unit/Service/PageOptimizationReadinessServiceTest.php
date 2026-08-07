@@ -26,13 +26,13 @@ final class PageOptimizationReadinessServiceTest extends TestCase
         $this->cacheFrontend = $this->createMock(FrontendInterface::class);
 
         // Bypass final constructor of AboveFoldCacheService
-        $this->aboveFoldCacheService = (new \ReflectionClass(AboveFoldCacheService::class))
+        $this->aboveFoldCacheService = new \ReflectionClass(AboveFoldCacheService::class)
             ->newInstanceWithoutConstructor();
         $cacheProp = new \ReflectionProperty(AboveFoldCacheService::class, 'cache');
         $cacheProp->setValue($this->aboveFoldCacheService, $this->cacheFrontend);
 
         // Bypass final constructor of ExtensionConfiguration
-        $this->extensionConfiguration = (new \ReflectionClass(ExtensionConfiguration::class))
+        $this->extensionConfiguration = new \ReflectionClass(ExtensionConfiguration::class)
             ->newInstanceWithoutConstructor();
         $bucketsProp = new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets');
         $bucketsProp->setValue($this->extensionConfiguration, [

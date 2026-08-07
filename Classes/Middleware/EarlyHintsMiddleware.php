@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Middleware;
 
+use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -11,10 +12,10 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Core\Environment;
 
-final class EarlyHintsMiddleware implements MiddlewareInterface
+final readonly class EarlyHintsMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private readonly EarlyHintCacheService $earlyHintCacheService,
+        private EarlyHintCacheService $earlyHintCacheService,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -69,7 +70,7 @@ final class EarlyHintsMiddleware implements MiddlewareInterface
     }
 
     /**
-     * @param array<int, \Maispace\MaiAssets\EarlyHints\EarlyHintCandidate> $candidates
+     * @param array<int, EarlyHintCandidate> $candidates
      */
     private function sendEarlyHints(array $candidates): void
     {
@@ -87,7 +88,7 @@ final class EarlyHintsMiddleware implements MiddlewareInterface
      *
      * Used when HTTP 103 is unsafe for the current hosting/proxy stack.
      *
-     * @param array<int, \Maispace\MaiAssets\EarlyHints\EarlyHintCandidate> $candidates
+     * @param array<int, EarlyHintCandidate> $candidates
      */
     private function withLinkHeaders(ResponseInterface $response, array $candidates): ResponseInterface
     {

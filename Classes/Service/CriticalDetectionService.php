@@ -11,14 +11,14 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-final class CriticalDetectionService
+final readonly class CriticalDetectionService
 {
     public function __construct(
-        private readonly AboveFoldCacheService $aboveFoldCacheService,
-        private readonly ExtensionConfiguration $extensionConfiguration,
-        private readonly EventDispatcherInterface $eventDispatcher,
+        private AboveFoldCacheService $aboveFoldCacheService,
+        private ExtensionConfiguration $extensionConfiguration,
+        private EventDispatcherInterface $eventDispatcher,
+        private ConnectionPool $connectionPool,
     ) {}
 
     public function isCritical(int $pageUid, int $elementUid): bool
@@ -90,7 +90,7 @@ final class CriticalDetectionService
 
     private function getContentRecord(int $elementUid): ?array
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+        $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('tt_content');
 
         $result = $queryBuilder
@@ -106,7 +106,7 @@ final class CriticalDetectionService
 
     private function getElementPositionInColPos(int $pageUid, int $colPos, int $sorting): int
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+        $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('tt_content');
 
         return (int)$queryBuilder

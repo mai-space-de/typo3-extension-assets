@@ -10,14 +10,14 @@ namespace Maispace\MaiAssets\EarlyHints;
  * Maps to one HTTP Link header line:
  *   Link: <$href>; rel=$rel[; as=$as][; type=$type][; crossorigin=$crossorigin]
  */
-final class EarlyHintCandidate
+final readonly class EarlyHintCandidate
 {
     public function __construct(
-        public readonly string $href,
-        public readonly string $rel,
-        public readonly string $as = '',
-        public readonly string $type = '',
-        public readonly string $crossorigin = '',
+        public string $href,
+        public string $rel,
+        public string $as = '',
+        public string $type = '',
+        public string $crossorigin = '',
     ) {}
 
     public function toLinkHeaderValue(): string

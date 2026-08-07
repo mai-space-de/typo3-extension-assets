@@ -23,7 +23,7 @@ class MaiSvgIconProvider extends AbstractSvgIconProvider
     {
         if (empty($options['source'])) {
             throw new \InvalidArgumentException(
-                '[' . $icon->getIdentifier() . '] The option "source" is required and must not be empty'
+                '[' . $icon->getIdentifier() . '] The option "source" is required and must not be empty', 1143005162
             );
         }
 
@@ -45,7 +45,7 @@ class MaiSvgIconProvider extends AbstractSvgIconProvider
     protected function generateInlineMarkup(array $options): string
     {
         if (empty($options['source'])) {
-            throw new \InvalidArgumentException('The option "source" is required and must not be empty');
+            throw new \InvalidArgumentException('The option "source" is required and must not be empty', 6262473496);
         }
 
         $resolvedPath = $this->resolveFilePath((string)$options['source']);

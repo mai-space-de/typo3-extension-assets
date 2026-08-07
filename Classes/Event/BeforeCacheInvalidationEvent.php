@@ -8,13 +8,12 @@ namespace Maispace\MaiAssets\Event;
  * Dispatched BEFORE cache invalidation occurs.
  *
  * Mutable event: listeners may add or remove invalidation targets, or add
- * explanations for logging/debugging. This follows the same architectural
- * pattern as staticfilecache's {@link \SFC\Staticfilecache\Event\CacheRuleEvent}.
+ * explanations for logging/debugging.
  */
 final class BeforeCacheInvalidationEvent
 {
-    public const TRIGGER_CONTENT_SAVE = 'content_save';
-    public const TRIGGER_BUCKET_UPDATE = 'bucket_update';
+    public const string TRIGGER_CONTENT_SAVE = 'content_save';
+    public const string TRIGGER_BUCKET_UPDATE = 'bucket_update';
 
     /** @var array<string, string> Human-readable reason codes keyed by target */
     private array $explanations = [];

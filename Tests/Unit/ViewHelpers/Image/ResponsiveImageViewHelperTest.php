@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\ViewHelpers\Image;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
-use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\CriticalDetectionService;
@@ -18,7 +18,6 @@ use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration as Typo3ExtensionConfiguration;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
-use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContext;
 
@@ -31,7 +30,7 @@ use TYPO3Fluid\Fluid\Core\Rendering\RenderingContext;
  */
 final class ResponsiveImageViewHelperTest extends TestCase
 {
-    /** @var EventDispatcherInterface&\PHPUnit\Framework\MockObject\MockObject */
+    /** @var EventDispatcherInterface&MockObject */
     private EventDispatcherInterface $eventDispatcher;
 
     private EarlyHintCandidateCollector $earlyHintCollector;
@@ -307,7 +306,7 @@ final class ResponsiveImageViewHelperTest extends TestCase
     private function createRenderingContext(): RenderingContext
     {
         return new class extends RenderingContext {
-            public function getRequest(): \Psr\Http\Message\ServerRequestInterface
+            public function getRequest(): ServerRequestInterface
             {
                 return $GLOBALS['TYPO3_REQUEST'];
             }
@@ -322,7 +321,7 @@ final class ResponsiveImageViewHelperTest extends TestCase
     private function stubImageService(array $failFormats = []): ImageService
     {
         return new readonly class($failFormats) extends ImageService {
-            public function __construct(private readonly array $failFormats)
+            public function __construct(private array $failFormats)
             {
             }
 
@@ -332,7 +331,7 @@ final class ResponsiveImageViewHelperTest extends TestCase
                 $width = (int)$instructions['width'];
 
                 if (in_array($format, $this->failFormats, true)) {
-                    throw new RuntimeException('Format not supported: ' . $format);
+                    throw new RuntimeException('Format not supported: ' . $format, 1375266052);
                 }
 
                 return new class($format, $width) extends ProcessedFile {
@@ -371,13 +370,12 @@ final class ResponsiveImageViewHelperTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
+        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void
     {
         $prop = new \ReflectionProperty($target::class, $property);
-        $prop->setAccessible(true);
         $prop->setValue($target, $value);
     }
 }

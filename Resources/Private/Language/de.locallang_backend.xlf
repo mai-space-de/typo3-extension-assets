@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
-    <file source-language="en" target-language="de" datatype="plaintext" original="messages"
-          date="2025-01-01T00:00:00Z" product-name="mai_assets">
+<xliff
+    xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="de" datatype="plaintext" original="messages" date="2025-01-01T00:00:00Z" product-name="mai_assets">
         <header/>
         <body>
             <trans-unit id="menu.list">
@@ -16,7 +16,6 @@
                 <source>Support</source>
                 <target>Support</target>
             </trans-unit>
-
             <trans-unit id="list.title">
                 <source>Page Optimisation Status</source>
                 <target>Seiten-Optimierungsstatus</target>
@@ -81,7 +80,6 @@
                 <source>Default</source>
                 <target>Standard</target>
             </trans-unit>
-
             <trans-unit id="boost.title">
                 <source>Static File Cache Warmup</source>
                 <target>Static-File-Cache-Aufwärmen</target>
@@ -126,7 +124,6 @@
                 <source>{count} item(s) waiting</source>
                 <target>{count} Eintrag/Einträge wartend</target>
             </trans-unit>
-
             <trans-unit id="support.title">
                 <source>System Support Information</source>
                 <target>System-Support-Informationen</target>

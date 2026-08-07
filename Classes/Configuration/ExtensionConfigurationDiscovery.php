@@ -8,10 +8,10 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-final class ExtensionConfigurationDiscovery
+final readonly class ExtensionConfigurationDiscovery
 {
     public function __construct(
-        private readonly SiteFinder $siteFinder,
+        private SiteFinder $siteFinder,
     ) {}
 
     /**

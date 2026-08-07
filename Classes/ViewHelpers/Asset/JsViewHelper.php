@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Asset;
 
+use TYPO3\CMS\Core\Information\Typo3Version;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
@@ -100,7 +101,7 @@ class JsViewHelper extends AbstractViewHelper
         $publicPath = PathUtility::getAbsoluteWebPath($resolvedPath);
         
         // For TYPO3 14+, convert relative paths to absolute URLs to avoid SystemResourceFactory resolution issues
-        $typo3Version = new \TYPO3\CMS\Core\Information\Typo3Version();
+        $typo3Version = new Typo3Version();
         if ($typo3Version->getMajorVersion() >= 14 && !str_starts_with($publicPath, 'http')) {
             $siteUrl = (string)$GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams')->getSiteUrl();
             $publicPath = rtrim($siteUrl, '/') . '/' . ltrim($publicPath, '/');
@@ -147,7 +148,7 @@ class JsViewHelper extends AbstractViewHelper
 
         $options = ['priority' => $priority];
 
-        $typo3Version = new \TYPO3\CMS\Core\Information\Typo3Version();
+        $typo3Version = new Typo3Version();
         if ($typo3Version->getMajorVersion() >= 13) {
             $options['external'] = true;
         }
@@ -208,7 +209,7 @@ class JsViewHelper extends AbstractViewHelper
 
         $options = ['priority' => $priority];
 
-        $typo3Version = new \TYPO3\CMS\Core\Information\Typo3Version();
+        $typo3Version = new Typo3Version();
         if ($typo3Version->getMajorVersion() >= 13) {
             $options['external'] = true;
         }

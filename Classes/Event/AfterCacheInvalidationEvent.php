@@ -9,7 +9,7 @@ namespace Maispace\MaiAssets\Event;
  *
  * Immutable event: listeners receive a read-only report of what was invalidated.
  */
-final class AfterCacheInvalidationEvent
+final readonly class AfterCacheInvalidationEvent
 {
     /**
      * @param string $trigger One of BeforeCacheInvalidationEvent::TRIGGER_* constants.
@@ -17,9 +17,9 @@ final class AfterCacheInvalidationEvent
      * @param array<string> $invalidatedTargets Targets that were actually invalidated.
      */
     public function __construct(
-        private readonly string $trigger,
-        private readonly int $pageUid,
-        private readonly array $invalidatedTargets,
+        private string $trigger,
+        private int $pageUid,
+        private array $invalidatedTargets,
     ) {}
 
     public function getTrigger(): string

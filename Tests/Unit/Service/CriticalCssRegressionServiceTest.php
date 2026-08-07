@@ -21,7 +21,7 @@ final class CriticalCssRegressionServiceTest extends TestCase
         $this->testBaselinePath = $this->testBaselineDir . '/baseline.json';
         mkdir($this->testBaselineDir);
 
-        $compiledAssetPublisher = (new \ReflectionClass(CompiledAssetPublisher::class))
+        $compiledAssetPublisher = new \ReflectionClass(CompiledAssetPublisher::class)
             ->newInstanceWithoutConstructor();
         $this->subject = new CriticalCssRegressionService($compiledAssetPublisher);
         $this->subject->setBaselinePathForTesting($this->testBaselinePath);

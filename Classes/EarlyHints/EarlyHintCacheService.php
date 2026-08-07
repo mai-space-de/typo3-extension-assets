@@ -8,9 +8,9 @@ use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\SingletonInterface;
 
-final class EarlyHintCacheService implements SingletonInterface
+final readonly class EarlyHintCacheService implements SingletonInterface
 {
-    private const CACHE_IDENTIFIER = 'mai_assets_early_hints';
+    private const string CACHE_IDENTIFIER = 'mai_assets_early_hints';
 
     private FrontendInterface $cache;
 
@@ -72,7 +72,10 @@ final class EarlyHintCacheService implements SingletonInterface
     }
 
     /**
-     * @param array<int, array<string, string>> $rows
+     * $rows comes from deserialized cache data, so its shape isn't guaranteed
+     * at runtime despite this best-effort type — hence the is_array() guard below.
+     *
+     * @param array<int, mixed> $rows
      * @return array<int, EarlyHintCandidate>
      */
     private function deserializeCandidates(array $rows): array

@@ -7,10 +7,10 @@ namespace Maispace\MaiAssets\Hook;
 use Maispace\MaiAssets\Cache\InvalidationService;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 
-final class ContentElementSaveHook
+final readonly class ContentElementSaveHook
 {
     public function __construct(
-        private readonly InvalidationService $invalidationService,
+        private InvalidationService $invalidationService,
     ) {}
 
     public function processDatamap_afterDatabaseOperations(

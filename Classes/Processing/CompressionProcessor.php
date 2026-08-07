@@ -6,10 +6,10 @@ namespace Maispace\MaiAssets\Processing;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 
-final class CompressionProcessor
+final readonly class CompressionProcessor
 {
     public function __construct(
-        private readonly ExtensionConfiguration $extensionConfiguration,
+        private ExtensionConfiguration $extensionConfiguration,
     ) {}
 
     public function compressFile(string $filePath): void

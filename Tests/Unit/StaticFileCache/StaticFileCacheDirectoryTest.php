@@ -190,7 +190,7 @@ final class StaticFileCacheDirectoryTest extends TestCase
      */
     private function makeSubject(string $staticFileCacheDir): StaticFileCacheDirectory
     {
-        $config = (new \ReflectionClass(ExtensionConfiguration::class))
+        $config = new \ReflectionClass(ExtensionConfiguration::class)
             ->newInstanceWithoutConstructor();
 
         $prop = new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir');

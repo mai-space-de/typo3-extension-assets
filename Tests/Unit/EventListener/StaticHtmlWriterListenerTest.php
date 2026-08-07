@@ -34,16 +34,16 @@ final class StaticHtmlWriterListenerTest extends TestCase
     {
         parent::setUp();
 
-        self::requireAfterCacheableContentEvent();
+        $this->requireAfterCacheableContentEvent();
 
         $this->aboveFoldFrontend = $this->createMock(FrontendInterface::class);
 
-        $this->aboveFoldCacheService = (new \ReflectionClass(AboveFoldCacheService::class))
+        $this->aboveFoldCacheService = new \ReflectionClass(AboveFoldCacheService::class)
             ->newInstanceWithoutConstructor();
         $cacheProp = new \ReflectionProperty(AboveFoldCacheService::class, 'cache');
         $cacheProp->setValue($this->aboveFoldCacheService, $this->aboveFoldFrontend);
 
-        $this->extensionConfiguration = (new \ReflectionClass(ExtensionConfiguration::class))
+        $this->extensionConfiguration = new \ReflectionClass(ExtensionConfiguration::class)
             ->newInstanceWithoutConstructor();
         $bucketsProp = new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets');
         $bucketsProp->setValue($this->extensionConfiguration, [
@@ -215,7 +215,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
      * AfterCacheableContentIsGeneratedEvent is not in the extension autoloader;
      * load it from the project root vendor (same approach as SFC CacheRuleEvent).
      */
-    private static function requireAfterCacheableContentEvent(): void
+    private function requireAfterCacheableContentEvent(): void
     {
         if (class_exists(AfterCacheableContentIsGeneratedEvent::class)) {
             return;
@@ -275,9 +275,9 @@ final class StaticHtmlWriterListenerTest extends TestCase
         string $method = 'GET',
         string $uri = 'https://example.com/page',
     ): ServerRequestInterface {
-        $routing = new class($pageUid) {
+        $routing = new readonly class($pageUid) {
             public function __construct(
-                private readonly int $pageId,
+                private int $pageId,
             ) {}
 
             public function getPageId(): int
@@ -286,9 +286,9 @@ final class StaticHtmlWriterListenerTest extends TestCase
             }
         };
 
-        $language = new class($languageUid) {
+        $language = new readonly class($languageUid) {
             public function __construct(
-                private readonly int $languageId,
+                private int $languageId,
             ) {}
 
             public function getLanguageId(): int
@@ -305,12 +305,10 @@ final class StaticHtmlWriterListenerTest extends TestCase
         $request->method('getUri')->willReturn($uriObject);
         $request
             ->method('getAttribute')
-            ->willReturnCallback(function (string $name) use ($routing, $language) {
-                return match ($name) {
-                    'routing' => $routing,
-                    'language' => $language,
-                    default => null,
-                };
+            ->willReturnCallback(fn(string $name) => match ($name) {
+                'routing' => $routing,
+                'language' => $language,
+                default => null,
             });
 
         return $request;

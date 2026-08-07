@@ -18,10 +18,10 @@ use TYPO3\CMS\Core\Attribute\AsEventListener;
  * and the early-hints manifest is stored.
  */
 #[AsEventListener(identifier: 'mai-assets/cache-warmup')]
-final class CacheWarmupListener
+final readonly class CacheWarmupListener
 {
     public function __construct(
-        private readonly CacheWarmupService $cacheWarmupService,
+        private CacheWarmupService $cacheWarmupService,
     ) {}
 
     public function __invoke(AfterCriticalUidsUpdatedEvent $event): void

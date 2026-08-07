@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Integration;
 
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Maispace\MaiAssets\Cache\AboveFoldCacheService;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
@@ -28,6 +29,7 @@ use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
  * Integration tests for static file cache services and middleware.
@@ -39,7 +41,7 @@ use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 final class StaticFileCacheIntegrationTest extends TestCase
 {
     /** Site language UIDs: de, en, uk, ar */
-    private const LANGUAGE_UIDS = [0, 1, 2, 3];
+    private const array LANGUAGE_UIDS = [0, 1, 2, 3];
 
     private string $tempBaseDir;
     private TransientMemoryBackend $earlyHintBackend;
@@ -362,7 +364,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
             self::assertFileExists($this->indexPath($pageUid, $languageUid));
         }
 
-        $removalService = new StaticFileRemovalService($this->cacheDirectory);
+        $removalService = new StaticFileRemovalService($this->cacheDirectory, new \ReflectionClass(SiteFinder::class)->newInstanceWithoutConstructor());
         $removalService->purgeByPageUid($pageUid, $site);
 
         foreach (self::LANGUAGE_UIDS as $languageUid) {
@@ -378,7 +380,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
         self::assertTrue($writer->writeByPageId('<html>DE</html>', $pageUid, 0));
         self::assertTrue($writer->writeByPageId('<html>EN</html>', $pageUid, 1));
 
-        $removalService = new StaticFileRemovalService($this->cacheDirectory);
+        $removalService = new StaticFileRemovalService($this->cacheDirectory, new \ReflectionClass(SiteFinder::class)->newInstanceWithoutConstructor());
         $removalService->purgeForLanguage($pageUid, 0);
 
         self::assertFileDoesNotExist($this->indexPath($pageUid, 0));
@@ -395,7 +397,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
             self::assertTrue($writer->writeByPageId('<html>L' . $languageUid . '</html>', $pageUid, $languageUid));
         }
 
-        $removalService = new StaticFileRemovalService($this->cacheDirectory);
+        $removalService = new StaticFileRemovalService($this->cacheDirectory, new \ReflectionClass(SiteFinder::class)->newInstanceWithoutConstructor());
         $removalService->purgeByPageUid($pageUid, $site);
 
         foreach (self::LANGUAGE_UIDS as $languageUid) {
@@ -412,20 +414,20 @@ final class StaticFileCacheIntegrationTest extends TestCase
         bool $enableCompression = false,
         bool $enableBrotli = false,
     ): ExtensionConfiguration {
-        $config = (new \ReflectionClass(ExtensionConfiguration::class))
+        $config = new \ReflectionClass(ExtensionConfiguration::class)
             ->newInstanceWithoutConstructor();
 
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache')
             ->setValue($config, $enableStaticFileCache);
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir')
             ->setValue($config, '');
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableCompression'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'enableCompression')
             ->setValue($config, $enableCompression);
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'compressionLevel'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'compressionLevel')
             ->setValue($config, 6);
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableBrotli'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'enableBrotli')
             ->setValue($config, $enableBrotli);
-        (new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders'))
+        new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders')
             ->setValue($config, false);
 
         return $config;
@@ -444,7 +446,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
 
         return new AboveFoldCacheService(
             $cacheManager,
-            $this->createStub(\Psr\EventDispatcher\EventDispatcherInterface::class),
+            $this->createStub(EventDispatcherInterface::class),
             $removalService,
         );
     }
@@ -495,12 +497,10 @@ final class StaticFileCacheIntegrationTest extends TestCase
         $request->method('getUri')->willReturn($uriMock);
         $request->method('getHeader')->willReturn([]);
         $request->method('getAttribute')->willReturnCallback(
-            static function (string $name) use ($pageArguments, $language): mixed {
-                return match ($name) {
-                    'routing' => $pageArguments,
-                    'language' => $language,
-                    default => null,
-                };
+            static fn(string $name): mixed => match ($name) {
+                'routing' => $pageArguments,
+                'language' => $language,
+                default => null,
             }
         );
 
