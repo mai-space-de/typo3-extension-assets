@@ -18,6 +18,7 @@ services:
             - name: event.listener
               identifier: 'mai-assets/above-fold-observer'
               event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
+              before: 'mai-assets/html-minification'
 
     Maispace\MaiAssets\EventListener\SvgSpriteInjectionListener:
         tags:

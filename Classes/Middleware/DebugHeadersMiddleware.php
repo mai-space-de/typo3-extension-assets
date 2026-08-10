@@ -27,11 +27,13 @@ use Psr\Http\Server\RequestHandlerInterface;
  * The middleware is no-op when ``debugHeaders`` is disabled (the
  * default in production).
  *
- * Placement: registered *after* ``typo3/cms-frontend/page-resolver``
- * so that ``frontend.page.information`` is available on the request,
- * and *before* ``typo3/cms-frontend/page-argument-validator`` so that
- * the readiness check runs on every resolved page before any argument
- * validation short-circuits the pipeline.
+ * Placement: registered *after* ``typo3/cms-frontend/csp-headers``,
+ * which itself runs after ``typo3/cms-frontend/prepare-tsfe-rendering`` —
+ * the middleware that sets the ``frontend.page.information`` request
+ * attribute this class depends on. ``prepare-tsfe-rendering`` is marked
+ * internal by TYPO3 core and must not be referenced directly; targeting
+ * the public ``csp-headers`` identifier keeps this valid across core
+ * versions.
  *
  * @see StaticFileCacheReadinessListener The readiness gate that uses the same criteria.
  * @see PageOptimizationReadinessService

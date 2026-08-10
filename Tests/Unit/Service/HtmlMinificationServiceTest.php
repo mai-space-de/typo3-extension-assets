@@ -94,8 +94,24 @@ final class HtmlMinificationServiceTest extends TestCase
     {
         $html = "<div>\n\n\n<p>Text</p>\n\n\n</div>";
         $result = $this->subject->minify($html, ['stripComments' => false]);
-        // Should not have consecutive empty lines
-        self::assertStringNotContainsString("\n\n", $result);
+        self::assertStringNotContainsString("\n", $result);
+        self::assertSame('<div> <p>Text</p> </div>', $result);
+    }
+
+    public function testCollapsesNewlinesInsideTags(): void
+    {
+        $html = "<nav class=\"menu\"\ndata-testid=\"switcher\"\naria-label=\"Sprache\">\nLink\n</nav>";
+        $result = $this->subject->minify($html, ['stripComments' => false]);
+        self::assertStringNotContainsString("\n", $result);
+        self::assertSame('<nav class="menu" data-testid="switcher" aria-label="Sprache"> Link </nav>', $result);
+    }
+
+    public function testPreservesNewlinesInsideScriptBlocks(): void
+    {
+        $html = "<div>\n<script type=\"application/ld+json\">\n{\n  \"@type\": \"WebPage\"\n}\n</script>\n<p>Text</p>\n</div>";
+        $result = $this->subject->minify($html, ['stripComments' => false]);
+        self::assertStringContainsString("{\n  \"@type\": \"WebPage\"\n}", $result);
+        self::assertStringNotContainsString("<div>\n", $result);
     }
 
     public function testCustomPreserveTagsAreRespected(): void

@@ -7,6 +7,7 @@ use Maispace\MaiAssets\Middleware\AboveFoldReportMiddleware;
 use Maispace\MaiAssets\Middleware\EarlyHintsMiddleware;
 use Maispace\MaiAssets\Middleware\DebugHeadersMiddleware;
 use Maispace\MaiAssets\Middleware\AddCspNonceMetaTagMiddleware;
+use Maispace\MaiAssets\Middleware\HtmlMinificationMiddleware;
 
 return [
     'frontend' => [
@@ -28,8 +29,11 @@ return [
         ],
         'maispace/mai-assets/debug-headers' => [
             'target' => DebugHeadersMiddleware::class,
-            'after' => ['typo3/cms-frontend/page-resolver'],
-            'before' => ['typo3/cms-frontend/page-argument-validator'],
+            'after' => ['typo3/cms-frontend/csp-headers'],
+        ],
+        'maispace/mai-assets/html-minification' => [
+            'target' => HtmlMinificationMiddleware::class,
+            'after' => ['typo3/cms-frontend/csp-headers'],
         ],
         'maispace/mai-assets/add-csp-nonce-meta-tag' => [
             'target' => AddCspNonceMetaTagMiddleware::class,

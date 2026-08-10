@@ -115,23 +115,15 @@ final class HtmlMinificationService
     }
 
     /**
-     * Collapse inter-element whitespace.
+     * Collapse all whitespace outside protected blocks.
+     *
+     * Protected tag contents have already been replaced with placeholders, so
+     * collapsing every whitespace run (including newlines inside tags / between
+     * attributes) to a single space is safe. Browsers collapse the same runs
+     * in normal flow anyway.
      */
     private function collapseWhitespace(string $html): string
     {
-        // Collapse whitespace runs between > and <
-        $html = preg_replace('/>\s+</u', '> <', $html) ?? $html;
-
-        // Process line by line: trim and discard empty lines
-        $lines = explode("\n", $html);
-        $result = [];
-        foreach ($lines as $line) {
-            $trimmed = trim($line);
-            if ($trimmed !== '') {
-                $result[] = $trimmed;
-            }
-        }
-
-        return implode("\n", $result);
+        return trim(preg_replace('/\s+/u', ' ', $html) ?? $html);
     }
 }

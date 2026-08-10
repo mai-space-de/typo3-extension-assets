@@ -8,6 +8,13 @@ use Maispace\MaiAssets\Service\HtmlMinificationService;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
+/**
+ * Minifies cacheable page HTML before it is written to the TYPO3 page cache.
+ *
+ * PageRenderer placeholders (HEADERDATA, CSS_INCLUDE, …) and INT content are
+ * substituted only after this event — see {@see \Maispace\MaiAssets\Middleware\HtmlMinificationMiddleware}
+ * for the final pass on the completed response body.
+ */
 #[AsEventListener(
     identifier: 'mai-assets/html-minification',
     after: 'mai-assets/svg-sprite-injection',
