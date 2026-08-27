@@ -4,20 +4,23 @@
     <file source-language="en" datatype="plaintext" original="EXT:mai_assets/Resources/Private/Language/locallang_db.xlf">
         <header/>
         <body>
+            <trans-unit id="tabs.render_as_critical">
+                <source>Render as Critical</source>
+            </trans-unit>
             <trans-unit id="tt_content.tx_maiassets_force_critical">
                 <source>Always render critical (above-fold)</source>
             </trans-unit>
             <trans-unit id="tt_content.tx_maiassets_force_critical.description">
-                <source>Force this content element to always be treated as above-fold critical, regardless of automatic detection.</source>
+                <source>Note: only relevant for reference elements</source>
             </trans-unit>
             <trans-unit id="tt_content.tx_maiassets_is_critical">
                 <source>Override: Is critical (above-fold)</source>
             </trans-unit>
             <trans-unit id="tt_content.tx_maiassets_is_critical.description">
-                <source>Editor override for the above-fold detection. When checked, marks this element as critical. Only visible when "Always render critical" is not enabled.</source>
+                <source>Note: only relevant for reference elements</source>
             </trans-unit>
             <trans-unit id="palette.mai_assets_critical">
-                <source>Asset Loading Strategy</source>
+                <source>Render as Critical</source>
             </trans-unit>
         </body>
     </file>
