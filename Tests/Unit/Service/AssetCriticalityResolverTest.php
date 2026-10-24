@@ -31,7 +31,7 @@ final class AssetCriticalityResolverTest extends TestCase
         $this->cacheFrontend = $this->createMock(FrontendInterface::class);
 
         // Bypass the final constructor; only inject the cache frontend used by getAllCriticalUids
-        $this->cacheService = new \ReflectionClass(AboveFoldCacheService::class)
+        $this->cacheService = (new \ReflectionClass(AboveFoldCacheService::class))
             ->newInstanceWithoutConstructor();
         $cacheProp = new \ReflectionProperty(AboveFoldCacheService::class, 'cache');
         $cacheProp->setValue($this->cacheService, $this->cacheFrontend);
@@ -41,7 +41,7 @@ final class AssetCriticalityResolverTest extends TestCase
             'viewportBuckets' => ['mobile' => 768, 'tablet' => 1024, 'desktop' => 99999],
         ];
         $this->extensionConfiguration = new ExtensionConfiguration(
-            new \ReflectionClass(Typo3ExtensionConfiguration::class)->newInstanceWithoutConstructor()
+            (new \ReflectionClass(Typo3ExtensionConfiguration::class))->newInstanceWithoutConstructor(),
         );
     }
 
@@ -163,7 +163,7 @@ final class AssetCriticalityResolverTest extends TestCase
     {
         // CriticalDetectionService::isCritical() issues DB queries, so we bypass
         // construction and leave the detection service unused in page-level tests.
-        $detectionService = new \ReflectionClass(CriticalDetectionService::class)
+        $detectionService = (new \ReflectionClass(CriticalDetectionService::class))
             ->newInstanceWithoutConstructor();
 
         return new AssetCriticalityResolver($this->cacheService, $detectionService, $this->extensionConfiguration);

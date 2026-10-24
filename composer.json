@@ -26,14 +26,15 @@
     "a9f/fractor-xliff": "^1.0",
     "a9f/fractor-yaml": "^1.0",
     "a9f/typo3-fractor": "^1.0",
+    "armin/editorconfig-cli": "^2.1",
+    "friendsofphp/php-cs-fixer": "^3.0",
+    "helmich/typo3-typoscript-lint": "^3.1",
     "phpstan/extension-installer": "^1.4",
     "phpstan/phpstan": "^2.2",
     "phpunit/phpunit": "^10.0",
     "rector/rector": "^2.6",
     "ssch/typo3-rector": "^3.14",
-    "typo3/cms-extbase": "^14.1",
-    "armin/editorconfig-cli": "^2.1",
-    "friendsofphp/php-cs-fixer": "^3.0"
+    "typo3/cms-extbase": "^14.1"
   },
   "autoload": {
     "psr-4": {

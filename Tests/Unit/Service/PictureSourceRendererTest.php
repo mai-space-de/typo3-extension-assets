@@ -107,15 +107,14 @@ final class PictureSourceRendererTest extends TestCase
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
-                $format = (string)($instructions['format'] ?? 'jpg');
-                $width = (int)($instructions['width'] ?? 0);
+                $format = (string) ($instructions['format'] ?? 'jpg');
+                $width = (int) ($instructions['width'] ?? 0);
 
-                return new class($format, $width) extends ProcessedFile {
+                return new class ($format, $width) extends ProcessedFile {
                     public function __construct(
                         private readonly string $format,
                         private readonly int $width,
-                    ) {
-                    }
+                    ) {}
 
                     public function getFormat(): string
                     {
@@ -142,7 +141,7 @@ final class PictureSourceRendererTest extends TestCase
             }
         };
 
-        $service = new \ReflectionClass(ImageVariantService::class)->newInstanceWithoutConstructor();
+        $service = (new \ReflectionClass(ImageVariantService::class))->newInstanceWithoutConstructor();
         $this->setProp($service, 'imageService', $imageService);
         $this->setProp($service, 'eventDispatcher', $this->eventDispatcher);
 
@@ -153,7 +152,7 @@ final class PictureSourceRendererTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
+        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void

@@ -73,7 +73,7 @@ final class StaticFileCacheReadinessIntegrationTest extends TestCase
 
     private function createExtensionConfiguration(): ExtensionConfiguration
     {
-        $config = new \ReflectionClass(ExtensionConfiguration::class)
+        $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
 
         new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets')

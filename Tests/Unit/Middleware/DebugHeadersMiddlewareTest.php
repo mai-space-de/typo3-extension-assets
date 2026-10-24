@@ -46,7 +46,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
 
     private function makeConfig(bool $debugHeaders): ExtensionConfiguration
     {
-        $config = new \ReflectionClass(ExtensionConfiguration::class)
+        $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
         new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders')
             ->setValue($config, $debugHeaders);
@@ -62,7 +62,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
 
     private function makeAboveFoldCacheService(): AboveFoldCacheService
     {
-        $service = new \ReflectionClass(AboveFoldCacheService::class)
+        $service = (new \ReflectionClass(AboveFoldCacheService::class))
             ->newInstanceWithoutConstructor();
         $cacheProp = new \ReflectionProperty(AboveFoldCacheService::class, 'cache');
         $cacheProp->setValue($service, $this->aboveFoldFrontend);
@@ -152,7 +152,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
         // All viewport buckets reported
         $this->aboveFoldFrontend
             ->method('get')
-            ->willReturnCallback(fn (string $key) => match ($key) {
+            ->willReturnCallback(fn(string $key) => match ($key) {
                 'buckets_42' => ['mobile', 'tablet', 'desktop'],
                 default => false,
             });
@@ -160,7 +160,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
         // Manifest exists
         $this->earlyHintFrontend
             ->method('get')
-            ->willReturnCallback(fn (string $key) => match ($key) {
+            ->willReturnCallback(fn(string $key) => match ($key) {
                 'earlyhints_42_0' => [['href' => '/style.css', 'rel' => 'preload']],
                 default => false,
             });
@@ -200,7 +200,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
         // Only one viewport bucket reported — not ready
         $this->aboveFoldFrontend
             ->method('get')
-            ->willReturnCallback(fn (string $key) => match ($key) {
+            ->willReturnCallback(fn(string $key) => match ($key) {
                 'buckets_42' => ['mobile'],
                 default => false,
             });
@@ -240,7 +240,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
         // All viewport buckets reported — readiness passes
         $this->aboveFoldFrontend
             ->method('get')
-            ->willReturnCallback(fn (string $key) => match ($key) {
+            ->willReturnCallback(fn(string $key) => match ($key) {
                 'buckets_42' => ['mobile', 'tablet', 'desktop'],
                 default => false,
             });
@@ -248,7 +248,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
         // But manifest is empty
         $this->earlyHintFrontend
             ->method('get')
-            ->willReturnCallback(fn (string $key) => match ($key) {
+            ->willReturnCallback(fn(string $key) => match ($key) {
                 'earlyhints_42_0' => false,
                 default => false,
             });
@@ -271,7 +271,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
     {
         $pageInformation = $this->createPageInformation(7);
 
-        $language = new readonly class(1) {
+        $language = new readonly class (1) {
             public function __construct(
                 private int $languageId,
             ) {}
@@ -299,7 +299,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
         // All viewport buckets reported
         $this->aboveFoldFrontend
             ->method('get')
-            ->willReturnCallback(fn (string $key) => match ($key) {
+            ->willReturnCallback(fn(string $key) => match ($key) {
                 'buckets_7' => ['mobile', 'tablet', 'desktop'],
                 default => false,
             });
@@ -307,7 +307,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
         // Manifest exists for language 1
         $this->earlyHintFrontend
             ->method('get')
-            ->willReturnCallback(fn (string $key) => match ($key) {
+            ->willReturnCallback(fn(string $key) => match ($key) {
                 'earlyhints_7_1' => [['href' => '/style.css', 'rel' => 'preload']],
                 default => false,
             });
@@ -360,7 +360,7 @@ final class DebugHeadersMiddlewareTest extends TestCase
      */
     private function createPageInformation(int $pageUid): object
     {
-        return new readonly class($pageUid) {
+        return new readonly class ($pageUid) {
             public function __construct(
                 private int $pageUid,
             ) {}

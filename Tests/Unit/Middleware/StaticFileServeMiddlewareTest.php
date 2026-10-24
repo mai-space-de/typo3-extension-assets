@@ -61,7 +61,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         // load() to return [] just like a cache miss.
         $this->cacheFrontend = $this->createMock(FrontendInterface::class);
 
-        $this->earlyHintCacheService = new \ReflectionClass(EarlyHintCacheService::class)
+        $this->earlyHintCacheService = (new \ReflectionClass(EarlyHintCacheService::class))
             ->newInstanceWithoutConstructor();
         $cacheProp = new \ReflectionProperty(EarlyHintCacheService::class, 'cache');
         $cacheProp->setValue($this->earlyHintCacheService, $this->cacheFrontend);
@@ -86,7 +86,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
 
         self::assertInstanceOf(HtmlResponse::class, $result);
         self::assertSame(200, $result->getStatusCode());
-        self::assertSame('<html><body>Hello</body></html>', (string)$result->getBody());
+        self::assertSame('<html><body>Hello</body></html>', (string) $result->getBody());
         self::assertSame('text/html; charset=utf-8', $result->getHeaderLine('Content-Type'));
     }
 
@@ -99,7 +99,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $result = $middleware->process($request, $this->handler);
 
         self::assertInstanceOf(HtmlResponse::class, $result);
-        self::assertSame('<html><body>Root</body></html>', (string)$result->getBody());
+        self::assertSame('<html><body>Root</body></html>', (string) $result->getBody());
     }
 
     public function testServesStaticFileWithSpecificLanguage(): void
@@ -115,7 +115,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $result = $middleware->process($request, $this->handler);
 
         self::assertInstanceOf(HtmlResponse::class, $result);
-        self::assertSame('<html><body>Language 3</body></html>', (string)$result->getBody());
+        self::assertSame('<html><body>Language 3</body></html>', (string) $result->getBody());
     }
 
     // -----------------------------------------------------------------
@@ -135,7 +135,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
             language: $this->makeLanguage(0),
         );
         $deResult = $middleware->process($deRequest, $this->handler);
-        self::assertSame('<html><body>DE</body></html>', (string)$deResult->getBody());
+        self::assertSame('<html><body>DE</body></html>', (string) $deResult->getBody());
 
         $enRequest = $this->makeGetRequest(
             'https://example.com/en/page/',
@@ -143,7 +143,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
             language: $this->makeLanguage(1),
         );
         $enResult = $middleware->process($enRequest, $this->handler);
-        self::assertSame('<html><body>EN</body></html>', (string)$enResult->getBody());
+        self::assertSame('<html><body>EN</body></html>', (string) $enResult->getBody());
     }
 
     public function testLanguageCacheMissDoesNotServeOtherLanguageCache(): void
@@ -176,12 +176,12 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $request = $this->makeGetRequest(
             'https://example.com/page/',
             ['accept-encoding' => ['br, gzip']],
-            $this->makePageArguments(1)
+            $this->makePageArguments(1),
         );
         $result = $middleware->process($request, $this->handler);
 
         self::assertInstanceOf(HtmlResponse::class, $result);
-        self::assertSame('brotli-content', (string)$result->getBody());
+        self::assertSame('brotli-content', (string) $result->getBody());
         self::assertSame('br', $result->getHeaderLine('Content-Encoding'));
     }
 
@@ -194,12 +194,12 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $request = $this->makeGetRequest(
             'https://example.com/page/',
             ['accept-encoding' => ['gzip']],
-            $this->makePageArguments(1)
+            $this->makePageArguments(1),
         );
         $result = $middleware->process($request, $this->handler);
 
         self::assertInstanceOf(HtmlResponse::class, $result);
-        self::assertSame('gzip-content', (string)$result->getBody());
+        self::assertSame('gzip-content', (string) $result->getBody());
         self::assertSame('gzip', $result->getHeaderLine('Content-Encoding'));
     }
 
@@ -213,11 +213,11 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $request = $this->makeGetRequest(
             'https://example.com/page/',
             ['accept-encoding' => ['gzip, br']],
-            $this->makePageArguments(1)
+            $this->makePageArguments(1),
         );
         $result = $middleware->process($request, $this->handler);
 
-        self::assertSame('br-win', (string)$result->getBody());
+        self::assertSame('br-win', (string) $result->getBody());
     }
 
     public function testServesUncompressedWhenNoEncodingAdvertised(): void
@@ -229,7 +229,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $request = $this->makeGetRequest('https://example.com/page/', pageArguments: $this->makePageArguments(1));
         $result = $middleware->process($request, $this->handler);
 
-        self::assertSame('plain', (string)$result->getBody());
+        self::assertSame('plain', (string) $result->getBody());
     }
 
     // -----------------------------------------------------------------
@@ -279,7 +279,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $result = $middleware->process($request, $this->handler);
 
         self::assertInstanceOf(HtmlResponse::class, $result);
-        self::assertSame('<html><body>URL cache</body></html>', (string)$result->getBody());
+        self::assertSame('<html><body>URL cache</body></html>', (string) $result->getBody());
     }
 
     public function testPrefersPageIdCacheWhenBothExist(): void
@@ -293,7 +293,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $request = $this->makeGetRequest('https://example.com/de/', pageArguments: $this->makePageArguments(1));
         $result = $middleware->process($request, $this->handler);
 
-        self::assertSame('<html><body>ID</body></html>', (string)$result->getBody());
+        self::assertSame('<html><body>ID</body></html>', (string) $result->getBody());
     }
 
     // -----------------------------------------------------------------
@@ -503,7 +503,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         bool $enableStaticFileCache = true,
         bool $debugHeaders = false,
     ): StaticFileServeMiddleware {
-        $config = new \ReflectionClass(ExtensionConfiguration::class)
+        $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
 
         new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache')
@@ -518,7 +518,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
 
     private function makeCacheDirectory(): StaticFileCacheDirectory
     {
-        $config = new \ReflectionClass(ExtensionConfiguration::class)
+        $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
         new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir')
             ->setValue($config, '');
@@ -611,15 +611,15 @@ final class StaticFileServeMiddlewareTest extends TestCase
                 $key = strtolower($name);
 
                 return $headers[$key] ?? $headers[$name] ?? [];
-            }
+            },
         );
         $request->method('getHeaderLine')->willReturnCallback(
             static function (string $name) use ($headers): string {
                 $key = strtolower($name);
                 $values = $headers[$key] ?? $headers[$name] ?? [];
 
-                return is_array($values) ? implode(', ', $values) : (string)$values;
-            }
+                return is_array($values) ? implode(', ', $values) : (string) $values;
+            },
         );
 
         $request->method('getAttribute')->willReturnCallback(
@@ -627,7 +627,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
                 'routing'  => $pageArguments,
                 'language' => $language,
                 default    => null,
-            }
+            },
         );
 
         return $request;
@@ -654,7 +654,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         }
         $items = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST
+            \RecursiveIteratorIterator::CHILD_FIRST,
         );
         foreach ($items as $item) {
             $path = $item->getPathname();

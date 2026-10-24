@@ -305,7 +305,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
 
         $basePath = $this->indexPath(20, 0);
         self::assertFileExists($basePath . '.gz');
-        self::assertSame($html, gzdecode((string)file_get_contents($basePath . '.gz')));
+        self::assertSame($html, gzdecode((string) file_get_contents($basePath . '.gz')));
 
         if (function_exists('brotli_compress')) {
             self::assertFileExists($basePath . '.br');
@@ -364,7 +364,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
             self::assertFileExists($this->indexPath($pageUid, $languageUid));
         }
 
-        $removalService = new StaticFileRemovalService($this->cacheDirectory, new \ReflectionClass(SiteFinder::class)->newInstanceWithoutConstructor());
+        $removalService = new StaticFileRemovalService($this->cacheDirectory, (new \ReflectionClass(SiteFinder::class))->newInstanceWithoutConstructor());
         $removalService->purgeByPageUid($pageUid, $site);
 
         foreach (self::LANGUAGE_UIDS as $languageUid) {
@@ -380,7 +380,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
         self::assertTrue($writer->writeByPageId('<html>DE</html>', $pageUid, 0));
         self::assertTrue($writer->writeByPageId('<html>EN</html>', $pageUid, 1));
 
-        $removalService = new StaticFileRemovalService($this->cacheDirectory, new \ReflectionClass(SiteFinder::class)->newInstanceWithoutConstructor());
+        $removalService = new StaticFileRemovalService($this->cacheDirectory, (new \ReflectionClass(SiteFinder::class))->newInstanceWithoutConstructor());
         $removalService->purgeForLanguage($pageUid, 0);
 
         self::assertFileDoesNotExist($this->indexPath($pageUid, 0));
@@ -397,7 +397,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
             self::assertTrue($writer->writeByPageId('<html>L' . $languageUid . '</html>', $pageUid, $languageUid));
         }
 
-        $removalService = new StaticFileRemovalService($this->cacheDirectory, new \ReflectionClass(SiteFinder::class)->newInstanceWithoutConstructor());
+        $removalService = new StaticFileRemovalService($this->cacheDirectory, (new \ReflectionClass(SiteFinder::class))->newInstanceWithoutConstructor());
         $removalService->purgeByPageUid($pageUid, $site);
 
         foreach (self::LANGUAGE_UIDS as $languageUid) {
@@ -414,7 +414,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
         bool $enableCompression = false,
         bool $enableBrotli = false,
     ): ExtensionConfiguration {
-        $config = new \ReflectionClass(ExtensionConfiguration::class)
+        $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
 
         new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache')
@@ -501,7 +501,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
                 'routing' => $pageArguments,
                 'language' => $language,
                 default => null,
-            }
+            },
         );
 
         return $request;

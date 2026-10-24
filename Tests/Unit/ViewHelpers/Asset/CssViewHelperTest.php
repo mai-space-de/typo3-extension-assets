@@ -24,6 +24,7 @@ use TYPO3\CMS\Core\Configuration\ExtensionConfiguration as Typo3ExtensionConfigu
 use TYPO3\CMS\Core\Core\ApplicationContext;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Page\AssetCollector;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Routing\PageArguments;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -104,7 +105,7 @@ final class CssViewHelperTest extends TestCase
             'processingCacheLifetime' => 0,
         ];
         $this->extensionConfiguration = new ExtensionConfiguration(
-            $this->noConstructor(Typo3ExtensionConfiguration::class)
+            $this->noConstructor(Typo3ExtensionConfiguration::class),
         );
 
         // Processors (final, never invoked for plain CSS)
@@ -264,10 +265,18 @@ final class CssViewHelperTest extends TestCase
         $pageArguments = $this->createMock(PageArguments::class);
         $pageArguments->method('getPageId')->willReturn($pageUid);
 
+        $normalizedParams = $this->createMock(NormalizedParams::class);
+        $normalizedParams->method('getSiteUrl')->willReturn('https://example.test/');
+
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getAttribute')
-            ->with('routing')
-            ->willReturn($pageArguments);
+            ->willReturnCallback(static function (string $name, mixed $default = null) use ($pageArguments, $normalizedParams): mixed {
+                return match ($name) {
+                    'routing' => $pageArguments,
+                    'normalizedParams' => $normalizedParams,
+                    default => $default,
+                };
+            });
 
         $GLOBALS['TYPO3_REQUEST'] = $request;
     }
@@ -294,7 +303,7 @@ final class CssViewHelperTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
+        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void

@@ -38,12 +38,12 @@ final class StaticHtmlWriterListenerTest extends TestCase
 
         $this->aboveFoldFrontend = $this->createMock(FrontendInterface::class);
 
-        $this->aboveFoldCacheService = new \ReflectionClass(AboveFoldCacheService::class)
+        $this->aboveFoldCacheService = (new \ReflectionClass(AboveFoldCacheService::class))
             ->newInstanceWithoutConstructor();
         $cacheProp = new \ReflectionProperty(AboveFoldCacheService::class, 'cache');
         $cacheProp->setValue($this->aboveFoldCacheService, $this->aboveFoldFrontend);
 
-        $this->extensionConfiguration = new \ReflectionClass(ExtensionConfiguration::class)
+        $this->extensionConfiguration = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
         $bucketsProp = new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets');
         $bucketsProp->setValue($this->extensionConfiguration, [
@@ -275,7 +275,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
         string $method = 'GET',
         string $uri = 'https://example.com/page',
     ): ServerRequestInterface {
-        $routing = new readonly class($pageUid) {
+        $routing = new readonly class ($pageUid) {
             public function __construct(
                 private int $pageId,
             ) {}
@@ -286,7 +286,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
             }
         };
 
-        $language = new readonly class($languageUid) {
+        $language = new readonly class ($languageUid) {
             public function __construct(
                 private int $languageId,
             ) {}

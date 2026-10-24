@@ -48,7 +48,7 @@ final class PictureViewHelperTest extends TestCase
             'viewportBuckets' => ['mobile' => 768, 'tablet' => 1024, 'desktop' => 99999],
         ];
         $this->extensionConfiguration = new ExtensionConfiguration(
-            $this->noConstructor(Typo3ExtensionConfiguration::class)
+            $this->noConstructor(Typo3ExtensionConfiguration::class),
         );
 
         $cacheService = $this->noConstructor(AboveFoldCacheService::class);
@@ -282,7 +282,7 @@ final class PictureViewHelperTest extends TestCase
         string $childSources,
         ?PictureSourceRenderer $pictureSourceRenderer = null,
     ): PictureViewHelper {
-        $vh = new class(
+        $vh = new class (
             $pictureSourceRenderer ?? new PictureSourceRenderer($this->createImageVariantService($imageService)),
             $imageService,
             $this->criticalityResolver,
@@ -361,7 +361,7 @@ final class PictureViewHelperTest extends TestCase
 
     private function stubImageServiceWithDimensions(int $width, int $height): ImageService
     {
-        return new readonly class($width, $height) extends ImageService {
+        return new readonly class ($width, $height) extends ImageService {
             public function __construct(
                 private int $width,
                 private int $height,
@@ -369,12 +369,11 @@ final class PictureViewHelperTest extends TestCase
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
-                return new class($this->width, $this->height) extends ProcessedFile {
+                return new class ($this->width, $this->height) extends ProcessedFile {
                     public function __construct(
                         private readonly int $width,
                         private readonly int $height,
-                    ) {
-                    }
+                    ) {}
 
                     public function getProperty(string $key): mixed
                     {
@@ -404,7 +403,7 @@ final class PictureViewHelperTest extends TestCase
 
     private function createRenderingContext(string $childrenOutput = ''): RenderingContext
     {
-        return new class($childrenOutput) extends RenderingContext {
+        return new class ($childrenOutput) extends RenderingContext {
             public function __construct(private readonly string $childrenOutput)
             {
                 $this->setVariableProvider($this->createPictureVariableProvider());
@@ -466,15 +465,14 @@ final class PictureViewHelperTest extends TestCase
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
-                $format = (string)($instructions['fileExtension'] ?? $instructions['format'] ?? 'jpg');
-                $width = (int)($instructions['width'] ?? 0);
+                $format = (string) ($instructions['fileExtension'] ?? $instructions['format'] ?? 'jpg');
+                $width = (int) ($instructions['width'] ?? 0);
 
-                return new class($format, $width) extends ProcessedFile {
+                return new class ($format, $width) extends ProcessedFile {
                     public function __construct(
                         private readonly string $format,
                         private readonly int $width,
-                    ) {
-                    }
+                    ) {}
 
                     public function getFormat(): string
                     {
@@ -503,7 +501,7 @@ final class PictureViewHelperTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
+        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void

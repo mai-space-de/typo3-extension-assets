@@ -49,7 +49,7 @@ final class ResponsiveImageViewHelperTest extends TestCase
             'viewportBuckets' => ['mobile' => 768, 'tablet' => 1024, 'desktop' => 99999],
         ];
         $this->extensionConfiguration = new ExtensionConfiguration(
-            $this->noConstructor(Typo3ExtensionConfiguration::class)
+            $this->noConstructor(Typo3ExtensionConfiguration::class),
         );
 
         $cacheService = $this->noConstructor(AboveFoldCacheService::class);
@@ -320,26 +320,23 @@ final class ResponsiveImageViewHelperTest extends TestCase
      */
     private function stubImageService(array $failFormats = []): ImageService
     {
-        return new readonly class($failFormats) extends ImageService {
-            public function __construct(private array $failFormats)
-            {
-            }
+        return new readonly class ($failFormats) extends ImageService {
+            public function __construct(private array $failFormats) {}
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
                 $format = $instructions['format'];
-                $width = (int)$instructions['width'];
+                $width = (int) $instructions['width'];
 
                 if (in_array($format, $this->failFormats, true)) {
                     throw new RuntimeException('Format not supported: ' . $format, 1375266052);
                 }
 
-                return new class($format, $width) extends ProcessedFile {
+                return new class ($format, $width) extends ProcessedFile {
                     public function __construct(
                         private readonly string $format,
                         private readonly int $width,
-                    ) {
-                    }
+                    ) {}
 
                     public function getFormat(): string
                     {
@@ -370,7 +367,7 @@ final class ResponsiveImageViewHelperTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
+        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void

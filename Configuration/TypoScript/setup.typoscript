@@ -23,7 +23,7 @@ plugin.tx_maispace_assets {
         # Warmup: EXT: paths to pre-warm at deploy time
         warmup {
             assets {
-                # 10 = EXT:mai_theme/Resources/Public/Css/main.scss
+                # Example: assign EXT paths such as mai_theme public SCSS here
             }
         }
 

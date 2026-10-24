@@ -28,7 +28,7 @@ final class StaticFileRemovalServiceTest extends TestCase
         // SiteFinder is readonly (cannot be mocked) and is never called in these
         // tests — every case either guards before resolving a site or passes one
         // explicitly, so an uninitialized instance is sufficient.
-        $siteFinder = new \ReflectionClass(SiteFinder::class)->newInstanceWithoutConstructor();
+        $siteFinder = (new \ReflectionClass(SiteFinder::class))->newInstanceWithoutConstructor();
 
         $this->subject = new StaticFileRemovalService(
             $this->cacheDirectory,

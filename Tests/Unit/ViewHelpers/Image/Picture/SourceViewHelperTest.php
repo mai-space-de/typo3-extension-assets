@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\ViewHelpers\Image\Picture;
 
-use Psr\Http\Message\ServerRequestInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Service\ImageVariantService;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use Maispace\MaiAssets\ViewHelpers\Image\Picture\SourceViewHelper;
+use Maispace\MaiAssets\ViewHelpers\Image\PictureViewHelper;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContext;
-use TYPO3Fluid\Fluid\Core\Variables\StandardVariableProvider;
+use TYPO3Fluid\Fluid\Core\ViewHelper\ViewHelperVariableContainer;
 
 /**
  * Tests for SourceViewHelper — verifies webp/avif source generation and fallback behaviour
@@ -51,7 +51,7 @@ final class SourceViewHelperTest extends TestCase
     {
         $subject = $this->createViewHelper(
             $this->stubVariantService(),
-            withPictureContext: true
+            withPictureContext: true,
         );
 
         $result = $subject->render();
@@ -68,7 +68,7 @@ final class SourceViewHelperTest extends TestCase
     {
         $subject = $this->createViewHelper(
             $this->stubVariantService(failFormats: ['webp']),
-            withPictureContext: true
+            withPictureContext: true,
         );
 
         $result = $subject->render();
@@ -84,7 +84,7 @@ final class SourceViewHelperTest extends TestCase
     {
         $subject = $this->createViewHelper(
             $this->stubVariantService(failFormats: ['avif']),
-            withPictureContext: true
+            withPictureContext: true,
         );
 
         $result = $subject->render();
@@ -100,7 +100,7 @@ final class SourceViewHelperTest extends TestCase
     {
         $subject = $this->createViewHelper(
             $this->stubVariantService(failFormats: ['avif', 'webp']),
-            withPictureContext: true
+            withPictureContext: true,
         );
 
         $result = $subject->render();
@@ -116,7 +116,7 @@ final class SourceViewHelperTest extends TestCase
         $subject = $this->createViewHelper(
             $this->stubVariantService(),
             withPictureContext: true,
-            srcset: []
+            srcset: [],
         );
 
         $result = $subject->render();
@@ -132,7 +132,7 @@ final class SourceViewHelperTest extends TestCase
         $subject = $this->createViewHelper(
             $this->stubVariantService(),
             withPictureContext: true,
-            media: '(max-width: 767px)'
+            media: '(max-width: 767px)',
         );
 
         $result = $subject->render();
@@ -148,7 +148,7 @@ final class SourceViewHelperTest extends TestCase
         $subject = $this->createViewHelper(
             $this->stubVariantService(),
             withPictureContext: true,
-            sizes: '(max-width: 767px) 100vw, 50vw'
+            sizes: '(max-width: 767px) 100vw, 50vw',
         );
 
         $result = $subject->render();
@@ -163,7 +163,7 @@ final class SourceViewHelperTest extends TestCase
     {
         $subject = $this->createViewHelper(
             $this->stubVariantService(),
-            withPictureContext: true
+            withPictureContext: true,
         );
 
         $result = $subject->render();
@@ -179,7 +179,7 @@ final class SourceViewHelperTest extends TestCase
         $subject = $this->createViewHelper(
             $this->stubVariantService(),
             withPictureContext: true,
-            srcset: [400, 800]
+            srcset: [400, 800],
         );
 
         $result = $subject->render();
@@ -199,7 +199,7 @@ final class SourceViewHelperTest extends TestCase
             $this->stubVariantService(),
             withPictureContext: true,
             isCritical: true,
-            earlyHintCollector: $earlyHintCollector
+            earlyHintCollector: $earlyHintCollector,
         );
 
         $subject->render();
@@ -218,7 +218,7 @@ final class SourceViewHelperTest extends TestCase
             $this->stubVariantService(),
             withPictureContext: true,
             isCritical: false,
-            earlyHintCollector: $earlyHintCollector
+            earlyHintCollector: $earlyHintCollector,
         );
 
         $subject->render();
@@ -271,7 +271,7 @@ final class SourceViewHelperTest extends TestCase
             $this->stubVariantService(failFormats: ['webp']),
             withPictureContext: true,
             isCritical: true,
-            earlyHintCollector: $earlyHintCollector
+            earlyHintCollector: $earlyHintCollector,
         );
 
         $result = $subject->render();
@@ -297,10 +297,10 @@ final class SourceViewHelperTest extends TestCase
         $ctx = $this->createRenderingContext();
 
         if ($withPictureContext) {
-            $vp = $ctx->getVariableProvider();
-            $vp->add('__pictureFileReference', new \stdClass());
-            $vp->add('__pictureIsCritical', $isCritical);
-            $vp->add('__pictureEarlyHintCollector', $earlyHintCollector);
+            $container = $ctx->getViewHelperVariableContainer();
+            $container->add(PictureViewHelper::class, 'fileReference', new \stdClass());
+            $container->add(PictureViewHelper::class, 'isCritical', $isCritical);
+            $container->add(PictureViewHelper::class, 'earlyHintCollector', $earlyHintCollector);
         }
 
         $vh->setRenderingContext($ctx);
@@ -322,35 +322,7 @@ final class SourceViewHelperTest extends TestCase
         return new class extends RenderingContext {
             public function __construct()
             {
-                $this->variableProvider = new class extends StandardVariableProvider {
-                    /** @var array<string, mixed> */
-                    private array $storage = [];
-
-                    public function add(string $identifier, mixed $value): void
-                    {
-                        $this->storage[$identifier] = $value;
-                    }
-
-                    public function get(string $identifier): mixed
-                    {
-                        return $this->storage[$identifier];
-                    }
-
-                    public function exists(string $identifier): bool
-                    {
-                        return array_key_exists($identifier, $this->storage);
-                    }
-
-                    public function remove(string $identifier): void
-                    {
-                        unset($this->storage[$identifier]);
-                    }
-                };
-            }
-
-            public function getRequest(): ServerRequestInterface
-            {
-                return $GLOBALS['TYPO3_REQUEST'];
+                $this->setViewHelperVariableContainer(new ViewHelperVariableContainer());
             }
         };
     }
@@ -362,24 +334,23 @@ final class SourceViewHelperTest extends TestCase
      */
     private function stubVariantService(array $failFormats = []): ImageVariantService
     {
-        $imageService = new readonly class($failFormats) extends ImageService {
+        $imageService = new readonly class ($failFormats) extends ImageService {
             public function __construct(private array $failFormats) {}
 
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
-                $format = (string)($instructions['format'] ?? 'jpg');
+                $format = (string) ($instructions['format'] ?? 'jpg');
                 if (in_array($format, $this->failFormats, true)) {
                     throw new \RuntimeException('Format failed: ' . $format, 4184561690);
                 }
 
-                $width = (int)($instructions['width'] ?? 0);
+                $width = (int) ($instructions['width'] ?? 0);
 
-                return new class($format, $width) extends ProcessedFile {
+                return new class ($format, $width) extends ProcessedFile {
                     public function __construct(
                         private readonly string $format,
                         private readonly int $width,
-                    ) {
-                    }
+                    ) {}
 
                     public function getFormat(): string
                     {
@@ -416,7 +387,7 @@ final class SourceViewHelperTest extends TestCase
     private function noConstructor(string $class): object
     {
         /** @var T */
-        return new \ReflectionClass($class)->newInstanceWithoutConstructor();
+        return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
     }
 
     private function setProp(object $target, string $property, mixed $value): void

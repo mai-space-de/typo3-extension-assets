@@ -12,8 +12,8 @@ final class AboveFoldObserverScriptBuilderTest extends TestCase
 {
     public function testBuildMinifiesAndStripsNewlinesWhenEnabled(): void
     {
-        $template = (string)file_get_contents(
-            dirname(__DIR__, 3) . '/Resources/Public/JavaScript/AboveFoldObserver.js'
+        $template = (string) file_get_contents(
+            dirname(__DIR__, 3) . '/Resources/Public/JavaScript/AboveFoldObserver.js',
         );
 
         $builder = new AboveFoldObserverScriptBuilder(
@@ -53,7 +53,7 @@ final class AboveFoldObserverScriptBuilderTest extends TestCase
 
     private function makeConfig(bool $enableMinification): ExtensionConfiguration
     {
-        $config = new \ReflectionClass(ExtensionConfiguration::class)
+        $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
         new \ReflectionProperty(ExtensionConfiguration::class, 'enableMinification')
             ->setValue($config, $enableMinification);

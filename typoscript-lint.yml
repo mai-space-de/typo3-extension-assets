@@ -1,16 +1,15 @@
 paths:
   - Configuration/
 
-linters:
-  Indentation:
-    enabled: true
-    useSpaces: true
-    indentPerLevel: 4
-  DeadCode:
-    enabled: true
-  EmptyBlock:
-    enabled: true
-  NestingConsistency:
-    enabled: true
-  RepeatingRValue:
-    enabled: true
+filePatterns:
+  - "*.typoscript"
+
+sniffs:
+  - class: Indentation
+    parameters:
+      useSpaces: true
+      indentPerLevel: 4
+  - class: DeadCode
+  - class: EmptySection
+  - class: NestingConsistency
+  - class: RepeatingRValue
