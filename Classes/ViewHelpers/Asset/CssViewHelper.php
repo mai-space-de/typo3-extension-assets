@@ -99,7 +99,7 @@ class CssViewHelper extends AbstractViewHelper
 
         $resolvedPath = $this->compiledAssetPublisher->publishStylesheet($resolvedPath, $minify);
         $publicPath = PathUtility::getAbsoluteWebPath($resolvedPath);
-        
+
         // For TYPO3 14+, convert relative paths to absolute URLs to avoid SystemResourceFactory resolution issues
         $typo3Version = new Typo3Version();
         if ($typo3Version->getMajorVersion() >= 14 && !str_starts_with($publicPath, 'http')) {

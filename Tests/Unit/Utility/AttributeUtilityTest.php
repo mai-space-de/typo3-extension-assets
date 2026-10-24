@@ -15,7 +15,7 @@ class AttributeUtilityTest extends TestCase
     {
         $attributes = ['async' => true];
         $result = AttributeUtility::normalizeScriptAttributes($attributes);
-        
+
         self::assertSame('async', $result['async']);
     }
 
@@ -24,7 +24,7 @@ class AttributeUtilityTest extends TestCase
     {
         $attributes = ['defer' => true];
         $result = AttributeUtility::normalizeScriptAttributes($attributes);
-        
+
         self::assertSame('defer', $result['defer']);
     }
 
@@ -33,7 +33,7 @@ class AttributeUtilityTest extends TestCase
     {
         $attributes = ['nomodule' => true];
         $result = AttributeUtility::normalizeScriptAttributes($attributes);
-        
+
         self::assertSame('nomodule', $result['nomodule']);
     }
 
@@ -42,7 +42,7 @@ class AttributeUtilityTest extends TestCase
     {
         $attributes = ['type' => 'module', 'src' => 'test.js'];
         $result = AttributeUtility::normalizeScriptAttributes($attributes);
-        
+
         self::assertSame('module', $result['type']);
         self::assertSame('test.js', $result['src']);
     }
@@ -52,7 +52,7 @@ class AttributeUtilityTest extends TestCase
     {
         $attributes = ['async' => false, 'defer' => false];
         $result = AttributeUtility::normalizeScriptAttributes($attributes);
-        
+
         self::assertFalse($result['async']);
         self::assertFalse($result['defer']);
     }
@@ -62,7 +62,7 @@ class AttributeUtilityTest extends TestCase
     {
         $attributes = ['disabled' => true];
         $result = AttributeUtility::normalizeCssAttributes($attributes);
-        
+
         self::assertSame('disabled', $result['disabled']);
     }
 
@@ -71,7 +71,7 @@ class AttributeUtilityTest extends TestCase
     {
         $attributes = ['media' => 'screen', 'rel' => 'stylesheet'];
         $result = AttributeUtility::normalizeCssAttributes($attributes);
-        
+
         self::assertSame('screen', $result['media']);
         self::assertSame('stylesheet', $result['rel']);
     }
@@ -81,7 +81,7 @@ class AttributeUtilityTest extends TestCase
     {
         $attributes = ['disabled' => false];
         $result = AttributeUtility::normalizeCssAttributes($attributes);
-        
+
         self::assertFalse($result['disabled']);
     }
 
@@ -89,7 +89,7 @@ class AttributeUtilityTest extends TestCase
     public function normalizeScriptAttributesHandlesEmptyArray(): void
     {
         $result = AttributeUtility::normalizeScriptAttributes([]);
-        
+
         self::assertSame([], $result);
     }
 
@@ -97,7 +97,7 @@ class AttributeUtilityTest extends TestCase
     public function normalizeCssAttributesHandlesEmptyArray(): void
     {
         $result = AttributeUtility::normalizeCssAttributes([]);
-        
+
         self::assertSame([], $result);
     }
 }

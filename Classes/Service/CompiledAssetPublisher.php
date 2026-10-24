@@ -73,19 +73,19 @@ final readonly class CompiledAssetPublisher
     private function rewriteRelativeUrls(string $css, string $sourcePath): string
     {
         $sourceDir = dirname($sourcePath);
-        
+
         $result = preg_replace_callback(
             '/url\(\s*[\'"]?([^\'"\)]+)[\'"]?\s*\)/i',
             function ($matches) use ($sourceDir) {
                 $url = $matches[1];
-                
+
                 if (preg_match('/^(https?:|data:|\/)/', $url)) {
                     return $matches[0];
                 }
-                
+
                 // Build absolute path without resolving symlinks
                 $absolutePath = $sourceDir . '/' . $url;
-                
+
                 // Normalize the path using Symfony's Path normalizer if available, otherwise manual
                 if (class_exists(Path::class)) {
                     $absolutePath = Path::canonicalize($absolutePath);
@@ -96,18 +96,18 @@ final readonly class CompiledAssetPublisher
                         $absolutePath = preg_replace('#/[^/]+/\.\./#', '/', $absolutePath);
                     }
                 }
-                
+
                 // Check if file exists
                 if (!file_exists($absolutePath)) {
                     return $matches[0];
                 }
-                
+
                 $webPath = $this->getPublicWebPath($absolutePath);
                 return 'url("' . $webPath . '")';
             },
             $css
         );
-        
+
         return $result;
     }
 
@@ -118,18 +118,18 @@ final readonly class CompiledAssetPublisher
     {
         // Don't use realpath() here because it resolves symlinks, which breaks the hash calculation
         // Check if file is within project path and contains Resources/Public
-        if (Environment::isComposerMode() 
-            && str_contains($absolutePath, 'Resources/Public') 
+        if (Environment::isComposerMode()
+            && str_contains($absolutePath, 'Resources/Public')
             && str_starts_with($absolutePath, Environment::getProjectPath())) {
-            
+
             $relativePath = substr($absolutePath, strlen(Environment::getProjectPath()));
-            
+
             // Check if the path is in the vendor directory (even if it's a symlink)
             if (str_contains($relativePath, '/vendor/')) {
                 [$relativePrefix, $relativeAssetPath] = explode('Resources/Public', $relativePath, 2);
                 return '/_assets/' . md5($relativePrefix) . $relativeAssetPath;
             }
-            
+
             // If the path is in the packages directory, convert it to the vendor path
             if (str_contains($relativePath, '/packages/')) {
                 // Extract the package name from the path
@@ -142,7 +142,7 @@ final readonly class CompiledAssetPublisher
                 }
             }
         }
-        
+
         // Fallback to standard PathUtility for non-extension files
         return PathUtility::getAbsoluteWebPath($absolutePath);
     }

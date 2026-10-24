@@ -82,7 +82,7 @@ final class ScssDependencyHasherTest extends TestCase
         $partial1 = $this->tempDir . '/partials/_grid.scss';
         $partial2 = $this->tempDir . '/partials/_colors.scss';
         $entry = $this->tempDir . '/bundle.scss';
-        
+
         file_put_contents($partial1, ".grid{display:grid}\n");
         file_put_contents($partial2, "\$red: #ff0000;\n");
         file_put_contents($entry, "@import \"partials/grid\";\n@use \"partials/colors\";\n");
@@ -101,7 +101,7 @@ final class ScssDependencyHasherTest extends TestCase
         $nested = $this->tempDir . '/partials/_nested.scss';
         $partial = $this->tempDir . '/partials/_grid.scss';
         $entry = $this->tempDir . '/bundle.scss';
-        
+
         file_put_contents($nested, ".nested{color:blue}\n");
         file_put_contents($partial, "@import \"nested\";\n.grid{display:grid}\n");
         file_put_contents($entry, "@import \"partials/grid\";\n");
@@ -120,7 +120,7 @@ final class ScssDependencyHasherTest extends TestCase
         $partial1 = $this->tempDir . '/partials/_a.scss';
         $partial2 = $this->tempDir . '/partials/_b.scss';
         $entry = $this->tempDir . '/bundle.scss';
-        
+
         file_put_contents($partial1, "@import \"b\";\n.a{color:red}\n");
         file_put_contents($partial2, "@import \"a\";\n.b{color:blue}\n");
         file_put_contents($entry, "@import \"partials/a\";\n");
@@ -137,7 +137,7 @@ final class ScssDependencyHasherTest extends TestCase
     public function getDependencyTreeReturnsEmptyArrayForNonExistentFile(): void
     {
         $tree = $this->subject->getDependencyTree($this->tempDir . '/nonexistent.scss');
-        
+
         self::assertSame([], $tree);
     }
 }
