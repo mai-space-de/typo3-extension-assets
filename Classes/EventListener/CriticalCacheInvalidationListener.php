@@ -30,7 +30,7 @@ final readonly class CriticalCacheInvalidationListener
 
         $this->invalidationService->invalidateAfterBucketUpdate(
             $event->getPageUid(),
-            $event->getBucket()
+            $event->getBucket(),
         );
     }
 }

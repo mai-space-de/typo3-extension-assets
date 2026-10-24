@@ -66,7 +66,7 @@ final class SvgSpriteCollector extends AbstractAssetCollector implements Singlet
             }
 
             // Extract viewBox
-            $viewBox = (string)($xml->attributes()['viewBox'] ?? '');
+            $viewBox = (string) ($xml->attributes()['viewBox'] ?? '');
 
             // Strip attributes from root SVG element
             foreach ($stripAttributes as $attr) {

@@ -29,11 +29,11 @@ final readonly class SvgSpriteInjectionListener
         // Inject SVG sprite immediately after <body> opening tag
         $sprite = $this->svgSpriteCollector->build();
         if ($sprite !== '') {
-            $content = (string)preg_replace(
+            $content = (string) preg_replace(
                 '/<body([^>]*)>/i',
                 '<body$1>' . $sprite,
                 $content,
-                1
+                1,
             );
         }
 
@@ -47,7 +47,7 @@ final readonly class SvgSpriteInjectionListener
             $preconnectLinks .= sprintf(
                 '<link rel="preconnect" href="%s" crossorigin="%s">',
                 htmlspecialchars($origin['href'], ENT_QUOTES),
-                htmlspecialchars($crossorigin, ENT_QUOTES)
+                htmlspecialchars($crossorigin, ENT_QUOTES),
             ) . "\n";
             $this->earlyHintCollector->add(new EarlyHintCandidate(
                 href: $origin['href'],

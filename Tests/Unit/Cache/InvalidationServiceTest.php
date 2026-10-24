@@ -63,7 +63,9 @@ final class InvalidationServiceTest extends TestCase
         $this->cacheManager->method('flushCachesByTag');
         $this->aboveFoldFrontend->expects(self::once())->method('remove')->with('buckets_42');
         $this->aboveFoldFrontend->expects(self::once())->method('set')->with(
-            'reset_42', self::anything(), self::anything()
+            'reset_42',
+            self::anything(),
+            self::anything(),
         );
         $this->eventDispatcher->method('dispatch')->willReturnArgument(0);
         $this->staticFileRemovalService
@@ -79,7 +81,9 @@ final class InvalidationServiceTest extends TestCase
         $this->cacheManager->method('flushCachesByTag');
         $this->aboveFoldFrontend->expects(self::once())->method('remove')->with('buckets_42');
         $this->aboveFoldFrontend->expects(self::once())->method('set')->with(
-            'reset_42', self::anything(), self::anything()
+            'reset_42',
+            self::anything(),
+            self::anything(),
         );
         $this->eventDispatcher->method('dispatch')->willReturnArgument(0);
         $this->staticFileRemovalService

@@ -43,7 +43,7 @@ class InvalidationService implements SingletonInterface
             BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE,
             $pageUid,
             $targets,
-            ['changedFields' => $changedFields]
+            ['changedFields' => $changedFields],
         );
     }
 
@@ -56,7 +56,7 @@ class InvalidationService implements SingletonInterface
             BeforeCacheInvalidationEvent::TRIGGER_BUCKET_UPDATE,
             $pageUid,
             [self::TARGET_PAGE_CACHE, self::TARGET_EARLY_HINTS, self::TARGET_STATIC_FILE],
-            ['bucket' => $bucket]
+            ['bucket' => $bucket],
         );
     }
 

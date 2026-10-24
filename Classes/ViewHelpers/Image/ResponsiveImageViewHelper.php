@@ -19,8 +19,7 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
         private readonly ImageVariantService $imageVariantService,
         private readonly AssetCriticalityResolver $criticalityResolver,
         private readonly EarlyHintCandidateCollector $earlyHintCollector,
-    ) {
-    }
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -36,17 +35,17 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
     public function render(): string
     {
         $image = $this->arguments['image'];
-        $breakpoints = (array)$this->arguments['breakpoints'];
-        $sizes = (string)$this->arguments['sizes'];
-        $critical = (string)$this->arguments['critical'];
-        $elementUid = (int)$this->arguments['elementUid'];
-        $alt = (string)$this->arguments['alt'];
-        $class = (string)$this->arguments['class'];
+        $breakpoints = (array) $this->arguments['breakpoints'];
+        $sizes = (string) $this->arguments['sizes'];
+        $critical = (string) $this->arguments['critical'];
+        $elementUid = (int) $this->arguments['elementUid'];
+        $alt = (string) $this->arguments['alt'];
+        $class = (string) $this->arguments['class'];
 
         $request = $this->renderingContext->hasAttribute(ServerRequestInterface::class)
             ? $this->renderingContext->getAttribute(ServerRequestInterface::class)
             : null;
-        $pageUid = (int)($request?->getAttribute('routing')?->getPageId() ?? 0);
+        $pageUid = (int) ($request?->getAttribute('routing')?->getPageId() ?? 0);
 
         $isCritical = match ($critical) {
             'true'  => true,
@@ -108,7 +107,7 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
         $parts = [];
         foreach ($variants as $bucket => $data) {
             if (!empty($data[$format]) && !empty($data['width'])) {
-                $parts[] = htmlspecialchars($data[$format], ENT_QUOTES) . ' ' . (int)$data['width'] . 'w';
+                $parts[] = htmlspecialchars($data[$format], ENT_QUOTES) . ' ' . (int) $data['width'] . 'w';
             }
         }
         return implode(', ', $parts);

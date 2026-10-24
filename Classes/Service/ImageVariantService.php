@@ -45,7 +45,7 @@ final readonly class ImageVariantService
                             'width'    => $width,
                             'format'   => $format === 'jpeg' ? 'jpg' : $format,
                             'maxWidth' => $width,
-                        ]
+                        ],
                     );
                     $bucketData[$format] = $this->imageService->getImageUri($processedImage, true);
                 } catch (\Exception) {

@@ -23,12 +23,13 @@ class MaiSvgIconProvider extends AbstractSvgIconProvider
     {
         if (empty($options['source'])) {
             throw new \InvalidArgumentException(
-                '[' . $icon->getIdentifier() . '] The option "source" is required and must not be empty', 1143005162
+                '[' . $icon->getIdentifier() . '] The option "source" is required and must not be empty',
+                1143005162,
             );
         }
 
         $identifier = $options['identifier'] ?? $icon->getIdentifier();
-        $source = (string)$options['source'];
+        $source = (string) $options['source'];
 
         $resolvedPath = $this->resolveFilePath($source);
         if ($resolvedPath !== '' && file_exists($resolvedPath)) {
@@ -48,12 +49,12 @@ class MaiSvgIconProvider extends AbstractSvgIconProvider
             throw new \InvalidArgumentException('The option "source" is required and must not be empty', 6262473496);
         }
 
-        $resolvedPath = $this->resolveFilePath((string)$options['source']);
+        $resolvedPath = $this->resolveFilePath((string) $options['source']);
         if ($resolvedPath === '' || !file_exists($resolvedPath)) {
             return '';
         }
 
-        $svgContent = (string)file_get_contents($resolvedPath);
+        $svgContent = (string) file_get_contents($resolvedPath);
         $svgContent = preg_replace('/<\?xml[^?]*\?>\s*/i', '', $svgContent) ?? $svgContent;
         $svgContent = preg_replace('/\s(width|height)="[^"]*"/i', '', $svgContent) ?? $svgContent;
 

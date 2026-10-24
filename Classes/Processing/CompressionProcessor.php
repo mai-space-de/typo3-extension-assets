@@ -17,11 +17,11 @@ final readonly class CompressionProcessor
         if (!file_exists($filePath)) {
             throw new \RuntimeException(
                 sprintf('File not found for compression: "%s"', $filePath),
-                1700000003
+                1700000003,
             );
         }
 
-        $content = (string)file_get_contents($filePath);
+        $content = (string) file_get_contents($filePath);
         $level = $this->extensionConfiguration->getCompressionLevel();
 
         // Write gzip variant

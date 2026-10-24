@@ -80,7 +80,7 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
         }
 
         try {
-            $requestUri = (string)$request->getUri();
+            $requestUri = (string) $request->getUri();
 
             // URIs with a query string produce ambiguous cache keys.
             if ($this->hasQueryString($requestUri)) {
@@ -94,8 +94,8 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
             // under different URL paths.
             $pageArgs = $request->getAttribute('routing');
             $language = $request->getAttribute('language');
-            $pageUid = $pageArgs !== null ? (int)$pageArgs->getPageId() : 0;
-            $languageUid = $language !== null ? (int)$language->getLanguageId() : 0;
+            $pageUid = $pageArgs !== null ? (int) $pageArgs->getPageId() : 0;
+            $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
             $filePath = $this->resolveCacheFilePath($pageUid, $languageUid, $requestUri);
 
@@ -118,7 +118,7 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
 
             $content = file_get_contents($filePath);
 
-            return new HtmlResponse((string)$content, 200, $headers);
+            return new HtmlResponse((string) $content, 200, $headers);
         } catch (\Throwable) {
             // Fail open: any error during static file serving delegates
             // to the normal TYPO3 rendering path.
@@ -225,8 +225,8 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
         }
 
         $language = $request->getAttribute('language');
-        $pageUid = (int)$pageArguments->getPageId();
-        $languageUid = $language !== null ? (int)$language->getLanguageId() : 0;
+        $pageUid = (int) $pageArguments->getPageId();
+        $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
         $candidates = $this->earlyHintCacheService->load($pageUid, $languageUid);
         if ($candidates === []) {

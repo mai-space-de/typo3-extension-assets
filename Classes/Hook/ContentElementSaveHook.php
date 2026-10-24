@@ -18,7 +18,7 @@ final readonly class ContentElementSaveHook
         string $table,
         string|int $id,
         array $fieldArray,
-        DataHandler $dataHandler
+        DataHandler $dataHandler,
     ): void {
         if ($table !== 'tt_content') {
             return;
@@ -28,7 +28,7 @@ final readonly class ContentElementSaveHook
         if (is_string($id) && str_starts_with($id, 'NEW')) {
             $uid = $dataHandler->substNEWwithIDs[$id] ?? 0;
         }
-        $uid = (int)$uid;
+        $uid = (int) $uid;
         if ($uid <= 0) {
             return;
         }

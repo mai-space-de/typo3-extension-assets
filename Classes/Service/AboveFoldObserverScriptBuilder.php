@@ -37,8 +37,8 @@ final readonly class AboveFoldObserverScriptBuilder
 
         $script = str_replace(
             ['###PAGE_UID###', '###SERVER_RESET_TIMESTAMP###', '###REPORT_TOKEN###', '###VALID_BUCKETS###'],
-            [(string)$pageUid, (string)$resetTimestamp, $token, $validBucketsJson],
-            $scriptTemplate
+            [(string) $pageUid, (string) $resetTimestamp, $token, $validBucketsJson],
+            $scriptTemplate,
         );
 
         return '<script>' . $script . '</script>';

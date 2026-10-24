@@ -19,11 +19,11 @@ final class SriHashService
         if (!file_exists($absolutePath)) {
             throw new AssetFileNotFoundException(
                 sprintf('Cannot compute SRI hash: file not found at "%s"', $absolutePath),
-                1700000010
+                1700000010,
             );
         }
 
-        $content = (string)file_get_contents($absolutePath);
+        $content = (string) file_get_contents($absolutePath);
         return $this->computeForContent($content);
     }
 

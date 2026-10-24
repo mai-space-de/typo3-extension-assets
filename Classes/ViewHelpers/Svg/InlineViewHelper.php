@@ -16,8 +16,7 @@ class InlineViewHelper extends AbstractViewHelper
 
     public function __construct(
         private readonly CacheManager $cacheManager,
-    ) {
-    }
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -30,26 +29,26 @@ class InlineViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        $src = (string)$this->arguments['src'];
-        $title = (string)$this->arguments['title'];
-        $ariaLabel = (string)$this->arguments['ariaLabel'];
-        $class = (string)$this->arguments['class'];
-        $stripDimensions = (bool)$this->arguments['stripDimensions'];
+        $src = (string) $this->arguments['src'];
+        $title = (string) $this->arguments['title'];
+        $ariaLabel = (string) $this->arguments['ariaLabel'];
+        $class = (string) $this->arguments['class'];
+        $stripDimensions = (bool) $this->arguments['stripDimensions'];
 
         $resolvedPath = $this->requireFile($src);
 
-        $cacheKey = 'svginline_' . (string)hash_file('sha256', $resolvedPath) . '_' . md5($title . $ariaLabel . $class . ($stripDimensions ? '1' : '0'));
+        $cacheKey = 'svginline_' . (string) hash_file('sha256', $resolvedPath) . '_' . md5($title . $ariaLabel . $class . ($stripDimensions ? '1' : '0'));
 
         try {
             $cache = $this->cacheManager->getCache('mai_assets');
             if ($cache->has($cacheKey)) {
-                return (string)$cache->get($cacheKey);
+                return (string) $cache->get($cacheKey);
             }
         } catch (\Exception) {
             $cache = null;
         }
 
-        $svgContent = (string)file_get_contents($resolvedPath);
+        $svgContent = (string) file_get_contents($resolvedPath);
 
         // Strip XML declaration
         $svgContent = preg_replace('/<\?xml[^?]*\?>\s*/i', '', $svgContent) ?? $svgContent;

@@ -51,7 +51,7 @@ final readonly class CompiledAssetPublisher
         $cacheFile = $this->getCachePath($absoluteSourcePath, $compileScss, $shouldMinify);
 
         if (!file_exists($cacheFile)) {
-            $content = (string)file_get_contents($absoluteSourcePath);
+            $content = (string) file_get_contents($absoluteSourcePath);
             if ($compileScss) {
                 $content = $this->scssProcessor->process($content, $absoluteSourcePath);
             }
@@ -105,7 +105,7 @@ final readonly class CompiledAssetPublisher
                 $webPath = $this->getPublicWebPath($absolutePath);
                 return 'url("' . $webPath . '")';
             },
-            $css
+            $css,
         );
 
         return $result;
@@ -151,12 +151,12 @@ final readonly class CompiledAssetPublisher
     {
         $sourceFingerprint = $compileScss
             ? $this->scssDependencyHasher->hash($sourcePath)
-            : (string)hash_file('sha256', $sourcePath);
+            : (string) hash_file('sha256', $sourcePath);
 
         $hash = md5(
             $sourceFingerprint
             . ':scss=' . ($compileScss ? '1' : '0')
-            . ':min=' . ($minify ? '1' : '0')
+            . ':min=' . ($minify ? '1' : '0'),
         );
         return GeneralUtility::getFileAbsFileName(self::PUBLIC_CACHE_DIR) . $hash . '.css';
     }

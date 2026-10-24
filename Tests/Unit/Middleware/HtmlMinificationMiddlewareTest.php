@@ -34,7 +34,7 @@ final class HtmlMinificationMiddlewareTest extends TestCase
                 $stream->rewind();
 
                 return $stream;
-            }
+            },
         );
         $this->handler = $this->createMock(RequestHandlerInterface::class);
     }
@@ -85,7 +85,7 @@ final class HtmlMinificationMiddlewareTest extends TestCase
                 $new->method('getHeaderLine')->willReturn('text/html; charset=utf-8');
 
                 return $new;
-            }
+            },
         );
         $this->handler->method('handle')->willReturn($response);
 
@@ -103,7 +103,7 @@ final class HtmlMinificationMiddlewareTest extends TestCase
         self::assertStringNotContainsString("content=\"width=device-width\">\n", $minified);
         self::assertStringContainsString(
             '<meta name="viewport" content="width=device-width"> <meta property="og:title" content="Suche">',
-            $minified
+            $minified,
         );
         self::assertStringContainsString('<nav class="menu" data-testid="x">', $minified);
         self::assertStringContainsString('{"@type":"WebPage"}', $minified);

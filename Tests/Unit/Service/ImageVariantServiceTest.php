@@ -238,15 +238,11 @@ final class ImageVariantServiceTest extends TestCase
     private function stubAllSucceed(): ImageService
     {
         return new readonly class extends ImageService {
-            public function __construct()
-            {
-            }
+            public function __construct() {}
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
                 return new class extends ProcessedFile {
-                    public function __construct()
-                    {
-                    }
+                    public function __construct() {}
                 };
             }
             public function getImageUri($file, bool $absolute = false): string
@@ -259,9 +255,7 @@ final class ImageVariantServiceTest extends TestCase
     private function stubFormatFails(string $format): ImageService
     {
         return new readonly class ($format) extends ImageService {
-            public function __construct(private string $failFormat)
-            {
-            }
+            public function __construct(private string $failFormat) {}
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
                 $fmt = $instructions['format'];
@@ -272,9 +266,7 @@ final class ImageVariantServiceTest extends TestCase
                     throw new RuntimeException('Unsupported format', 5463614710);
                 }
                 return new class extends ProcessedFile {
-                    public function __construct()
-                    {
-                    }
+                    public function __construct() {}
                 };
             }
             public function getImageUri($file, bool $absolute = false): string
@@ -287,9 +279,7 @@ final class ImageVariantServiceTest extends TestCase
     private function stubFormatsFail(array $formats): ImageService
     {
         return new readonly class ($formats) extends ImageService {
-            public function __construct(private array $failFormats)
-            {
-            }
+            public function __construct(private array $failFormats) {}
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
                 $fmt = $instructions['format'];
@@ -299,9 +289,7 @@ final class ImageVariantServiceTest extends TestCase
                     }
                 }
                 return new class extends ProcessedFile {
-                    public function __construct()
-                    {
-                    }
+                    public function __construct() {}
                 };
             }
             public function getImageUri($file, bool $absolute = false): string
@@ -314,18 +302,14 @@ final class ImageVariantServiceTest extends TestCase
     private function stubWidthFails(int $width): ImageService
     {
         return new readonly class ($width) extends ImageService {
-            public function __construct(private int $failWidth)
-            {
-            }
+            public function __construct(private int $failWidth) {}
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
                 if ($instructions['width'] === $this->failWidth) {
                     throw new RuntimeException('Processing failed', 5563968320);
                 }
                 return new class extends ProcessedFile {
-                    public function __construct()
-                    {
-                    }
+                    public function __construct() {}
                 };
             }
             public function getImageUri($file, bool $absolute = false): string
@@ -338,9 +322,7 @@ final class ImageVariantServiceTest extends TestCase
     private function stubNeverCalled(): ImageService
     {
         return new readonly class extends ImageService {
-            public function __construct()
-            {
-            }
+            public function __construct() {}
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
                 throw new \LogicException('must not be called', 8773899132);
@@ -355,16 +337,12 @@ final class ImageVariantServiceTest extends TestCase
     private function stubRecordCalls(\ArrayObject $log): ImageService
     {
         return new readonly class ($log) extends ImageService {
-            public function __construct(private \ArrayObject $log)
-            {
-            }
+            public function __construct(private \ArrayObject $log) {}
             public function applyProcessingInstructions($image, array $instructions): ProcessedFile
             {
                 $this->log->append($instructions);
                 return new class extends ProcessedFile {
-                    public function __construct()
-                    {
-                    }
+                    public function __construct() {}
                 };
             }
             public function getImageUri($file, bool $absolute = false): string

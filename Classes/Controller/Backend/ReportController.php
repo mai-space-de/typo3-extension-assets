@@ -52,7 +52,7 @@ class ReportController extends ActionController implements LoggerAwareInterface
         $notReadyCount = 0;
 
         foreach ($pages as $page) {
-            $uid = (int)$page['uid'];
+            $uid = (int) $page['uid'];
             $isReady = $this->readinessService->isReady($uid);
 
             if ($isReady) {
@@ -71,7 +71,7 @@ class ReportController extends ActionController implements LoggerAwareInterface
         }
 
         $total = count($pages);
-        $percent = $total > 0 ? (int)round($readyCount / $total * 100) : 0;
+        $percent = $total > 0 ? (int) round($readyCount / $total * 100) : 0;
 
         $moduleTemplate = $this->moduleTemplateFactory->create($this->request);
         $moduleTemplate->assignMultiple([
@@ -178,7 +178,7 @@ class ReportController extends ActionController implements LoggerAwareInterface
             ?? $this->request->getParsedBody()['id']
             ?? 0;
 
-        return (int)$id;
+        return (int) $id;
     }
 
     /**
@@ -215,7 +215,7 @@ class ReportController extends ActionController implements LoggerAwareInterface
 
         // 1 = standard, 4 = shortcut, 6 = backend user section, 7 = mount point
         return array_filter($pages, function (array $page): bool {
-            $doktype = (int)($page['doktype'] ?? 0);
+            $doktype = (int) ($page['doktype'] ?? 0);
             return in_array($doktype, [1, 4, 6, 7], true);
         });
     }

@@ -44,8 +44,8 @@ final class HtmlMinificationService
             return $html;
         }
 
-        $stripComments = (bool)($config['stripComments'] ?? true);
-        $preserveTagsRaw = (string)($config['preserveTags'] ?? 'pre,code,textarea');
+        $stripComments = (bool) ($config['stripComments'] ?? true);
+        $preserveTagsRaw = (string) ($config['preserveTags'] ?? 'pre,code,textarea');
         $preserveTags = array_filter(array_map(trim(...), explode(',', $preserveTagsRaw)));
 
         // Merge always-protected tags with configurable ones (deduplicated)
@@ -104,7 +104,7 @@ final class HtmlMinificationService
         // Build negative lookahead for preserved patterns
         $lookaheads = array_map(
             static fn(string $p): string => preg_quote($p, '/'),
-            self::PRESERVED_COMMENT_PATTERNS
+            self::PRESERVED_COMMENT_PATTERNS,
         );
         // Also preserve <!-- ###...  section markers
         $lookaheads[] = ' ###';

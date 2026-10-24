@@ -32,8 +32,7 @@ class PictureViewHelper extends AbstractViewHelper
         private readonly ImageService $imageService,
         private readonly AssetCriticalityResolver $criticalityResolver,
         private readonly EarlyHintCandidateCollector $earlyHintCollector,
-    ) {
-    }
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -53,20 +52,20 @@ class PictureViewHelper extends AbstractViewHelper
     public function render(): string
     {
         $image = $this->arguments['image'];
-        $alt = (string)$this->arguments['alt'];
-        $width = (int)$this->arguments['width'];
-        $height = (int)$this->arguments['height'];
-        $critical = (string)$this->arguments['critical'];
-        $elementUid = (int)$this->arguments['elementUid'];
-        $sizes = (string)$this->arguments['sizes'];
-        $fileExtension = (string)$this->arguments['fileExtension'];
-        $crossorigin = (string)$this->arguments['crossorigin'];
-        $class = (string)$this->arguments['class'];
+        $alt = (string) $this->arguments['alt'];
+        $width = (int) $this->arguments['width'];
+        $height = (int) $this->arguments['height'];
+        $critical = (string) $this->arguments['critical'];
+        $elementUid = (int) $this->arguments['elementUid'];
+        $sizes = (string) $this->arguments['sizes'];
+        $fileExtension = (string) $this->arguments['fileExtension'];
+        $crossorigin = (string) $this->arguments['crossorigin'];
+        $class = (string) $this->arguments['class'];
 
         $request = $this->renderingContext->hasAttribute(ServerRequestInterface::class)
             ? $this->renderingContext->getAttribute(ServerRequestInterface::class)
             : null;
-        $pageUid = (int)($request?->getAttribute('routing')?->getPageId() ?? 0);
+        $pageUid = (int) ($request?->getAttribute('routing')?->getPageId() ?? 0);
 
         $isCritical = match ($critical) {
             'true'  => true,
@@ -115,10 +114,10 @@ class PictureViewHelper extends AbstractViewHelper
             $processedImage = $this->imageService->applyProcessingInstructions($image, $processingInstructions);
             $imgSrc = $this->imageService->getImageUri($processedImage, true);
             if ($imgWidth <= 0) {
-                $imgWidth = (int)($processedImage->getProperty('width') ?? 0);
+                $imgWidth = (int) ($processedImage->getProperty('width') ?? 0);
             }
             if ($imgHeight <= 0) {
-                $imgHeight = (int)($processedImage->getProperty('height') ?? 0);
+                $imgHeight = (int) ($processedImage->getProperty('height') ?? 0);
             }
         } catch (\Exception) {
             $imgSrc = '';
@@ -162,6 +161,6 @@ class PictureViewHelper extends AbstractViewHelper
             return '';
         }
 
-        return trim((string)$this->renderChildren());
+        return trim((string) $this->renderChildren());
     }
 }

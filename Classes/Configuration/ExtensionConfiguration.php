@@ -41,22 +41,22 @@ final class ExtensionConfiguration
             // Extension configuration not yet saved — use defaults
         }
 
-        $this->enableScssProcessing = (bool)($raw['enableScssProcessing'] ?? true);
-        $this->enableMinification = (bool)($raw['enableMinification'] ?? true);
-        $this->enableCompression = (bool)($raw['enableCompression'] ?? true);
-        $this->compressionLevel = (int)($raw['compressionLevel'] ?? 6);
-        $this->enableBrotli = (bool)($raw['enableBrotli'] ?? true);
-        $this->criticalThresholdByColPos = (array)($raw['criticalThresholdByColPos'] ?? [0 => 2, 1 => 0, 3 => 0]);
-        $this->viewportBuckets = (array)($raw['viewportBuckets'] ?? ['mobile' => 768, 'tablet' => 1024, 'desktop' => PHP_INT_MAX]);
-        $this->svgStripAttributes = (array)($raw['svgStripAttributes'] ?? ['id', 'class', 'style']);
-        $this->fontPreloadFormats = (array)($raw['fontPreloadFormats'] ?? ['woff2']);
-        $this->observerRootMargin = (string)($raw['observerRootMargin'] ?? '200px');
-        $this->processingCacheLifetime = (int)($raw['processingCacheLifetime'] ?? 0);
-        $this->enableStaticFileCache = (bool)($raw['enableStaticFileCache'] ?? false);
-        $this->staticFileCacheDir = (string)($raw['staticFileCacheDir'] ?? '');
-        $this->debugHeaders = (bool)($raw['debugHeaders'] ?? false);
-        $this->useDevServer = (string)($raw['useDevServer'] ?? 'auto');
-        $this->devServerUri = (string)($raw['devServerUri'] ?? 'http://localhost:5173');
+        $this->enableScssProcessing = (bool) ($raw['enableScssProcessing'] ?? true);
+        $this->enableMinification = (bool) ($raw['enableMinification'] ?? true);
+        $this->enableCompression = (bool) ($raw['enableCompression'] ?? true);
+        $this->compressionLevel = (int) ($raw['compressionLevel'] ?? 6);
+        $this->enableBrotli = (bool) ($raw['enableBrotli'] ?? true);
+        $this->criticalThresholdByColPos = (array) ($raw['criticalThresholdByColPos'] ?? [0 => 2, 1 => 0, 3 => 0]);
+        $this->viewportBuckets = (array) ($raw['viewportBuckets'] ?? ['mobile' => 768, 'tablet' => 1024, 'desktop' => PHP_INT_MAX]);
+        $this->svgStripAttributes = (array) ($raw['svgStripAttributes'] ?? ['id', 'class', 'style']);
+        $this->fontPreloadFormats = (array) ($raw['fontPreloadFormats'] ?? ['woff2']);
+        $this->observerRootMargin = (string) ($raw['observerRootMargin'] ?? '200px');
+        $this->processingCacheLifetime = (int) ($raw['processingCacheLifetime'] ?? 0);
+        $this->enableStaticFileCache = (bool) ($raw['enableStaticFileCache'] ?? false);
+        $this->staticFileCacheDir = (string) ($raw['staticFileCacheDir'] ?? '');
+        $this->debugHeaders = (bool) ($raw['debugHeaders'] ?? false);
+        $this->useDevServer = (string) ($raw['useDevServer'] ?? 'auto');
+        $this->devServerUri = (string) ($raw['devServerUri'] ?? 'http://localhost:5173');
     }
 
     public static function getInstance(): self
@@ -147,7 +147,7 @@ final class ExtensionConfiguration
         if ($this->useDevServer === 'auto') {
             return Environment::getContext()->isDevelopment();
         }
-        return (bool)$this->useDevServer;
+        return (bool) $this->useDevServer;
     }
 
     public function getDevServerUri(): UriInterface

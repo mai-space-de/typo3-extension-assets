@@ -26,13 +26,13 @@ class VideoViewHelper extends AbstractViewHelper
     public function render(): string
     {
         $file = $this->arguments['file'];
-        $youtubeId = (string)$this->arguments['youtubeId'];
-        $vimeoId = (string)$this->arguments['vimeoId'];
+        $youtubeId = (string) $this->arguments['youtubeId'];
+        $vimeoId = (string) $this->arguments['vimeoId'];
         $poster = $this->arguments['poster'];
-        $isCritical = (bool)$this->arguments['isCritical'];
-        $type = (string)$this->arguments['type'];
-        $title = (string)$this->arguments['title'];
-        $class = (string)$this->arguments['class'];
+        $isCritical = (bool) $this->arguments['isCritical'];
+        $type = (string) $this->arguments['type'];
+        $title = (string) $this->arguments['title'];
+        $class = (string) $this->arguments['class'];
 
         $classAttr = $class !== '' ? ' class="' . htmlspecialchars($class, ENT_QUOTES) . '"' : '';
 
@@ -202,10 +202,10 @@ class VideoViewHelper extends AbstractViewHelper
     private function getFileUrl(object $fileReference): string
     {
         if (method_exists($fileReference, 'getPublicUrl')) {
-            return (string)$fileReference->getPublicUrl();
+            return (string) $fileReference->getPublicUrl();
         }
         if (method_exists($fileReference, 'getOriginalFile')) {
-            return (string)$fileReference->getOriginalFile()->getPublicUrl();
+            return (string) $fileReference->getOriginalFile()->getPublicUrl();
         }
         return '';
     }

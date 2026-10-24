@@ -50,19 +50,19 @@ class CssViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        $src = (string)$this->arguments['src'];
-        $identifier = (string)$this->arguments['identifier'];
-        $critical = (string)$this->arguments['critical'];
-        $priority = (bool)$this->arguments['priority'];
-        $media = (string)$this->arguments['media'];
-        $nonce = (string)$this->arguments['nonce'];
-        $integrity = (string)$this->arguments['integrity'];
-        $crossorigin = (string)$this->arguments['crossorigin'];
+        $src = (string) $this->arguments['src'];
+        $identifier = (string) $this->arguments['identifier'];
+        $critical = (string) $this->arguments['critical'];
+        $priority = (bool) $this->arguments['priority'];
+        $media = (string) $this->arguments['media'];
+        $nonce = (string) $this->arguments['nonce'];
+        $integrity = (string) $this->arguments['integrity'];
+        $crossorigin = (string) $this->arguments['crossorigin'];
         $minify = $this->arguments['minify'] !== null
-            ? (bool)$this->arguments['minify']
+            ? (bool) $this->arguments['minify']
             : $this->extensionConfiguration->isEnableMinification();
 
-        $pageUid = (int)($GLOBALS['TYPO3_REQUEST']->getAttribute('routing')?->getPageId() ?? 0);
+        $pageUid = (int) ($GLOBALS['TYPO3_REQUEST']->getAttribute('routing')?->getPageId() ?? 0);
 
         $isCritical = match ($critical) {
             'true'  => true,
@@ -79,7 +79,7 @@ class CssViewHelper extends AbstractViewHelper
         if ($isCritical) {
             // Compile + minify via publisher (cached), then read content and fire event
             $compiledPath = $this->compiledAssetPublisher->publishStylesheet($resolvedPath, $minify);
-            $content = (string)file_get_contents($compiledPath);
+            $content = (string) file_get_contents($compiledPath);
 
             $event = new BeforeAssetInjectionEvent($content, 'css', $resolvedPath);
             $this->eventDispatcher->dispatch($event);
@@ -103,7 +103,7 @@ class CssViewHelper extends AbstractViewHelper
         // For TYPO3 14+, convert relative paths to absolute URLs to avoid SystemResourceFactory resolution issues
         $typo3Version = new Typo3Version();
         if ($typo3Version->getMajorVersion() >= 14 && !str_starts_with($publicPath, 'http')) {
-            $siteUrl = (string)$GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams')->getSiteUrl();
+            $siteUrl = (string) $GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams')->getSiteUrl();
             $publicPath = rtrim($siteUrl, '/') . '/' . ltrim($publicPath, '/');
         }
 
@@ -145,7 +145,7 @@ class CssViewHelper extends AbstractViewHelper
     private function renderFromDevServer(string $src, string $identifier, bool $priority, string $media, string $nonce): string
     {
         $devServerUri = $this->extensionConfiguration->getDevServerUri();
-        $publicPath = rtrim((string)$devServerUri, '/') . '/' . ltrim($src, '/');
+        $publicPath = rtrim((string) $devServerUri, '/') . '/' . ltrim($src, '/');
 
         $tagAttributes = ['media' => $media];
         $tagAttributes = AttributeUtility::normalizeCssAttributes($tagAttributes);

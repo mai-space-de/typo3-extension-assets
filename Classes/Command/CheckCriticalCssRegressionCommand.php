@@ -32,13 +32,13 @@ final class CheckCriticalCssRegressionCommand extends Command
             'update-baseline',
             null,
             InputOption::VALUE_NONE,
-            'Update the baseline with current measurements (instead of checking against it)'
+            'Update the baseline with current measurements (instead of checking against it)',
         );
         $this->addOption(
             'file',
             'f',
             InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-            'Specific files to check (syntax: identifier:path). Can be used multiple times. Example: mai-theme-main:EXT:mai_theme/Resources/Public/Scss/main.scss'
+            'Specific files to check (syntax: identifier:path). Can be used multiple times. Example: mai-theme-main:EXT:mai_theme/Resources/Public/Scss/main.scss',
         );
     }
 
@@ -47,8 +47,8 @@ final class CheckCriticalCssRegressionCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Critical CSS Regression Check (Core Web Vitals)');
 
-        $updateBaseline = (bool)$input->getOption('update-baseline');
-        $fileSpecs = (array)$input->getOption('file');
+        $updateBaseline = (bool) $input->getOption('update-baseline');
+        $fileSpecs = (array) $input->getOption('file');
 
         // Default files to check if none specified
         if ($fileSpecs === []) {
@@ -83,7 +83,7 @@ final class CheckCriticalCssRegressionCommand extends Command
                     $io->text(sprintf(
                         '[%s] Baseline updated: %d bytes',
                         $identifier,
-                        $size
+                        $size,
                     ));
                 } else {
                     $result = $this->regressionService->checkRegressionForFile($identifier, $absolutePath);
@@ -94,7 +94,7 @@ final class CheckCriticalCssRegressionCommand extends Command
                             $identifier,
                             $result['actual'],
                             $result['baseline'],
-                            $result['exceeded_by']
+                            $result['exceeded_by'],
                         ));
                     } else {
                         $baseline = $result['baseline'];
@@ -104,13 +104,13 @@ final class CheckCriticalCssRegressionCommand extends Command
                                 $identifier,
                                 $result['actual'],
                                 $baseline,
-                                $baseline - $result['actual']
+                                $baseline - $result['actual'],
                             ));
                         } else {
                             $io->text(sprintf(
                                 '[%s] OK: %d bytes (no baseline)',
                                 $identifier,
-                                $result['actual']
+                                $result['actual'],
                             ));
                         }
                     }
@@ -129,7 +129,7 @@ final class CheckCriticalCssRegressionCommand extends Command
         if ($failures !== []) {
             $io->error(sprintf(
                 'Critical CSS regression check FAILED: %d file(s) exceeded baseline',
-                count($failures)
+                count($failures),
             ));
             return Command::FAILURE;
         }

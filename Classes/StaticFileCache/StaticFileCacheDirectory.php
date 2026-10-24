@@ -44,7 +44,7 @@ class StaticFileCacheDirectory
             : self::DEFAULT_RELATIVE_DIR;
 
         return GeneralUtility::resolveBackPath(
-            Environment::getPublicPath() . '/' . $relativeDir
+            Environment::getPublicPath() . '/' . $relativeDir,
         );
     }
 
@@ -64,7 +64,7 @@ class StaticFileCacheDirectory
             throw new \InvalidArgumentException(
                 'Cannot derive a static cache directory from "' . $requestUri
                 . '": not a valid absolute URL with scheme, host, and path.',
-                1748476800
+                1748476800,
             );
         }
 
@@ -76,7 +76,7 @@ class StaticFileCacheDirectory
         if (!str_starts_with($resultPath, $baseDir)) {
             throw new \InvalidArgumentException(
                 'Resolved path "' . $resultPath . '" is outside the cache base directory "' . $baseDir . '".',
-                1748476801
+                1748476801,
             );
         }
 
@@ -97,7 +97,7 @@ class StaticFileCacheDirectory
         if (!$this->isValidUri($requestUri)) {
             throw new \InvalidArgumentException(
                 'Cannot build relative page path from "' . $requestUri . '": not a valid absolute URL.',
-                1748476802
+                1748476802,
             );
         }
 
@@ -142,10 +142,10 @@ class StaticFileCacheDirectory
     private function buildHostSegment(string $requestUri): string
     {
         $parts = parse_url($requestUri);
-        $scheme = strtolower((string)($parts['scheme'] ?? 'https'));
-        $host = strtolower((string)($parts['host'] ?? ''));
+        $scheme = strtolower((string) ($parts['scheme'] ?? 'https'));
+        $host = strtolower((string) ($parts['host'] ?? ''));
         $port = isset($parts['port'])
-            ? (int)$parts['port']
+            ? (int) $parts['port']
             : ($scheme === 'https' ? 443 : 80);
 
         return $scheme . '_' . $host . '_' . $port;
@@ -158,7 +158,7 @@ class StaticFileCacheDirectory
     private function buildPathSegment(string $requestUri): string
     {
         $parts = parse_url($requestUri);
-        return trim((string)($parts['path'] ?? ''), '/');
+        return trim((string) ($parts['path'] ?? ''), '/');
     }
 
     /**
@@ -182,13 +182,13 @@ class StaticFileCacheDirectory
         if ($pageUid <= 0) {
             throw new \InvalidArgumentException(
                 'Page UID must be positive, got ' . $pageUid . '.',
-                1748534400
+                1748534400,
             );
         }
         if ($languageUid < 0) {
             throw new \InvalidArgumentException(
                 'Language UID must be non-negative, got ' . $languageUid . '.',
-                1748534401
+                1748534401,
             );
         }
 
@@ -200,7 +200,7 @@ class StaticFileCacheDirectory
         if (!str_starts_with($resultPath, $baseDir)) {
             throw new \InvalidArgumentException(
                 'Resolved path "' . $resultPath . '" is outside the cache base directory "' . $baseDir . '".',
-                1748534402
+                1748534402,
             );
         }
 
@@ -221,13 +221,13 @@ class StaticFileCacheDirectory
         if ($pageUid <= 0) {
             throw new \InvalidArgumentException(
                 'Page UID must be positive, got ' . $pageUid . '.',
-                1748534403
+                1748534403,
             );
         }
         if ($languageUid < 0) {
             throw new \InvalidArgumentException(
                 'Language UID must be non-negative, got ' . $languageUid . '.',
-                1748534404
+                1748534404,
             );
         }
 

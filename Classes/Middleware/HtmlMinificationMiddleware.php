@@ -65,7 +65,7 @@ final readonly class HtmlMinificationMiddleware implements MiddlewareInterface
         $response = $response->withBody($this->streamFactory->createStream($minified));
 
         if ($response->hasHeader('Content-Length')) {
-            $response = $response->withHeader('Content-Length', (string)strlen($minified));
+            $response = $response->withHeader('Content-Length', (string) strlen($minified));
         }
 
         return $response;

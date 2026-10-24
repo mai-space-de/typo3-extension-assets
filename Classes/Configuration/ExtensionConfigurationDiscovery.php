@@ -141,7 +141,7 @@ final readonly class ExtensionConfigurationDiscovery
                 }
                 $origins[] = [
                     'href'        => $origin['href'],
-                    'crossorigin' => (string)($origin['crossorigin'] ?? ''),
+                    'crossorigin' => (string) ($origin['crossorigin'] ?? ''),
                 ];
             }
         }

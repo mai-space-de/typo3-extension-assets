@@ -28,8 +28,8 @@ final readonly class EarlyHintsMiddleware implements MiddlewareInterface
         // Link: headers to HTTP 103 responses before mod_headers can suppress them,
         // causing downstream proxies (e.g. Traefik) to fail with 500.
         if ($pageArguments !== null && $this->isCacheableGetRequest($request) && !Environment::getContext()->isDevelopment()) {
-            $pageUid = (int)$pageArguments->getPageId();
-            $languageUid = $language !== null ? (int)$language->getLanguageId() : 0;
+            $pageUid = (int) $pageArguments->getPageId();
+            $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
             $candidates = $this->earlyHintCacheService->load($pageUid, $languageUid);
 
@@ -64,7 +64,7 @@ final readonly class EarlyHintsMiddleware implements MiddlewareInterface
      */
     private function shouldSendHttp103(): bool
     {
-        $context = (string)Environment::getContext();
+        $context = (string) Environment::getContext();
 
         return !str_contains($context, 'Hetzner');
     }

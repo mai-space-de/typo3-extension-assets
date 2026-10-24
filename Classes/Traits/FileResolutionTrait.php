@@ -19,7 +19,7 @@ trait FileResolutionTrait
                 $prefix = str_starts_with($path, 'PKG:') ? 'PKG' : 'EXT';
                 throw new AssetFileNotFoundException(
                     sprintf('Cannot resolve %s: path: "%s". Package may not be installed.', $prefix, $path),
-                    1700000020
+                    1700000020,
                 );
             }
             return $resolved;
@@ -40,7 +40,7 @@ trait FileResolutionTrait
         if ($realPath === false) {
             throw new AssetFileNotFoundException(
                 sprintf('File does not exist or is not accessible: "%s"', $resolved),
-                1700000021
+                1700000021,
             );
         }
 
@@ -63,7 +63,7 @@ trait FileResolutionTrait
         if (!file_exists($resolved)) {
             throw new AssetFileNotFoundException(
                 sprintf('Required file not found: "%s" (resolved: "%s")', $path, $resolved),
-                1700000001
+                1700000001,
             );
         }
         return $resolved;

@@ -75,7 +75,7 @@ final class WarmupCommand extends Command
             }
 
             $ext = strtolower(pathinfo($resolved, PATHINFO_EXTENSION));
-            $content = (string)file_get_contents($resolved);
+            $content = (string) file_get_contents($resolved);
 
             try {
                 if ($ext === 'scss') {
@@ -95,7 +95,7 @@ final class WarmupCommand extends Command
         $io->success(sprintf(
             'Warmup complete. Processed: %d, Errors: %d.',
             $processed,
-            $errors
+            $errors,
         ));
 
         return $errors > 0 ? Command::FAILURE : Command::SUCCESS;

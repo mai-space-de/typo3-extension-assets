@@ -16,8 +16,7 @@ class IconViewHelper extends AbstractViewHelper
 
     public function __construct(
         private readonly SvgSpriteCollector $svgSpriteCollector,
-    ) {
-    }
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -30,11 +29,11 @@ class IconViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        $identifier = (string)$this->arguments['identifier'];
-        $source = (string)$this->arguments['source'];
-        $label = (string)$this->arguments['label'];
-        $class = (string)$this->arguments['class'];
-        $size = (string)$this->arguments['size'];
+        $identifier = (string) $this->arguments['identifier'];
+        $source = (string) $this->arguments['source'];
+        $label = (string) $this->arguments['label'];
+        $class = (string) $this->arguments['class'];
+        $size = (string) $this->arguments['size'];
 
         // Resolve and register SVG file
         $resolvedPath = $this->resolveFilePath($source);

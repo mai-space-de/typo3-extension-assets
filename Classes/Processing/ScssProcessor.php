@@ -53,7 +53,7 @@ final class ScssProcessor extends AbstractAssetProcessor
             throw new AssetCompilationException(
                 sprintf('SCSS compilation error in file "%s": %s', $sourcePath, $e->getMessage()),
                 1700000002,
-                $e
+                $e,
             );
         }
     }

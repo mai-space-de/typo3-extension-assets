@@ -38,7 +38,7 @@ final class ContentElementSaveHookTest extends TestCase
             'pages',
             1,
             ['title' => 'New Title'],
-            $dataHandler
+            $dataHandler,
         );
     }
 
@@ -57,7 +57,7 @@ final class ContentElementSaveHookTest extends TestCase
             'tt_content',
             'NEW123',
             ['pid' => 1, 'colPos' => 0, 'sorting' => 0],
-            $dataHandler
+            $dataHandler,
         );
     }
 
@@ -74,7 +74,7 @@ final class ContentElementSaveHookTest extends TestCase
             'tt_content',
             42,
             ['header' => 'New Header', 'bodytext' => 'New Content'],
-            $dataHandler
+            $dataHandler,
         );
     }
 
@@ -92,7 +92,7 @@ final class ContentElementSaveHookTest extends TestCase
             'tt_content',
             'NEW123',
             ['pid' => 1],
-            $dataHandler
+            $dataHandler,
         );
     }
 
@@ -109,7 +109,7 @@ final class ContentElementSaveHookTest extends TestCase
             'tt_content',
             0,
             ['header' => 'Test'],
-            $dataHandler
+            $dataHandler,
         );
     }
 
@@ -126,7 +126,7 @@ final class ContentElementSaveHookTest extends TestCase
             'tt_content',
             '123',
             ['header' => 'Test'],
-            $dataHandler
+            $dataHandler,
         );
     }
 }

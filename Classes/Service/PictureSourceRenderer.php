@@ -24,7 +24,7 @@ class PictureSourceRenderer
     public function defaultSourceDefinitions(int $maxWidth = 1600): array
     {
         $desktopLarge = max(400, $maxWidth);
-        $desktopSmall = (int)max(400, (int)round($desktopLarge * 0.75));
+        $desktopSmall = (int) max(400, (int) round($desktopLarge * 0.75));
 
         return [
             ['media' => '(max-width: 767px)', 'widths' => [400, 800]],
@@ -86,7 +86,7 @@ class PictureSourceRenderer
             $srcsetParts = [];
             $firstUrl = '';
             foreach ($widths as $width) {
-                $breakpoints = ['w' . $width => (int)$width];
+                $breakpoints = ['w' . $width => (int) $width];
                 $variants = $this->imageVariantService->processVariants($fileReference, $breakpoints);
                 $url = $variants['w' . $width][$format] ?? '';
                 if ($url !== '') {
@@ -111,7 +111,7 @@ class PictureSourceRenderer
                 $registeredEarlyHint = true;
             }
 
-            $mimeType = $this->getMimeType((string)$format);
+            $mimeType = $this->getMimeType((string) $format);
             $srcsetAttr = implode(', ', $srcsetParts);
             $sizesAttr = $sizes !== '' ? ' sizes="' . htmlspecialchars($sizes, ENT_QUOTES) . '"' : '';
             $fetchPriorityAttr = $isCritical ? ' fetchpriority="high"' : '';

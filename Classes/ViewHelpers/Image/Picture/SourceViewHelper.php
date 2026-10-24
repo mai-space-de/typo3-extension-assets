@@ -19,8 +19,7 @@ class SourceViewHelper extends AbstractViewHelper
 
     public function __construct(
         private readonly PictureSourceRenderer $pictureSourceRenderer,
-    ) {
-    }
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -42,7 +41,7 @@ class SourceViewHelper extends AbstractViewHelper
         }
 
         $fileReference = $viewHelperVariableContainer->get(PictureViewHelper::class, 'fileReference');
-        $isCritical = (bool)($viewHelperVariableContainer->exists(PictureViewHelper::class, 'isCritical')
+        $isCritical = (bool) ($viewHelperVariableContainer->exists(PictureViewHelper::class, 'isCritical')
             ? $viewHelperVariableContainer->get(PictureViewHelper::class, 'isCritical')
             : false);
         /** @var EarlyHintCandidateCollector|null $earlyHintCollector */
@@ -50,10 +49,10 @@ class SourceViewHelper extends AbstractViewHelper
             ? $viewHelperVariableContainer->get(PictureViewHelper::class, 'earlyHintCollector')
             : null;
 
-        $media = (string)$this->arguments['media'];
-        $widths = (array)$this->arguments['srcset'];
-        $sizes = (string)$this->arguments['sizes'];
-        $formats = (array)$this->arguments['formats'];
+        $media = (string) $this->arguments['media'];
+        $widths = (array) $this->arguments['srcset'];
+        $sizes = (string) $this->arguments['sizes'];
+        $formats = (array) $this->arguments['formats'];
 
         $registeredEarlyHint = false;
 

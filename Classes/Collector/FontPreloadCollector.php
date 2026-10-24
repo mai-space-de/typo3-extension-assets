@@ -49,7 +49,7 @@ final class FontPreloadCollector extends AbstractAssetCollector implements Singl
             $links .= sprintf(
                 '<link rel="preload" href="%s" as="font" type="%s" crossorigin="anonymous">',
                 htmlspecialchars($filePath, ENT_QUOTES),
-                $mimeType
+                $mimeType,
             ) . "\n";
 
             $publicPath = PathUtility::getAbsoluteWebPath($filePath);

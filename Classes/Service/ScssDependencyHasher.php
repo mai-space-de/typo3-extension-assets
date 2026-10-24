@@ -95,7 +95,7 @@ final class ScssDependencyHasher
      */
     private function collectImports(string $absoluteFilePath): array
     {
-        $content = (string)file_get_contents($absoluteFilePath);
+        $content = (string) file_get_contents($absoluteFilePath);
         if ($content === '') {
             return [];
         }
@@ -140,7 +140,7 @@ final class ScssDependencyHasher
     private function resolveImport(string $baseDir, string $specifier): ?string
     {
         $specifier = str_replace('\\', '/', $specifier);
-        $hasExtension = (bool)preg_match('/\.(scss|sass)$/i', $specifier);
+        $hasExtension = (bool) preg_match('/\.(scss|sass)$/i', $specifier);
         $dir = dirname($specifier);
         $basename = basename($specifier);
         $prefix = $dir === '.' ? '' : $dir . '/';

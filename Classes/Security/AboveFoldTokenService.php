@@ -25,6 +25,6 @@ final class AboveFoldTokenService
 
     private function currentWindow(?int $ts = null): int
     {
-        return (int)(floor((($ts ?? time())) / 300) * 300);
+        return (int) (floor((($ts ?? time())) / 300) * 300);
     }
 }

@@ -59,9 +59,9 @@ class CacheWarmupService implements LoggerAwareInterface
             sprintf(
                 'Enqueued %d URL(s) for page %d into the warmup queue.',
                 count($urls),
-                $pageUid
+                $pageUid,
             ),
-            ['urls' => $urls]
+            ['urls' => $urls],
         );
     }
 
@@ -77,7 +77,7 @@ class CacheWarmupService implements LoggerAwareInterface
             $site = $this->siteFinder->getSiteByPageId($pageUid);
         } catch (\Throwable $e) {
             $this->logger?->warning(
-                sprintf('Could not find site for page %d: %s', $pageUid, $e->getMessage())
+                sprintf('Could not find site for page %d: %s', $pageUid, $e->getMessage()),
             );
             return [];
         }
@@ -88,17 +88,17 @@ class CacheWarmupService implements LoggerAwareInterface
             try {
                 $uri = $site->getRouter()->generateUri(
                     $pageUid,
-                    ['language' => $language]
+                    ['language' => $language],
                 );
-                $urls[] = (string)$uri;
+                $urls[] = (string) $uri;
             } catch (\Throwable $e) {
                 $this->logger?->warning(
                     sprintf(
                         'Could not generate URI for page %d, language %d: %s',
                         $pageUid,
                         $language->getLanguageId(),
-                        $e->getMessage()
-                    )
+                        $e->getMessage(),
+                    ),
                 );
             }
         }

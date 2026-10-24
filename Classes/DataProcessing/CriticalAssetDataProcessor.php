@@ -18,10 +18,10 @@ final readonly class CriticalAssetDataProcessor implements DataProcessorInterfac
         ContentObjectRenderer $cObj,
         array $contentObjectConfiguration,
         array $processorConfiguration,
-        array $processedData
+        array $processedData,
     ): array {
-        $pageUid = (int)($processedData['data']['pid'] ?? 0);
-        $elementUid = (int)($processedData['data']['uid'] ?? 0);
+        $pageUid = (int) ($processedData['data']['pid'] ?? 0);
+        $elementUid = (int) ($processedData['data']['uid'] ?? 0);
 
         $isCritical = $this->criticalDetectionService->isCritical($pageUid, $elementUid);
 

@@ -51,7 +51,7 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
             return $rateLimitResponse;
         }
 
-        $body = (string)$request->getBody();
+        $body = (string) $request->getBody();
 
         if (strlen($body) > 4096) {
             return new JsonResponse(['status' => 'invalid', 'errors' => ['Payload too large']], 413);
@@ -62,13 +62,13 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
         if (!is_array($data)) {
             return new JsonResponse(
                 ['status' => 'invalid', 'errors' => ['Request body must be valid JSON']],
-                400
+                400,
             );
         }
 
-        $token   = (string)($data['token'] ?? '');
-        $ts      = (int)($data['resetTimestamp'] ?? 0);
-        $pageUid = (int)($data['pageUid'] ?? 0);
+        $token   = (string) ($data['token'] ?? '');
+        $ts      = (int) ($data['resetTimestamp'] ?? 0);
+        $pageUid = (int) ($data['pageUid'] ?? 0);
 
         if (!$this->tokenService->verify($token, $pageUid, $ts)) {
             return new JsonResponse(['status' => 'forbidden'], 403);
@@ -78,13 +78,13 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
         if ($errors !== []) {
             return new JsonResponse(
                 ['status' => 'invalid', 'errors' => $errors],
-                400
+                400,
             );
         }
 
-        $pageUid = (int)$data['pageUid'];
-        $bucket = (string)$data['bucket'];
-        $criticalUids = array_map(intval(...), (array)$data['criticalUids']);
+        $pageUid = (int) $data['pageUid'];
+        $bucket = (string) $data['bucket'];
+        $criticalUids = array_map(intval(...), (array) $data['criticalUids']);
 
         $changed = $this->aboveFoldCacheService->updateCriticalUids($pageUid, $bucket, $criticalUids);
 
@@ -99,7 +99,7 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
     {
         $errors = [];
 
-        if (!isset($data['pageUid']) || !is_numeric($data['pageUid']) || (int)$data['pageUid'] <= 0) {
+        if (!isset($data['pageUid']) || !is_numeric($data['pageUid']) || (int) $data['pageUid'] <= 0) {
             $errors[] = 'pageUid must be a positive integer';
         }
 
@@ -121,14 +121,14 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
 
     private function isArrayOfIntegers(array $array): bool
     {
-        return array_all($array, fn($item) => (is_int($item) || ctype_digit((string)$item)) && (int)$item > 0);
+        return array_all($array, fn($item) => (is_int($item) || ctype_digit((string) $item)) && (int) $item > 0);
     }
 
     private function checkRateLimit(ServerRequestInterface $request): ?ResponseInterface
     {
         try {
             $cache = $this->cacheManager->getCache('mai_assets_above_fold');
-            $ip    = (string)($request->getServerParams()['REMOTE_ADDR'] ?? 'unknown');
+            $ip    = (string) ($request->getServerParams()['REMOTE_ADDR'] ?? 'unknown');
             $key   = 'ratelimit_' . md5($ip);
 
             $count = $cache->get($key);

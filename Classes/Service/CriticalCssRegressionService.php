@@ -38,7 +38,7 @@ final class CriticalCssRegressionService
             throw new AssetException(
                 sprintf('Failed to measure CSS size for %s: %s', $absoluteSourcePath, $e->getMessage()),
                 1715956800,
-                $e
+                $e,
             );
         }
     }
@@ -55,18 +55,18 @@ final class CriticalCssRegressionService
         if (!file_exists($compiledCssPath) || !is_readable($compiledCssPath)) {
             throw new AssetException(
                 sprintf('File not found or not readable: %s', $compiledCssPath),
-                1715956802
+                1715956802,
             );
         }
 
         try {
-            $content = (string)file_get_contents($compiledCssPath);
+            $content = (string) file_get_contents($compiledCssPath);
             return strlen($content);
         } catch (\Exception $e) {
             throw new AssetException(
                 sprintf('Failed to measure file size for %s: %s', $compiledCssPath, $e->getMessage()),
                 1715956802,
-                $e
+                $e,
             );
         }
     }
@@ -85,7 +85,7 @@ final class CriticalCssRegressionService
         }
 
         try {
-            $json = (string)file_get_contents($baselinePath);
+            $json = (string) file_get_contents($baselinePath);
             $baseline = json_decode($json, true);
 
             if (!is_array($baseline)) {
@@ -110,7 +110,7 @@ final class CriticalCssRegressionService
     public function checkRegressionForFile(
         string $identifier,
         string $absoluteSourcePath,
-        ?bool $minify = true
+        ?bool $minify = true,
     ): array {
         $actual = $this->measureCriticalCssSize($absoluteSourcePath, $minify);
         return $this->checkRegressionWithSize($identifier, $actual);
@@ -162,7 +162,7 @@ final class CriticalCssRegressionService
             throw new AssetException(
                 sprintf('Failed to write baseline to %s: %s', $baselinePath, $e->getMessage()),
                 1715956801,
-                $e
+                $e,
             );
         }
     }

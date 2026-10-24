@@ -16,7 +16,7 @@ final class BeforeCacheInvalidationEventTest extends TestCase
             BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE,
             42,
             [InvalidationService::TARGET_PAGE_CACHE],
-            ['changedFields' => ['header']]
+            ['changedFields' => ['header']],
         );
 
         $this->assertSame(BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE, $event->getTrigger());
@@ -30,14 +30,14 @@ final class BeforeCacheInvalidationEventTest extends TestCase
         $event = new BeforeCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE,
             1,
-            [InvalidationService::TARGET_PAGE_CACHE]
+            [InvalidationService::TARGET_PAGE_CACHE],
         );
 
         $event->addTarget(InvalidationService::TARGET_EARLY_HINTS);
 
         $this->assertSame(
             [InvalidationService::TARGET_PAGE_CACHE, InvalidationService::TARGET_EARLY_HINTS],
-            $event->getTargets()
+            $event->getTargets(),
         );
     }
 
@@ -46,7 +46,7 @@ final class BeforeCacheInvalidationEventTest extends TestCase
         $event = new BeforeCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_BUCKET_UPDATE,
             1,
-            [InvalidationService::TARGET_PAGE_CACHE]
+            [InvalidationService::TARGET_PAGE_CACHE],
         );
 
         $event->addTarget(InvalidationService::TARGET_PAGE_CACHE);
@@ -59,14 +59,14 @@ final class BeforeCacheInvalidationEventTest extends TestCase
         $event = new BeforeCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE,
             1,
-            [InvalidationService::TARGET_PAGE_CACHE, InvalidationService::TARGET_EARLY_HINTS, InvalidationService::TARGET_STATIC_FILE]
+            [InvalidationService::TARGET_PAGE_CACHE, InvalidationService::TARGET_EARLY_HINTS, InvalidationService::TARGET_STATIC_FILE],
         );
 
         $event->removeTarget(InvalidationService::TARGET_EARLY_HINTS);
 
         $this->assertSame(
             [InvalidationService::TARGET_PAGE_CACHE, InvalidationService::TARGET_STATIC_FILE],
-            $event->getTargets()
+            $event->getTargets(),
         );
     }
 
@@ -75,7 +75,7 @@ final class BeforeCacheInvalidationEventTest extends TestCase
         $event = new BeforeCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE,
             1,
-            [InvalidationService::TARGET_PAGE_CACHE]
+            [InvalidationService::TARGET_PAGE_CACHE],
         );
 
         $event->setTargets([InvalidationService::TARGET_ABOVE_FOLD]);
@@ -88,7 +88,7 @@ final class BeforeCacheInvalidationEventTest extends TestCase
         $event = new BeforeCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE,
             1,
-            []
+            [],
         );
 
         $event->addExplanation('reason', 'Content changed');
@@ -101,7 +101,7 @@ final class BeforeCacheInvalidationEventTest extends TestCase
         $event = new BeforeCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE,
             1,
-            []
+            [],
         );
 
         $this->assertSame([], $event->getContext());

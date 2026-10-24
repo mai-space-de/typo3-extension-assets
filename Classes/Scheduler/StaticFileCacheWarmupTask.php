@@ -60,8 +60,8 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
                     $this->logger?->info(
                         sprintf(
                             'Stopped warmup queue processing after %d seconds',
-                            $stopProcessingAfter
-                        )
+                            $stopProcessingAfter,
+                        ),
                     );
                     break;
                 }
@@ -74,7 +74,7 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
 
                 $urlsByUid = [];
                 foreach ($entriesBatch as $entry) {
-                    $urlsByUid[(int)$entry['uid']] = (string)$entry['cache_url'];
+                    $urlsByUid[(int) $entry['uid']] = (string) $entry['cache_url'];
                 }
 
                 $statusResults = $httpClientService->runBatch($urlsByUid, $concurrency);
@@ -106,8 +106,8 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
                     $totalProcessed,
                     $duration,
                     $successCount,
-                    $failedCount
-                )
+                    $failedCount,
+                ),
             );
 
             $this->cleanupQueue($queueRepository);
@@ -117,8 +117,8 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
             $this->logger?->error(
                 sprintf(
                     'Error processing warmup queue: %s',
-                    $e->getMessage()
-                )
+                    $e->getMessage(),
+                ),
             );
             return false;
         }
@@ -141,12 +141,12 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
 
             if ($totalDeleted > 0) {
                 $this->logger?->info(
-                    sprintf('Cleaned up %d old queue entries', $totalDeleted)
+                    sprintf('Cleaned up %d old queue entries', $totalDeleted),
                 );
             }
         } catch (\Throwable $e) {
             $this->logger?->warning(
-                sprintf('Error cleaning up queue entries: %s', $e->getMessage())
+                sprintf('Error cleaning up queue entries: %s', $e->getMessage()),
             );
         }
     }

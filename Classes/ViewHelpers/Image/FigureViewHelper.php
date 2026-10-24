@@ -28,10 +28,10 @@ class FigureViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        $caption = (string)$this->arguments['caption'];
-        $class = (string)$this->arguments['class'];
-        $id = (string)$this->arguments['id'];
-        $role = (string)$this->arguments['role'];
+        $caption = (string) $this->arguments['caption'];
+        $class = (string) $this->arguments['class'];
+        $id = (string) $this->arguments['id'];
+        $role = (string) $this->arguments['role'];
 
         $attrs = '';
         if ($class !== '') {

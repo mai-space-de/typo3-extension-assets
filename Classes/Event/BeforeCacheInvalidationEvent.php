@@ -75,7 +75,7 @@ final class BeforeCacheInvalidationEvent
     public function removeTarget(string $target): void
     {
         $this->targets = array_values(
-            array_filter($this->targets, static fn(string $t): bool => $t !== $target)
+            array_filter($this->targets, static fn(string $t): bool => $t !== $target),
         );
     }
 

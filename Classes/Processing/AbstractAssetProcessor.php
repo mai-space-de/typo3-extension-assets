@@ -26,7 +26,7 @@ abstract class AbstractAssetProcessor implements AssetProcessorInterface
         $cacheFile = $this->getCacheDir() . $cacheKey . '.' . $this->getCacheExtension();
 
         if (file_exists($cacheFile)) {
-            $processed = (string)file_get_contents($cacheFile);
+            $processed = (string) file_get_contents($cacheFile);
         } else {
             $processed = $this->doProcess($content, $sourcePath);
             GeneralUtility::mkdir_deep(dirname($cacheFile));
@@ -60,7 +60,7 @@ abstract class AbstractAssetProcessor implements AssetProcessorInterface
      */
     protected function getSourceFingerprint(string $sourcePath): string
     {
-        return (string)hash_file('sha256', $sourcePath);
+        return (string) hash_file('sha256', $sourcePath);
     }
 
     protected function getSettingsHash(): array

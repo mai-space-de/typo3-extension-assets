@@ -26,7 +26,7 @@ final readonly class AddCspNonceMetaTagMiddleware implements MiddlewareInterface
 
         $nonce = $nonceAttribute->consume();
         $this->pageRenderer->addHeaderData(
-            '<meta property="csp-nonce" nonce="' . htmlspecialchars($nonce, ENT_QUOTES) . '">'
+            '<meta property="csp-nonce" nonce="' . htmlspecialchars($nonce, ENT_QUOTES) . '">',
         );
 
         return $handler->handle($request);

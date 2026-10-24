@@ -35,7 +35,7 @@ class WarmupQueueRepository
      */
     public function addIdentifiers(array $urls, int $priority = 0): void
     {
-        $urls = array_values(array_unique(array_filter($urls, static fn (string $url): bool => $url !== '')));
+        $urls = array_values(array_unique(array_filter($urls, static fn(string $url): bool => $url !== '')));
         if ($urls === []) {
             return;
         }
@@ -98,7 +98,7 @@ class WarmupQueueRepository
                 self::TABLE,
                 [
                     'call_date' => $now,
-                    'call_result' => (string)$result['call_result'],
+                    'call_result' => (string) $result['call_result'],
                 ],
                 ['uid' => $result['uid']],
             );
@@ -109,7 +109,7 @@ class WarmupQueueRepository
     {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE);
 
-        return (int)$queryBuilder
+        return (int) $queryBuilder
             ->count('uid')
             ->from(self::TABLE)
             ->where($queryBuilder->expr()->eq('call_date', 0))

@@ -29,17 +29,17 @@ final readonly class CriticalDetectionService
             return false;
         }
 
-        if ((bool)($record['tx_maiassets_force_critical'] ?? false)) {
+        if ((bool) ($record['tx_maiassets_force_critical'] ?? false)) {
             return true;
         }
 
         // 2. Check tx_maiassets_is_critical DB field — honour editor override
         if (array_key_exists('tx_maiassets_is_critical', $record)) {
             // If the editor explicitly set it to 0, honour that
-            if ((int)$record['tx_maiassets_is_critical'] === 0) {
+            if ((int) $record['tx_maiassets_is_critical'] === 0) {
                 return false;
             }
-            if ((int)$record['tx_maiassets_is_critical'] === 1) {
+            if ((int) $record['tx_maiassets_is_critical'] === 1) {
                 return true;
             }
         }
@@ -51,8 +51,8 @@ final readonly class CriticalDetectionService
         }
 
         // 4. Fallback: position/sorting heuristic
-        $colPos = (int)($record['colPos'] ?? 0);
-        $sorting = (int)($record['sorting'] ?? 0);
+        $colPos = (int) ($record['colPos'] ?? 0);
+        $sorting = (int) ($record['sorting'] ?? 0);
         $threshold = $this->getThresholdForColPos($colPos);
 
         if ($threshold <= 0) {
@@ -67,7 +67,7 @@ final readonly class CriticalDetectionService
     public function getThresholdForColPos(int $colPos): int
     {
         $thresholds = $this->extensionConfiguration->getCriticalThresholdByColPos();
-        $threshold = (int)($thresholds[$colPos] ?? 0);
+        $threshold = (int) ($thresholds[$colPos] ?? 0);
 
         $event = new ModifyCriticalThresholdEvent($threshold, $colPos, 0);
         $this->eventDispatcher->dispatch($event);
@@ -109,7 +109,7 @@ final readonly class CriticalDetectionService
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('tt_content');
 
-        return (int)$queryBuilder
+        return (int) $queryBuilder
             ->count('uid')
             ->from('tt_content')
             ->where(
@@ -117,7 +117,7 @@ final readonly class CriticalDetectionService
                 $queryBuilder->expr()->eq('colPos', $queryBuilder->createNamedParameter($colPos, Connection::PARAM_INT)),
                 $queryBuilder->expr()->lt('sorting', $queryBuilder->createNamedParameter($sorting, Connection::PARAM_INT)),
                 $queryBuilder->expr()->eq('hidden', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
-                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
             )
             ->executeQuery()
             ->fetchOne();

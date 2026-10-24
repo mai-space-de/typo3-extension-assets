@@ -28,7 +28,8 @@ class StaticFileRemovalService implements LoggerAwareInterface
     use LoggerAwareTrait;
 
     public function __construct(
-        private readonly StaticFileCacheDirectory $cacheDirectory, private readonly SiteFinder $siteFinder,
+        private readonly StaticFileCacheDirectory $cacheDirectory,
+        private readonly SiteFinder $siteFinder,
     ) {}
 
     /**
@@ -51,7 +52,7 @@ class StaticFileRemovalService implements LoggerAwareInterface
             $site ??= $this->resolveSiteByPageId($pageUid);
         } catch (\Throwable $e) {
             $this->logger?->warning(
-                sprintf('Could not find site for page %d: %s', $pageUid, $e->getMessage())
+                sprintf('Could not find site for page %d: %s', $pageUid, $e->getMessage()),
             );
             return;
         }
@@ -87,8 +88,8 @@ class StaticFileRemovalService implements LoggerAwareInterface
                     'Could not remove static cache directory for page %d, language %d: %s',
                     $pageUid,
                     $languageUid,
-                    $e->getMessage()
-                )
+                    $e->getMessage(),
+                ),
             );
         }
     }

@@ -16,14 +16,14 @@ final class AfterCacheInvalidationEventTest extends TestCase
         $event = new AfterCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE,
             42,
-            [InvalidationService::TARGET_PAGE_CACHE, InvalidationService::TARGET_EARLY_HINTS]
+            [InvalidationService::TARGET_PAGE_CACHE, InvalidationService::TARGET_EARLY_HINTS],
         );
 
         $this->assertSame(BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE, $event->getTrigger());
         $this->assertSame(42, $event->getPageUid());
         $this->assertSame(
             [InvalidationService::TARGET_PAGE_CACHE, InvalidationService::TARGET_EARLY_HINTS],
-            $event->getInvalidatedTargets()
+            $event->getInvalidatedTargets(),
         );
     }
 
@@ -32,7 +32,7 @@ final class AfterCacheInvalidationEventTest extends TestCase
         $event = new AfterCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_BUCKET_UPDATE,
             1,
-            []
+            [],
         );
 
         $this->assertSame([], $event->getInvalidatedTargets());
@@ -43,13 +43,13 @@ final class AfterCacheInvalidationEventTest extends TestCase
         $contentSaveEvent = new AfterCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_CONTENT_SAVE,
             1,
-            []
+            [],
         );
 
         $bucketUpdateEvent = new AfterCacheInvalidationEvent(
             BeforeCacheInvalidationEvent::TRIGGER_BUCKET_UPDATE,
             1,
-            []
+            [],
         );
 
         $this->assertSame('content_save', $contentSaveEvent->getTrigger());

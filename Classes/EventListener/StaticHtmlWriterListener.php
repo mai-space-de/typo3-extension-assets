@@ -52,7 +52,7 @@ final readonly class StaticHtmlWriterListener
             return;
         }
 
-        $requestUri = (string)$request->getUri();
+        $requestUri = (string) $request->getUri();
         if ($this->hasQueryString($requestUri)) {
             return;
         }
@@ -62,7 +62,7 @@ final readonly class StaticHtmlWriterListener
             return;
         }
 
-        $pageUid = (int)$pageArguments->getPageId();
+        $pageUid = (int) $pageArguments->getPageId();
         if ($pageUid <= 0) {
             return;
         }
@@ -72,7 +72,7 @@ final readonly class StaticHtmlWriterListener
         }
 
         $language = $request->getAttribute('language');
-        $languageUid = $language !== null ? (int)$language->getLanguageId() : 0;
+        $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
         if ($this->earlyHintCacheService->load($pageUid, $languageUid) === []) {
             return;

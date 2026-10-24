@@ -31,8 +31,8 @@ final readonly class EarlyHintManifestListener
             return;
         }
 
-        $pageUid = (int)$pageArguments->getPageId();
-        $languageUid = $language !== null ? (int)$language->getLanguageId() : 0;
+        $pageUid = (int) $pageArguments->getPageId();
+        $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
         $this->cacheService->store($pageUid, $languageUid, $this->collector);
     }

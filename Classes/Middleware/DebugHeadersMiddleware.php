@@ -62,13 +62,13 @@ final readonly class DebugHeadersMiddleware implements MiddlewareInterface
             return $response;
         }
 
-        $pageUid = (int)($pageInformation->getPageRecord()['uid'] ?? 0);
+        $pageUid = (int) ($pageInformation->getPageRecord()['uid'] ?? 0);
         if ($pageUid <= 0) {
             return $response;
         }
 
         $language = $request->getAttribute('language');
-        $languageUid = $language !== null ? (int)$language->getLanguageId() : 0;
+        $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
         $isReady = $this->readinessService->isReady($pageUid)
             && $this->earlyHintCacheService->load($pageUid, $languageUid) !== [];

@@ -86,11 +86,11 @@ final readonly class EarlyHintCacheService implements SingletonInterface
                 continue;
             }
             $candidates[] = new EarlyHintCandidate(
-                href: (string)$row['href'],
-                rel: (string)$row['rel'],
-                as: (string)($row['as'] ?? ''),
-                type: (string)($row['type'] ?? ''),
-                crossorigin: (string)($row['crossorigin'] ?? ''),
+                href: (string) $row['href'],
+                rel: (string) $row['rel'],
+                as: (string) ($row['as'] ?? ''),
+                type: (string) ($row['type'] ?? ''),
+                crossorigin: (string) ($row['crossorigin'] ?? ''),
             );
         }
         return $candidates;

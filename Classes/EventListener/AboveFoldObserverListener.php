@@ -41,7 +41,7 @@ final readonly class AboveFoldObserverListener
         }
 
         $request = $event->getRequest();
-        $pageUid = (int)($request->getAttribute('routing')?->getPageId() ?? 0);
+        $pageUid = (int) ($request->getAttribute('routing')?->getPageId() ?? 0);
         if ($pageUid <= 0) {
             return;
         }
@@ -52,17 +52,17 @@ final readonly class AboveFoldObserverListener
         }
         $token = $this->tokenService->generate($pageUid, $resetTimestamp);
 
-        $validBuckets = (string)json_encode(array_keys($this->extensionConfiguration->getViewportBuckets()));
+        $validBuckets = (string) json_encode(array_keys($this->extensionConfiguration->getViewportBuckets()));
 
         $observerScriptPath = GeneralUtility::getFileAbsFileName(
-            'EXT:mai_assets/Resources/Public/JavaScript/AboveFoldObserver.js'
+            'EXT:mai_assets/Resources/Public/JavaScript/AboveFoldObserver.js',
         );
 
         if (!file_exists($observerScriptPath)) {
             return;
         }
 
-        $scriptTemplate = (string)file_get_contents($observerScriptPath);
+        $scriptTemplate = (string) file_get_contents($observerScriptPath);
         $script = $this->scriptBuilder->build(
             $scriptTemplate,
             $pageUid,
@@ -83,7 +83,7 @@ final readonly class AboveFoldObserverListener
         $content = str_ireplace(
             '</body>',
             $finalScript . '</body>',
-            $event->getContent()
+            $event->getContent(),
         );
 
         $event->setContent($content);
