@@ -14,3 +14,5 @@ jobs:
     uses: mai-space-de/ci-workflows/.github/workflows/typo3-extension-ci.yml@main
     with:
       php-version: ${{ matrix.php }}
+    secrets:
+      package-token: ${{ secrets.MAI_PACKAGE_TOKEN }}
