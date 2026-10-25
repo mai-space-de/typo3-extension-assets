@@ -93,8 +93,12 @@ class JsViewHelper extends AbstractViewHelper
 
             $cacheDir = GeneralUtility::getFileAbsFileName('typo3temp/assets/mai_assets/compiled/');
             GeneralUtility::mkdir_deep($cacheDir);
-            $cacheFile = $cacheDir . md5($resolvedPath) . '.js';
-            file_put_contents($cacheFile, $content);
+            // Content hash: the URL is cached for a year and carries an SRI hash.
+            // A path-only name kept serving the previous file, so the new integrity check blocked the script.
+            $cacheFile = $cacheDir . md5($content) . '.js';
+            if (!is_file($cacheFile)) {
+                file_put_contents($cacheFile, $content);
+            }
             $resolvedPath = $cacheFile;
         }
 
