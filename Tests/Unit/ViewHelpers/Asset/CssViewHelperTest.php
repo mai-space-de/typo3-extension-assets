@@ -23,6 +23,7 @@ use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration as Typo3ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\ApplicationContext;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Routing\PageArguments;
@@ -215,6 +216,24 @@ final class CssViewHelperTest extends TestCase
         $this->eventDispatcher->expects(self::never())->method('dispatch');
 
         $result = $this->render(['critical' => 'auto']);
+
+        self::assertSame('', $result);
+    }
+
+    public function testIntegrityNoneSkipsSubresourceIntegrity(): void
+    {
+        $this->assetCollector->expects(self::once())
+            ->method('addStyleSheet')
+            ->with(
+                'main-css',
+                self::anything(),
+                self::callback(static function (array $attributes): bool {
+                    return !array_key_exists('integrity', $attributes);
+                }),
+                self::anything(),
+            );
+
+        $result = $this->render(['critical' => 'false', 'integrity' => 'none']);
 
         self::assertSame('', $result);
     }

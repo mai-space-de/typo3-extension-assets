@@ -65,7 +65,10 @@ class PictureViewHelper extends AbstractViewHelper
         $request = $this->renderingContext->hasAttribute(ServerRequestInterface::class)
             ? $this->renderingContext->getAttribute(ServerRequestInterface::class)
             : null;
-        $pageUid = (int) ($request?->getAttribute('routing')?->getPageId() ?? 0);
+        $routing = $request?->getAttribute('routing');
+        $pageUid = is_object($routing) && method_exists($routing, 'getPageId')
+            ? (int) $routing->getPageId()
+            : 0;
 
         $isCritical = match ($critical) {
             'true'  => true,

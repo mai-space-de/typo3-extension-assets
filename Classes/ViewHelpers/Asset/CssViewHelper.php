@@ -44,7 +44,7 @@ class CssViewHelper extends AbstractViewHelper
         $this->registerArgument('critical', 'string', 'Criticality: auto|true|false', false, 'auto');
         $this->registerArgument('media', 'string', 'CSS media attribute', false, 'all');
         $this->registerArgument('nonce', 'string', 'CSP nonce for inline blocks', false, '');
-        $this->registerArgument('integrity', 'string', 'Explicit SRI hash; auto-computed if empty and file is local', false, '');
+        $this->registerArgument('integrity', 'string', 'SRI-Hash. Leer = automatisch. "none" = kein Hash, nötig für Look-Vorschau ohne CORS.', false, '');
         $this->registerArgument('crossorigin', 'string', 'CORS attribute', false, '');
     }
 
@@ -62,7 +62,10 @@ class CssViewHelper extends AbstractViewHelper
             ? (bool) $this->arguments['minify']
             : $this->extensionConfiguration->isEnableMinification();
 
-        $pageUid = (int) ($GLOBALS['TYPO3_REQUEST']->getAttribute('routing')?->getPageId() ?? 0);
+        $routing = $GLOBALS['TYPO3_REQUEST']->getAttribute('routing');
+        $pageUid = is_object($routing) && method_exists($routing, 'getPageId')
+            ? (int) $routing->getPageId()
+            : 0;
 
         $isCritical = match ($critical) {
             'true'  => true,
@@ -107,7 +110,9 @@ class CssViewHelper extends AbstractViewHelper
             $publicPath = rtrim($siteUrl, '/') . '/' . ltrim($publicPath, '/');
         }
 
-        if ($integrity === '') {
+        if ($integrity === 'none') {
+            $integrity = '';
+        } elseif ($integrity === '') {
             try {
                 $integrity = $this->sriHashService->computeForFile($resolvedPath);
             } catch (\Exception) {

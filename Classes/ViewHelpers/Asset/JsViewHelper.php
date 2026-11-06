@@ -69,7 +69,10 @@ class JsViewHelper extends AbstractViewHelper
             ? (bool) $this->arguments['minify']
             : $this->extensionConfiguration->isEnableMinification();
 
-        $pageUid = (int) ($GLOBALS['TYPO3_REQUEST']?->getAttribute('routing')?->getPageId() ?? 0);
+        $routing = $GLOBALS['TYPO3_REQUEST']?->getAttribute('routing');
+        $pageUid = is_object($routing) && method_exists($routing, 'getPageId')
+            ? (int) $routing->getPageId()
+            : 0;
 
         $isCritical = match ($critical) {
             'true'  => true,
