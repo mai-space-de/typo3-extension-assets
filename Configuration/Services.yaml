@@ -104,3 +104,21 @@ services:
 
     Maispace\MaiAssets\IconProvider\MaiSvgIconProvider:
         public: true
+
+    dashboard.widget.maiAssetsManual:
+      class: 'ProudNerds\PnBackendManual\Widgets\ManualWidget'
+      arguments:
+        $options:
+          file: 'EXT:mai_assets/Resources/Private/Manual/Manual.md'
+          numbered: true
+          contentsDepth: 2
+          printButton: true
+      tags:
+        - name: dashboard.widget
+          identifier: 'maiAssetsManual'
+          groupNames: 'documentation'
+          title: 'Handbuch: Assets'
+          description: 'Kurze Anleitung zu Styles, Bildern und dem Asset-Bericht.'
+          iconIdentifier: 'content-book'
+          height: 'medium'
+          width: 'medium'
