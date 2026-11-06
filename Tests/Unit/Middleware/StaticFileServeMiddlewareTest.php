@@ -169,7 +169,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
 
     public function testServesBrotliVariantWhenClientPrefersBrotli(): void
     {
-        $this->writeStaticFileById(1, 0, 'plain');
+        $this->writeStaticFileById(1, 0, '<html>plain</html>');
         $this->writeCompressedFileById(1, 0, 'br', 'brotli-content');
 
         $middleware = $this->makeMiddleware();
@@ -187,7 +187,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
 
     public function testServesGzipVariantWhenClientPrefersGzip(): void
     {
-        $this->writeStaticFileById(1, 0, 'plain');
+        $this->writeStaticFileById(1, 0, '<html>plain</html>');
         $this->writeCompressedFileById(1, 0, 'gz', 'gzip-content');
 
         $middleware = $this->makeMiddleware();
@@ -205,7 +205,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
 
     public function testPrefersBrotliWhenBothVariantsAvailable(): void
     {
-        $this->writeStaticFileById(1, 0, 'plain');
+        $this->writeStaticFileById(1, 0, '<html>plain</html>');
         $this->writeCompressedFileById(1, 0, 'br', 'br-win');
         $this->writeCompressedFileById(1, 0, 'gz', 'gz-lose');
 
@@ -222,19 +222,46 @@ final class StaticFileServeMiddlewareTest extends TestCase
 
     public function testServesUncompressedWhenNoEncodingAdvertised(): void
     {
-        $this->writeStaticFileById(1, 0, 'plain');
+        $this->writeStaticFileById(1, 0, '<html>plain</html>');
         $this->writeCompressedFileById(1, 0, 'br', 'br-content');
 
         $middleware = $this->makeMiddleware();
         $request = $this->makeGetRequest('https://example.com/page/', pageArguments: $this->makePageArguments(1));
         $result = $middleware->process($request, $this->handler);
 
-        self::assertSame('plain', (string) $result->getBody());
+        self::assertSame('<html>plain</html>', (string) $result->getBody());
     }
 
     // -----------------------------------------------------------------
     // Miss: no static file → falls through to handler
     // -----------------------------------------------------------------
+
+    public function testFallsThroughWhenCachedFileIsNotHtml(): void
+    {
+        $this->writeStaticFileById(1, 0, '<?xml version="1.0"?><sitemapindex></sitemapindex>');
+        $this->handler->expects(self::once())->method('handle')->willReturn($this->fallbackResponse);
+
+        $middleware = $this->makeMiddleware();
+        $request = $this->makeGetRequest('https://example.com/', pageArguments: $this->makePageArguments(1));
+        $result = $middleware->process($request, $this->handler);
+
+        self::assertSame($this->fallbackResponse, $result);
+    }
+
+    public function testFallsThroughForNonDefaultPageType(): void
+    {
+        $this->writeStaticFileById(1, 0, '<html><body>Home</body></html>');
+        $this->handler->expects(self::once())->method('handle')->willReturn($this->fallbackResponse);
+
+        $middleware = $this->makeMiddleware();
+        $request = $this->makeGetRequest(
+            'https://example.com/sitemap.xml',
+            pageArguments: $this->makePageArguments(1, '1533906435'),
+        );
+        $result = $middleware->process($request, $this->handler);
+
+        self::assertSame($this->fallbackResponse, $result);
+    }
 
     public function testFallsThroughWhenIndexHtmlDoesNotExist(): void
     {
@@ -633,10 +660,13 @@ final class StaticFileServeMiddlewareTest extends TestCase
         return $request;
     }
 
-    private function makePageArguments(int $pageId): PageArguments
+    private function makePageArguments(int $pageId, ?string $pageType = null): PageArguments
     {
         $pageArguments = $this->createMock(PageArguments::class);
         $pageArguments->method('getPageId')->willReturn($pageId);
+        if ($pageType !== null) {
+            $pageArguments->method('getPageType')->willReturn($pageType);
+        }
         return $pageArguments;
     }
 

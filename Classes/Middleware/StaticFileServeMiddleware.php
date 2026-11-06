@@ -97,9 +97,20 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
             $pageUid = $pageArgs !== null ? (int) $pageArgs->getPageId() : 0;
             $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
+            // One cache file per page id. Sitemap and other typeNums must
+            // render dynamically instead of replacing or replaying that file.
+            if (!$this->isDefaultPageType($pageArgs)) {
+                return $handler->handle($request);
+            }
+
             $filePath = $this->resolveCacheFilePath($pageUid, $languageUid, $requestUri);
 
             if ($filePath === null || !is_file($filePath) || !is_readable($filePath)) {
+                return $handler->handle($request);
+            }
+
+            $plainContent = file_get_contents($filePath);
+            if (!is_string($plainContent) || !StaticHtmlWriterService::isCacheableHtmlDocument($plainContent)) {
                 return $handler->handle($request);
             }
 
@@ -133,6 +144,26 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
     private function isCacheableGetRequest(ServerRequestInterface $request): bool
     {
         return $request->getMethod() === 'GET';
+    }
+
+    /**
+     * The static file is the default HTML document of a page.
+     * Missing page type information stays eligible so existing callers keep working.
+     */
+    private function isDefaultPageType(mixed $pageArguments): bool
+    {
+        if (!is_object($pageArguments) || !method_exists($pageArguments, 'getPageType')) {
+            return true;
+        }
+
+        $pageType = $pageArguments->getPageType();
+        if ($pageType === null) {
+            return true;
+        }
+
+        $pageType = (string) $pageType;
+
+        return $pageType === '' || $pageType === '0';
     }
 
     /**

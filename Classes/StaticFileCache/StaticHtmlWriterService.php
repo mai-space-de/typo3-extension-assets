@@ -39,6 +39,22 @@ class StaticHtmlWriterService
      */
     private const string INT_MARKER = '<!--INT_SCRIPT.';
 
+    /**
+     * True when the body is a full HTML document.
+     *
+     * XML responses such as the SEO sitemap share a page id with the HTML
+     * document and must not be stored as index.html.
+     */
+    public static function isCacheableHtmlDocument(string $content): bool
+    {
+        $trimmed = ltrim($content);
+
+        return str_starts_with($trimmed, '<!DOCTYPE')
+            || str_starts_with($trimmed, '<!doctype')
+            || str_starts_with($trimmed, '<html')
+            || str_starts_with($trimmed, '<HTML');
+    }
+
     public function __construct(
         private readonly StaticFileCacheDirectory $cacheDirectory,
         private readonly ExtensionConfiguration $extensionConfiguration,
@@ -52,7 +68,7 @@ class StaticHtmlWriterService
      */
     public function write(string $html, string $requestUri): bool
     {
-        if ($html === '') {
+        if ($html === '' || !self::isCacheableHtmlDocument($html)) {
             return false;
         }
 
@@ -109,7 +125,7 @@ class StaticHtmlWriterService
      */
     public function writeByPageId(string $html, int $pageUid, int $languageUid): bool
     {
-        if ($html === '') {
+        if ($html === '' || !self::isCacheableHtmlDocument($html)) {
             return false;
         }
 

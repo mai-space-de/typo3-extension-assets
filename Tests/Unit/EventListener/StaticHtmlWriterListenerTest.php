@@ -151,6 +151,24 @@ final class StaticHtmlWriterListenerTest extends TestCase
         $listener($event);
     }
 
+    public function testInvokeSkipsNonDefaultPageType(): void
+    {
+        $writer = $this->createMock(StaticHtmlWriterService::class);
+        $writer->expects(self::never())->method('writeByPageId');
+
+        $listener = $this->makeListener($writer);
+        $listener($this->makeEvent('<html></html>', 42, 0, pageType: '1533906435'));
+    }
+
+    public function testInvokeSkipsNonHtmlDocument(): void
+    {
+        $writer = $this->createMock(StaticHtmlWriterService::class);
+        $writer->expects(self::never())->method('writeByPageId');
+
+        $listener = $this->makeListener($writer);
+        $listener($this->makeEvent('<?xml version="1.0"?><sitemapindex></sitemapindex>', 42, 0));
+    }
+
     public function testInvokeSkipsWhenPageNotReady(): void
     {
         $this->aboveFoldFrontend
@@ -256,10 +274,14 @@ final class StaticHtmlWriterListenerTest extends TestCase
         );
     }
 
-    private function makeEvent(string $content, int $pageUid, int $languageUid): AfterCacheableContentIsGeneratedEvent
-    {
+    private function makeEvent(
+        string $content,
+        int $pageUid,
+        int $languageUid,
+        string $pageType = '0',
+    ): AfterCacheableContentIsGeneratedEvent {
         return new AfterCacheableContentIsGeneratedEvent(
-            $this->createRequest($pageUid, $languageUid),
+            $this->createRequest($pageUid, $languageUid, pageType: $pageType),
             $content,
             'cache-id',
             true,
@@ -274,15 +296,22 @@ final class StaticHtmlWriterListenerTest extends TestCase
         int $languageUid,
         string $method = 'GET',
         string $uri = 'https://example.com/page',
+        string $pageType = '0',
     ): ServerRequestInterface {
-        $routing = new readonly class ($pageUid) {
+        $routing = new readonly class ($pageUid, $pageType) {
             public function __construct(
                 private int $pageId,
+                private string $pageType,
             ) {}
 
             public function getPageId(): int
             {
                 return $this->pageId;
+            }
+
+            public function getPageType(): string
+            {
+                return $this->pageType;
             }
         };
 
