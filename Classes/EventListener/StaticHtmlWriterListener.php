@@ -7,6 +7,7 @@ namespace Maispace\MaiAssets\EventListener;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
@@ -19,6 +20,7 @@ use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
  * - static file cache is disabled in extension configuration;
  * - TYPO3 marks the response as non-cacheable (INT / no_cache);
  * - the request is not a parameter-free GET;
+ * - the request is not shareable (logged-in user, preview, host differing from the site base);
  * - the page type is not the default HTML document (sitemap and other typeNums share the page id);
  * - the generated body is not an HTML document;
  * - the page is not optimisation-ready (missing viewport bucket data);
@@ -36,6 +38,7 @@ final readonly class StaticHtmlWriterListener
         private StaticHtmlWriterService $staticHtmlWriterService,
         private PageOptimizationReadinessService $readinessService,
         private EarlyHintCacheService $earlyHintCacheService,
+        private StaticCacheRequestGuard $requestGuard,
     ) {}
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void
@@ -51,6 +54,10 @@ final readonly class StaticHtmlWriterListener
         $request = $event->getRequest();
 
         if ($request->getMethod() !== 'GET') {
+            return;
+        }
+
+        if (!$this->requestGuard->isShareable($request)) {
             return;
         }
 

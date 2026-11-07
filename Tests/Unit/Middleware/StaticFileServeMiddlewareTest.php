@@ -8,6 +8,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\Middleware\StaticFileServeMiddleware;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -526,6 +527,14 @@ final class StaticFileServeMiddlewareTest extends TestCase
     // Helpers
     // -----------------------------------------------------------------
 
+    private function shareableGuard(): StaticCacheRequestGuard
+    {
+        $guard = $this->createMock(StaticCacheRequestGuard::class);
+        $guard->method('isShareable')->willReturn(true);
+
+        return $guard;
+    }
+
     private function makeMiddleware(
         bool $enableStaticFileCache = true,
         bool $debugHeaders = false,
@@ -540,7 +549,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders')
             ->setValue($config, $debugHeaders);
 
-        return new StaticFileServeMiddleware($this->cacheDirectory, $config, $this->earlyHintCacheService);
+        return new StaticFileServeMiddleware($this->cacheDirectory, $config, $this->earlyHintCacheService, $this->shareableGuard());
     }
 
     private function makeCacheDirectory(): StaticFileCacheDirectory

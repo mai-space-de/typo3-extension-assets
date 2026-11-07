@@ -67,35 +67,50 @@ final class AboveFoldCacheService implements SingletonInterface
         return array_values($merged);
     }
 
+    /**
+     * Store the critical UIDs reported for a viewport bucket.
+     *
+     * The bucket is registered in the bucket index even when its UID list is
+     * identical to the stored one (e.g. empty on both sides). Readiness is
+     * derived from that index, so a viewport that legitimately reports no
+     * above-fold elements must still count as "observed".
+     *
+     * @return bool True when the bucket was newly registered or its UIDs changed,
+     *              i.e. when page cache and derived artefacts must be refreshed.
+     */
     public function updateCriticalUids(int $pageUid, string $bucket, array $newUids): bool
     {
         $existingUids = $this->getCriticalUids($pageUid, $bucket);
+        $tags = ['mai_assets', 'maiAssetsAboveFold_' . $pageUid];
+
+        $indexKey = 'buckets_' . $pageUid;
+        $buckets = $this->cache->get($indexKey);
+        if (!is_array($buckets)) {
+            $buckets = [];
+        }
+        $bucketIsNew = !in_array($bucket, $buckets, true);
 
         $sortedNew = $newUids;
         $sortedExisting = $existingUids;
         sort($sortedNew);
         sort($sortedExisting);
 
-        if ($sortedNew === $sortedExisting) {
+        $uidsChanged = $sortedNew !== $sortedExisting;
+
+        if (!$uidsChanged && !$bucketIsNew) {
             return false;
         }
 
-        $key = $this->buildCacheKey($pageUid, $bucket);
-        $this->cache->set($key, $sortedNew, ['mai_assets', 'maiAssetsAboveFold_' . $pageUid]);
+        $this->cache->set($this->buildCacheKey($pageUid, $bucket), $sortedNew, $tags);
 
-        // Update bucket index
-        $indexKey = 'buckets_' . $pageUid;
-        $buckets = $this->cache->get($indexKey);
-        if (!is_array($buckets)) {
-            $buckets = [];
-        }
-        if (!in_array($bucket, $buckets, true)) {
+        if ($bucketIsNew) {
             $buckets[] = $bucket;
-            $this->cache->set($indexKey, $buckets, ['mai_assets', 'maiAssetsAboveFold_' . $pageUid]);
+            $this->cache->set($indexKey, $buckets, $tags);
         }
 
-        $event = new AfterCriticalUidsUpdatedEvent($pageUid, $bucket, $existingUids, $sortedNew);
-        $this->eventDispatcher->dispatch($event);
+        $this->eventDispatcher->dispatch(
+            new AfterCriticalUidsUpdatedEvent($pageUid, $bucket, $existingUids, $sortedNew),
+        );
 
         return true;
     }

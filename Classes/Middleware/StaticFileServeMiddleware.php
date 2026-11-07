@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\Middleware;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use Psr\Http\Message\ResponseInterface;
@@ -59,6 +60,7 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
         private StaticFileCacheDirectory $cacheDirectory,
         private ExtensionConfiguration $extensionConfiguration,
         private EarlyHintCacheService $earlyHintCacheService,
+        private StaticCacheRequestGuard $requestGuard,
     ) {}
 
     public function process(
@@ -76,6 +78,11 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
         // Turbo / Mai Turbo frame requests must always hit the dynamic
         // rendering pipeline (partial HTML), never the full-page static cache.
         if ($this->isTurboPartialRequest($request)) {
+            return $handler->handle($request);
+        }
+
+        // Never replay the shared file to authenticated, preview or foreign-host requests.
+        if (!$this->requestGuard->isShareable($request)) {
             return $handler->handle($request);
         }
 

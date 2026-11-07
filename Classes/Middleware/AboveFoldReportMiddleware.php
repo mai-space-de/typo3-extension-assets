@@ -12,6 +12,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\JsonResponse;
 
 final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
@@ -25,6 +27,7 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
         private ExtensionConfiguration $extensionConfiguration,
         private AboveFoldTokenService $tokenService,
         private CacheManager $cacheManager,
+        private ConnectionPool $connectionPool,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -86,6 +89,15 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
         $bucket = (string) $data['bucket'];
         $criticalUids = array_map(intval(...), (array) $data['criticalUids']);
 
+        // Only content elements that really belong to this page may become
+        // "critical"; otherwise a forged report could steer inlining decisions.
+        if (!$this->allUidsBelongToPage($criticalUids, $pageUid)) {
+            return new JsonResponse(
+                ['status' => 'invalid', 'errors' => ['criticalUids must reference content elements of the page']],
+                400,
+            );
+        }
+
         $changed = $this->aboveFoldCacheService->updateCriticalUids($pageUid, $bucket, $criticalUids);
 
         if ($changed) {
@@ -93,6 +105,32 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
         }
 
         return new JsonResponse(['status' => 'ok', 'changed' => $changed]);
+    }
+
+    /**
+     * @param list<int> $uids
+     */
+    private function allUidsBelongToPage(array $uids, int $pageUid): bool
+    {
+        $uids = array_values(array_unique($uids));
+        if ($uids === []) {
+            return true;
+        }
+
+        $queryBuilder = $this->connectionPool->getConnectionForTable('tt_content')->createQueryBuilder();
+        $queryBuilder->getRestrictions()->removeAll();
+        $found = $queryBuilder
+            ->count('uid')
+            ->from('tt_content')
+            ->where(
+                $queryBuilder->expr()->in('uid', $queryBuilder->createNamedParameter($uids, Connection::PARAM_INT_ARRAY)),
+                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('deleted', 0),
+            )
+            ->executeQuery()
+            ->fetchOne();
+
+        return (int) $found === count($uids);
     }
 
     private function validate(array $data): array

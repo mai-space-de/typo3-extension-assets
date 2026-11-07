@@ -9,7 +9,14 @@ use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
-#[AsEventListener(identifier: 'mai-assets/early-hint-manifest')]
+/**
+ * Must run before the static HTML writer, which requires the manifest to exist
+ * for the page/language combination it is about to persist.
+ */
+#[AsEventListener(
+    identifier: 'mai-assets/early-hint-manifest',
+    before: 'mai-assets/static-html-writer',
+)]
 final readonly class EarlyHintManifestListener
 {
     public function __construct(

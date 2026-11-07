@@ -9,6 +9,7 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\EventListener\StaticHtmlWriterListener;
 use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -66,6 +67,18 @@ final class StaticHtmlWriterListenerTest extends TestCase
         $this->readinessService = new PageOptimizationReadinessService(
             $this->aboveFoldCacheService,
             $this->extensionConfiguration,
+        );
+    }
+
+    public function testInvokeSkipsWriteForNonShareableRequest(): void
+    {
+        $this->stubReadyPageWithManifest(42, 0);
+
+        $writer = $this->createMock(StaticHtmlWriterService::class);
+        $writer->expects(self::never())->method('writeByPageId');
+
+        $this->makeListener($writer, false)(
+            $this->makeEvent('<html>ready</html>', 42, 0),
         );
     }
 
@@ -264,13 +277,17 @@ final class StaticHtmlWriterListenerTest extends TestCase
             ]);
     }
 
-    private function makeListener(StaticHtmlWriterService $writer): StaticHtmlWriterListener
+    private function makeListener(StaticHtmlWriterService $writer, bool $shareable = true): StaticHtmlWriterListener
     {
+        $guard = $this->createMock(StaticCacheRequestGuard::class);
+        $guard->method('isShareable')->willReturn($shareable);
+
         return new StaticHtmlWriterListener(
             $this->extensionConfiguration,
             $writer,
             $this->readinessService,
             $this->earlyHintCacheService,
+            $guard,
         );
     }
 
