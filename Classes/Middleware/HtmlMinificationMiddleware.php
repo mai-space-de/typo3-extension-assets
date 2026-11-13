@@ -22,6 +22,9 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 final readonly class HtmlMinificationMiddleware implements MiddlewareInterface
 {
+    /** Code of the RuntimeException thrown by FrontendTypoScript::getSetupArray() in cached scope. */
+    private const int SETUP_NOT_INITIALIZED = 1666513645;
+
     public function __construct(
         private HtmlMinificationService $htmlMinificationService,
         private StreamFactoryInterface $streamFactory,
@@ -38,9 +41,7 @@ final readonly class HtmlMinificationMiddleware implements MiddlewareInterface
             return $response;
         }
 
-        $tsSettings = $request->getAttribute('frontend.typoscript')
-            ?->getSetupArray()['plugin.']['tx_maispace_assets.']['settings.']['htmlMinification.']
-            ?? [];
+        $tsSettings = $this->resolveSettings($request);
 
         if (empty($tsSettings['enable'])) {
             return $response;
@@ -69,5 +70,33 @@ final readonly class HtmlMinificationMiddleware implements MiddlewareInterface
         }
 
         return $response;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveSettings(ServerRequestInterface $request): array
+    {
+        $frontendTypoScript = $request->getAttribute('frontend.typoscript');
+        if (!is_object($frontendTypoScript) || !method_exists($frontendTypoScript, 'getSetupArray')) {
+            return [];
+        }
+
+        try {
+            $setup = $frontendTypoScript->getSetupArray();
+        } catch (\RuntimeException $exception) {
+            // Page cache hit: TYPO3 does not load the full setup for fully cached
+            // pages. The cacheable content was already minified by
+            // HtmlMinificationListener when the cache entry was written.
+            if ($exception->getCode() === self::SETUP_NOT_INITIALIZED) {
+                return [];
+            }
+
+            throw $exception;
+        }
+
+        $settings = $setup['plugin.']['tx_maispace_assets.']['settings.']['htmlMinification.'] ?? [];
+
+        return is_array($settings) ? $settings : [];
     }
 }

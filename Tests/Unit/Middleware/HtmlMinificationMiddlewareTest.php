@@ -65,6 +65,49 @@ final class HtmlMinificationMiddlewareTest extends TestCase
         self::assertSame($response, $result);
     }
 
+    public function testSkipsOnPageCacheHitWithoutInitializedSetup(): void
+    {
+        $response = $this->createResponse("<div>\n<p>Hi</p>\n</div>", 'text/html; charset=utf-8');
+        $this->handler->method('handle')->willReturn($response);
+
+        $typoScript = new class {
+            /**
+             * @return array<string, mixed>
+             */
+            public function getSetupArray(): array
+            {
+                throw new \RuntimeException('Setup array has not been initialized.', 1666513645);
+            }
+        };
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request->method('getAttribute')->with('frontend.typoscript')->willReturn($typoScript);
+
+        $result = $this->middleware()->process($request, $this->handler);
+
+        self::assertSame($response, $result);
+    }
+
+    public function testRethrowsUnrelatedRuntimeExceptions(): void
+    {
+        $response = $this->createResponse('<p>x</p>', 'text/html; charset=utf-8');
+        $this->handler->method('handle')->willReturn($response);
+
+        $typoScript = new class {
+            /**
+             * @return array<string, mixed>
+             */
+            public function getSetupArray(): array
+            {
+                throw new \RuntimeException('Something else', 1234);
+            }
+        };
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request->method('getAttribute')->with('frontend.typoscript')->willReturn($typoScript);
+
+        $this->expectException(\RuntimeException::class);
+        $this->middleware()->process($request, $this->handler);
+    }
+
     public function testMinifiesFinalHtmlIncludingLateInjectedTags(): void
     {
         $html = "<!DOCTYPE html>\n<html>\n<head>\n"
