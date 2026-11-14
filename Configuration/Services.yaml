@@ -20,6 +20,13 @@ services:
               event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
               before: 'mai-assets/html-minification'
 
+    Maispace\MaiAssets\EventListener\ImageMeasureScriptListener:
+        tags:
+            - name: event.listener
+              identifier: 'mai-assets/image-measure-script'
+              event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
+              before: 'mai-assets/html-minification'
+
     Maispace\MaiAssets\EventListener\SvgSpriteInjectionListener:
         tags:
             - name: event.listener
@@ -93,6 +100,16 @@ services:
         tags:
             - name: console.command
               command: 'maispace:assets:warmup'
+
+    Maispace\MaiAssets\Command\ImageMeasureWarmupCommand:
+        tags:
+            - name: console.command
+              command: 'maispace:assets:image-measure:warmup'
+
+    Maispace\MaiAssets\Command\ImageMeasureResetCommand:
+        tags:
+            - name: console.command
+              command: 'maispace:assets:image-measure:reset'
 
     Maispace\MaiAssets\Command\CheckCriticalCssRegressionCommand:
         tags:

@@ -115,8 +115,9 @@ class PictureSourceRenderer
             $srcsetAttr = implode(', ', $srcsetParts);
             $sizesAttr = $sizes !== '' ? ' sizes="' . htmlspecialchars($sizes, ENT_QUOTES) . '"' : '';
             $fetchPriorityAttr = $isCritical ? ' fetchpriority="high"' : '';
+            $mediaAttr = $media !== '' ? ' media="' . htmlspecialchars($media, ENT_QUOTES) . '"' : '';
             $output .= '<source'
-                . ' media="' . htmlspecialchars($media, ENT_QUOTES) . '"'
+                . $mediaAttr
                 . ' srcset="' . $srcsetAttr . '"'
                 . $sizesAttr
                 . ' type="' . htmlspecialchars($mimeType, ENT_QUOTES) . '"'

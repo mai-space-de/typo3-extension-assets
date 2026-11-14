@@ -31,6 +31,8 @@ final class ExtensionConfiguration
     private bool $debugHeaders;
     private string $useDevServer;
     private string $devServerUri;
+    private bool $enableImageMeasurement;
+    private int $imageMeasureSampleRate;
 
     public function __construct(Typo3ExtensionConfiguration $typo3ExtensionConfiguration)
     {
@@ -57,6 +59,8 @@ final class ExtensionConfiguration
         $this->debugHeaders = (bool) ($raw['debugHeaders'] ?? false);
         $this->useDevServer = (string) ($raw['useDevServer'] ?? 'auto');
         $this->devServerUri = (string) ($raw['devServerUri'] ?? 'http://localhost:5173');
+        $this->enableImageMeasurement = (bool) ($raw['enableImageMeasurement'] ?? true);
+        $this->imageMeasureSampleRate = max(1, min(100, (int) ($raw['imageMeasureSampleRate'] ?? 100)));
     }
 
     public static function getInstance(): self
@@ -153,5 +157,21 @@ final class ExtensionConfiguration
     public function getDevServerUri(): UriInterface
     {
         return new Uri($this->devServerUri);
+    }
+
+    /**
+     * Whether image slots are measured in the browser to derive sizes/srcset.
+     */
+    public function isEnableImageMeasurement(): bool
+    {
+        return $this->enableImageMeasurement;
+    }
+
+    /**
+     * Percentage (1-100) of page views that report image measurements.
+     */
+    public function getImageMeasureSampleRate(): int
+    {
+        return $this->imageMeasureSampleRate;
     }
 }

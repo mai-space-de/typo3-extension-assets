@@ -33,3 +33,9 @@ useDevServer = auto
 
 # cat=Dev Server//20; type=string; label=Dev Server URI: Full URI of the Vite dev server (e.g. http://localhost:5173). Only used when "Use Dev Server" is enabled.
 devServerUri = http://localhost:5173
+
+# cat=Image Measurement//10; type=boolean; label=Enable Image Measurement: Browsers report the real layout width of images (mai:image.* ViewHelpers). The extension derives "sizes" and "srcset" from it, so each content element only loads the image size it really needs. Until enough data exists the configured breakpoints are used.
+enableImageMeasurement = 1
+
+# cat=Image Measurement//20; type=int+; label=Sample Rate (1-100 %): Share of page views that report measurements. Lower it on very high-traffic sites. Measurements stop on their own once enough data has been collected.
+imageMeasureSampleRate = 100

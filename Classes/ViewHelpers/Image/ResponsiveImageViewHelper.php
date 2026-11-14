@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\ViewHelpers\Image;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementService;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\ImageVariantService;
 use Psr\Http\Message\ServerRequestInterface;
@@ -19,6 +20,7 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
         private readonly ImageVariantService $imageVariantService,
         private readonly AssetCriticalityResolver $criticalityResolver,
         private readonly EarlyHintCandidateCollector $earlyHintCollector,
+        private readonly ?ImageMeasurementService $measurementService = null,
     ) {}
 
     public function initializeArguments(): void
@@ -56,6 +58,13 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
             default => $elementUid > 0 && $pageUid > 0
                        && $this->criticalityResolver->isElementAboveFold($elementUid, $pageUid),
         };
+
+        // Learned layout widths replace the configured breakpoints/sizes as soon as they exist.
+        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid);
+        if ($measurement?->profile !== null) {
+            $sizes = $measurement->profile->sizes;
+            $breakpoints = $measurement->profile->breakpoints();
+        }
 
         $variants = $this->imageVariantService->processVariants($image, $breakpoints);
 
@@ -95,6 +104,7 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
             . ' sizes="' . htmlspecialchars($sizes, ENT_QUOTES) . '"'
             . $altAttr
             . $classAttr
+            . ($measurement?->attribute() ?? '')
             . ' loading="' . $loadingAttr . '"'
             . $fetchPriority
             . ' decoding="' . $decoding . '"'

@@ -5,13 +5,24 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\Hook;
 
 use Maispace\MaiAssets\Cache\InvalidationService;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementRepository;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 
 final readonly class ContentElementSaveHook
 {
     public function __construct(
         private InvalidationService $invalidationService,
+        private ?ImageMeasurementRepository $imageMeasurementRepository = null,
     ) {}
+
+    /**
+     * Fields that change how wide an image is rendered. Measurements of the
+     * element are dropped then and learned again from real page views.
+     */
+    private const array LAYOUT_FIELDS = [
+        'CType', 'colPos', 'layout', 'frame_class', 'pi_flexform', 'imageorient', 'imagecols',
+        'imageborder', 'imagewidth', 'imageheight', 'image', 'assets', 'media', 'tx_container_parent',
+    ];
 
     public function processDatamap_afterDatabaseOperations(
         string $status,
@@ -36,6 +47,14 @@ final readonly class ContentElementSaveHook
         $changedFields = $this->resolveChangedFields($status, $fieldArray, $dataHandler, $uid, $table);
         if ($changedFields === []) {
             return;
+        }
+
+        if ($status !== 'new' && array_intersect($changedFields, self::LAYOUT_FIELDS) !== []) {
+            try {
+                $this->imageMeasurementRepository?->deleteForElement($uid);
+            } catch (\Throwable) {
+                // Measurement storage must never block saving content.
+            }
         }
 
         $this->invalidationService->invalidateAfterContentSave($uid, $changedFields);

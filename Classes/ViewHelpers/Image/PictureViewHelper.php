@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\ViewHelpers\Image;
 
 use TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\ViewHelperNode;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementService;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use Psr\Http\Message\ServerRequestInterface;
@@ -32,6 +33,7 @@ class PictureViewHelper extends AbstractViewHelper
         private readonly ImageService $imageService,
         private readonly AssetCriticalityResolver $criticalityResolver,
         private readonly EarlyHintCandidateCollector $earlyHintCollector,
+        private readonly ?ImageMeasurementService $measurementService = null,
     ) {}
 
     public function initializeArguments(): void
@@ -83,6 +85,23 @@ class PictureViewHelper extends AbstractViewHelper
         $viewHelperVariableContainer->add(self::class, 'earlyHintCollector', $this->earlyHintCollector);
 
         $sources = $this->renderChildSources();
+        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid);
+
+        if ($sources === '' && $measurement?->profile !== null) {
+            // Learned layout widths: one source per format, the browser picks via the measured sizes.
+            // No preload hint: a hint for a single candidate could differ from what the browser selects.
+            $registeredEarlyHint = false;
+            $sources = $this->pictureSourceRenderer->renderSourcesForMedia(
+                $image,
+                '',
+                $measurement->profile->widths,
+                $measurement->profile->sizes,
+                ['avif', 'webp'],
+                $isCritical,
+                null,
+                $registeredEarlyHint,
+            );
+        }
 
         if ($sources === '') {
             $maxWidth = $width > 0 ? $width : 1600;
@@ -134,6 +153,10 @@ class PictureViewHelper extends AbstractViewHelper
         }
         if ($imgHeight > 0) {
             $imgAttrs .= ' height="' . $imgHeight . '"';
+        }
+
+        if ($measurement !== null) {
+            $imgAttrs .= $measurement->attribute();
         }
 
         if ($isCritical) {

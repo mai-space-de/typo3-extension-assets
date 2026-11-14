@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Maispace\MaiAssets\Middleware\StaticFileServeMiddleware;
 use Maispace\MaiAssets\Middleware\AboveFoldReportMiddleware;
 use Maispace\MaiAssets\Middleware\EarlyHintsMiddleware;
+use Maispace\MaiAssets\Middleware\ImageMeasureReportMiddleware;
 use Maispace\MaiAssets\Middleware\DebugHeadersMiddleware;
 use Maispace\MaiAssets\Middleware\AddCspNonceMetaTagMiddleware;
 use Maispace\MaiAssets\Middleware\HtmlMinificationMiddleware;
@@ -19,6 +20,11 @@ return [
         ],
         'maispace/mai-assets/above-fold-report' => [
             'target' => AboveFoldReportMiddleware::class,
+            'before' => ['typo3/cms-frontend/page-resolver'],
+            'after' => ['typo3/cms-frontend/site'],
+        ],
+        'maispace/mai-assets/image-measure-report' => [
+            'target' => ImageMeasureReportMiddleware::class,
             'before' => ['typo3/cms-frontend/page-resolver'],
             'after' => ['typo3/cms-frontend/site'],
         ],
