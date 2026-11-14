@@ -19,7 +19,8 @@ final class ImageMeasurementKeyTest extends TestCase
     {
         self::assertTrue(ImageMeasurementKey::isValid('e12.r34'));
         self::assertTrue(ImageMeasurementKey::isValid('e0.f5'));
-        foreach (['', 'e12', 'e12.x3', "e1.r2'; DROP", 'e12.r34 ', 'E1.r2', 'e12345678901.r1'] as $invalid) {
+        self::assertTrue(ImageMeasurementKey::isValid('s.textmedia-left'));
+        foreach (['s.', 's.Left', 's.a b', "s.a\n", 's.' . str_repeat('a', 33), '', 'e12', 'e12.x3', "e1.r2'; DROP", 'e12.r34 ', 'E1.r2', 'e12345678901.r1'] as $invalid) {
             self::assertFalse(ImageMeasurementKey::isValid($invalid), $invalid);
         }
     }
@@ -37,6 +38,8 @@ final class ImageMeasurementKeyTest extends TestCase
         self::assertSame('e12.r34', ImageMeasurementKey::fromImage($reference, 12));
         self::assertSame('e0.f5', ImageMeasurementKey::fromImage($file, 0));
         self::assertNull(ImageMeasurementKey::fromImage(new \stdClass(), 1));
+        self::assertSame('s.textmedia-left', ImageMeasurementKey::fromImage($file, 12, ' TextMedia-Left '));
+        self::assertSame('e12.r34', ImageMeasurementKey::fromImage($reference, 12, 'invalid slot!'));
         self::assertSame(['type' => 'r', 'uid' => 34], ImageMeasurementKey::parse('e12.r34'));
     }
 

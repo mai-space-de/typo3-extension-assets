@@ -11,15 +11,34 @@ namespace Maispace\MaiAssets\ImageMeasurement;
  */
 final class ImageMeasurementKey
 {
-    public const string PATTERN = '/^e\d{1,10}\.[rf]\d{1,10}\z/';
+    /** Element slot "e12.r34" or developer defined layout slot "s.textmedia-left". */
+    public const string PATTERN = '/^(e\d{1,10}\.[rf]\d{1,10}|s\.[a-z0-9][a-z0-9_-]{0,31})\z/';
+
+    private const string SLOT_PATTERN = '/^[a-z0-9][a-z0-9_-]{0,31}\z/';
 
     public static function isValid(string $key): bool
     {
         return preg_match(self::PATTERN, $key) === 1;
     }
 
-    public static function fromImage(object $image, int $elementUid): ?string
+    /**
+     * Layout slots are shared by all content elements that use the same name.
+     */
+    public static function isSharedSlot(string $key): bool
     {
+        return str_starts_with($key, 's.');
+    }
+
+    /**
+     * @param string $slot Optional developer defined layout name; elements using the same name share one profile
+     */
+    public static function fromImage(object $image, int $elementUid, string $slot = ''): ?string
+    {
+        $slot = strtolower(trim($slot));
+        if ($slot !== '' && preg_match(self::SLOT_PATTERN, $slot) === 1) {
+            return 's.' . $slot;
+        }
+
         $resource = self::resolveResource($image);
         if ($resource === null) {
             return null;

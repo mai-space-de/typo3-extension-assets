@@ -58,6 +58,12 @@ final class ImageMeasureWarmupCommand extends Command
         $skipped = 0;
 
         foreach ($this->repository->getSlotKeys() as $slotKey) {
+            if (ImageMeasurementKey::isSharedSlot($slotKey)) {
+                // Shared layout slots know no file; their variants are created on first render.
+                $skipped++;
+                continue;
+            }
+
             $parsed = ImageMeasurementKey::parse($slotKey);
             if ($parsed === null) {
                 $this->repository->deleteForSlot($slotKey);

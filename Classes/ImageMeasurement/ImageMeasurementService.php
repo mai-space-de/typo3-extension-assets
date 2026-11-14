@@ -19,13 +19,13 @@ class ImageMeasurementService
         private readonly ImageMeasureTokenService $tokenService,
     ) {}
 
-    public function prepare(object $image, int $elementUid, int $pageUid): ?ImageMeasurementContext
+    public function prepare(object $image, int $elementUid, int $pageUid, string $slot = ''): ?ImageMeasurementContext
     {
         if (!$this->extensionConfiguration->isEnableImageMeasurement() || $pageUid <= 0) {
             return null;
         }
 
-        $key = ImageMeasurementKey::fromImage($image, $elementUid);
+        $key = ImageMeasurementKey::fromImage($image, $elementUid, $slot);
         if ($key === null) {
             return null;
         }

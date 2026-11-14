@@ -30,6 +30,7 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
         $this->registerArgument('sizes', 'string', 'Sizes attribute value', true);
         $this->registerArgument('critical', 'string', 'Criticality: auto|true|false', false, 'auto');
         $this->registerArgument('elementUid', 'int', 'Content element UID for auto-criticality detection', false, 0);
+        $this->registerArgument('slot', 'string', 'Optional layout name (e.g. textmedia-left). Elements with the same slot share one measured size profile', false, '');
         $this->registerArgument('alt', 'string', 'Alt text', false, '');
         $this->registerArgument('class', 'string', 'CSS class', false, '');
     }
@@ -60,7 +61,7 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
         };
 
         // Learned layout widths replace the configured breakpoints/sizes as soon as they exist.
-        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid);
+        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid, (string) $this->arguments['slot']);
         if ($measurement?->profile !== null) {
             $sizes = $measurement->profile->sizes;
             $breakpoints = $measurement->profile->breakpoints();

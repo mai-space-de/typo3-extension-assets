@@ -44,6 +44,7 @@ class PictureViewHelper extends AbstractViewHelper
         $this->registerArgument('height', 'int', 'Fallback image height', false, 0);
         $this->registerArgument('critical', 'string', 'Criticality: auto|true|false', false, 'auto');
         $this->registerArgument('elementUid', 'int', 'Content element UID for auto-criticality detection', false, 0);
+        $this->registerArgument('slot', 'string', 'Optional layout name (e.g. textmedia-left). Elements with the same slot share one measured size profile', false, '');
         $this->registerArgument('sizes', 'string', 'sizes attribute for default <source> elements', false, '100vw');
         $this->registerArgument('quality', 'int', 'Fallback image quality', false, 85);
         $this->registerArgument('fileExtension', 'string', 'Fallback image format (e.g. jpg)', false, '');
@@ -85,7 +86,7 @@ class PictureViewHelper extends AbstractViewHelper
         $viewHelperVariableContainer->add(self::class, 'earlyHintCollector', $this->earlyHintCollector);
 
         $sources = $this->renderChildSources();
-        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid);
+        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid, (string) $this->arguments['slot']);
 
         if ($sources === '' && $measurement?->profile !== null) {
             // Learned layout widths: one source per format, the browser picks via the measured sizes.

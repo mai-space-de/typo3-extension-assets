@@ -21,6 +21,7 @@ Administratoren sehen unter **System → Assets Report**, ob Seiten für Optimie
 
 Die Extension misst im Browser, wie breit ein Bild im jeweiligen Inhaltselement wirklich dargestellt wird (Hero, Text/Medien links/rechts, Text/Medien oben usw.). Daraus erzeugt sie `sizes` und `srcset`, sodass jedes Element nur die Bildgröße lädt, die es braucht.
 
+- Optional (Entwickler): Mit `slot="textmedia-left"` am ViewHelper teilen sich alle Elemente mit demselben Namen ein gelerntes Profil. Nur verwenden, wenn das Layout wirklich identisch ist (gleiche Spalte/Container).
 - Bis genug Messwerte da sind (mindestens 3 Seitenaufrufe pro Viewport-Bereich), gelten die im Template angegebenen Breakpoints.
 - Gelernt wird pro Inhaltselement und Bild. Ändert sich Layout, Typ, Spalte oder Bild eines Elements im Backend, werden dessen Messwerte verworfen und neu gelernt.
 - Die Bildvarianten entstehen beim ersten Rendern der Seite. Mit `vendor/bin/typo3 maispace:assets:image-measure:warmup` lassen sie sich vorab erzeugen.

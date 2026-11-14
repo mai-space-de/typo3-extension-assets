@@ -29,7 +29,7 @@ final class ImageMeasureResetCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('target', InputArgument::OPTIONAL, 'Content element uid (e.g. 123) or slot key (e.g. e123.r45)')
+            ->addArgument('target', InputArgument::OPTIONAL, 'Content element uid (e.g. 123) or slot key (e.g. e123.r45, s.textmedia-left)')
             ->addOption('all', null, InputOption::VALUE_NONE, 'Delete the measurements of every image slot');
     }
 
@@ -56,7 +56,7 @@ final class ImageMeasureResetCommand extends Command
             return Command::SUCCESS;
         }
 
-        $io->error('Pass --all, a content element uid or a slot key like e123.r45.');
+        $io->error('Pass --all, a content element uid or a slot key like e123.r45 or s.textmedia-left.');
 
         return Command::INVALID;
     }
