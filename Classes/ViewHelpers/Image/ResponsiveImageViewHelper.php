@@ -8,6 +8,7 @@ use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementService;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
+use Maispace\MaiAssets\Service\ImageReference;
 use Maispace\MaiAssets\Service\ImageVariantService;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -37,7 +38,7 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        $image = $this->arguments['image'];
+        $image = ImageReference::normalize($this->arguments['image']);
         $breakpoints = (array) $this->arguments['breakpoints'];
         $sizes = (string) $this->arguments['sizes'];
         $critical = (string) $this->arguments['critical'];

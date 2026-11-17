@@ -25,6 +25,7 @@ final readonly class ImageVariantService
      */
     public function processVariants(object $fileReference, array $breakpoints): array
     {
+        $fileReference = ImageReference::normalize($fileReference);
         $beforeEvent = new BeforeImageProcessingEvent($fileReference, $breakpoints);
         $this->eventDispatcher->dispatch($beforeEvent);
         if ($beforeEvent->isCancelled()) {
@@ -41,11 +42,11 @@ final readonly class ImageVariantService
                 try {
                     $processedImage = $this->imageService->applyProcessingInstructions(
                         $fileReference,
-                        [
+                        ImageReference::withReferenceCrop($fileReference, [
                             'width'    => $width,
                             'format'   => $format === 'jpeg' ? 'jpg' : $format,
                             'maxWidth' => $width,
-                        ],
+                        ]),
                     );
                     $bucketData[$format] = $this->imageService->getImageUri($processedImage, true);
                 } catch (\Exception) {

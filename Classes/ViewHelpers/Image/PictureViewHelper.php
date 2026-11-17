@@ -8,6 +8,7 @@ use TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\ViewHelperNode;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementService;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
+use Maispace\MaiAssets\Service\ImageReference;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Extbase\Service\ImageService;
@@ -54,7 +55,7 @@ class PictureViewHelper extends AbstractViewHelper
 
     public function render(): string
     {
-        $image = $this->arguments['image'];
+        $image = ImageReference::normalize($this->arguments['image']);
         $alt = (string) $this->arguments['alt'];
         $width = (int) $this->arguments['width'];
         $height = (int) $this->arguments['height'];
@@ -129,6 +130,7 @@ class PictureViewHelper extends AbstractViewHelper
         if ($fileExtension !== '') {
             $processingInstructions['fileExtension'] = $fileExtension;
         }
+        $processingInstructions = ImageReference::withReferenceCrop($image, $processingInstructions);
 
         $imgWidth = $width;
         $imgHeight = $height;
