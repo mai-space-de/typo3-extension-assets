@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\Command;
 
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementKey;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementPageRefresher;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementProfileResolver;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementRepository;
 use Maispace\MaiAssets\Service\ImageVariantService;
@@ -27,6 +28,7 @@ final class ImageMeasureWarmupCommand extends Command
         private readonly ImageMeasurementProfileResolver $profileResolver,
         private readonly ImageVariantService $imageVariantService,
         private readonly ResourceFactory $resourceFactory,
+        private readonly ImageMeasurementPageRefresher $pageRefresher,
     ) {
         parent::__construct();
     }
@@ -49,8 +51,7 @@ final class ImageMeasureWarmupCommand extends Command
 
         $keepDays = max(0, (int) $input->getOption('keep-days'));
         if ($keepDays > 0) {
-            $pruned = $this->repository->deleteOlderThan(time() - $keepDays * 86400);
-            $io->writeln(sprintf('Pruned %d stale measurement rows.', $pruned));
+            $this->prune(time() - $keepDays * 86400, $io);
         }
 
         $slots = 0;
@@ -101,5 +102,28 @@ final class ImageMeasureWarmupCommand extends Command
         $io->success(sprintf('Warmed %d image slots (%d width variants), skipped %d.', $slots, $variants, $skipped));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Deletes stale rows and re-renders the pages of every slot whose profile changed by it.
+     */
+    private function prune(int $olderThan, SymfonyStyle $io): void
+    {
+        $signatures = [];
+        foreach ($this->repository->getSlotKeysOlderThan($olderThan) as $slotKey) {
+            $signatures[$slotKey] = $this->profileResolver->signature($slotKey);
+        }
+
+        $pruned = $this->repository->deleteOlderThan($olderThan);
+
+        $pages = [];
+        foreach ($signatures as $slotKey => $before) {
+            if ($this->profileResolver->signature($slotKey) !== $before) {
+                array_push($pages, ...$this->pageRefresher->pagesOfSlot($slotKey));
+            }
+        }
+        $refreshed = $pages !== [] ? $this->pageRefresher->refresh($pages) : 0;
+
+        $io->writeln(sprintf('Pruned %d stale measurement rows, refreshed %d pages.', $pruned, $refreshed));
     }
 }

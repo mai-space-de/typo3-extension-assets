@@ -54,6 +54,17 @@ class ImageMeasurementRepository
         }
 
         if ($total >= ImageMeasurementScale::MAX_HITS_PER_STEP) {
+            // Converged: no new samples, but the step is still in use and must not be pruned as stale.
+            $touch = $connection->createQueryBuilder();
+            $touch
+                ->update(self::TABLE)
+                ->set('tstamp', time())
+                ->where(
+                    $touch->expr()->eq('slot_key', $touch->createNamedParameter($slotKey)),
+                    $touch->expr()->eq('vp_step', $touch->createNamedParameter($viewportStep, Connection::PARAM_INT)),
+                )
+                ->executeStatement();
+
             return false;
         }
 
@@ -163,6 +174,22 @@ class ImageMeasurementRepository
             ->createQueryBuilder()
             ->delete(self::TABLE)
             ->executeStatement();
+    }
+
+    /**
+     * @return list<string> slots that have rows not updated since the timestamp
+     */
+    public function getSlotKeysOlderThan(int $timestamp): array
+    {
+        $queryBuilder = $this->connectionPool->getConnectionForTable(self::TABLE)->createQueryBuilder();
+
+        return array_values(array_map(strval(...), $queryBuilder
+            ->select('slot_key')
+            ->distinct()
+            ->from(self::TABLE)
+            ->where($queryBuilder->expr()->lt('tstamp', $queryBuilder->createNamedParameter($timestamp, Connection::PARAM_INT)))
+            ->executeQuery()
+            ->fetchFirstColumn()));
     }
 
     public function deleteOlderThan(int $timestamp): int
