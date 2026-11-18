@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\Command;
 
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementKey;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementPageRefresher;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -22,6 +23,7 @@ final class ImageMeasureResetCommand extends Command
 {
     public function __construct(
         private readonly ImageMeasurementRepository $repository,
+        private readonly ImageMeasurementPageRefresher $pageRefresher,
     ) {
         parent::__construct();
     }
@@ -38,26 +40,39 @@ final class ImageMeasureResetCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $target = (string) $input->getArgument('target');
 
+        // Pages are looked up before deleting: they still render the old srcset/sizes
+        // and fall back to the configured breakpoints once they are re-rendered.
         if ((bool) $input->getOption('all')) {
-            $io->success(sprintf('Deleted %d rows.', $this->repository->deleteAll()));
+            $pages = $this->pageRefresher->allPages();
 
-            return Command::SUCCESS;
+            return $this->finish($io, $this->repository->deleteAll(), $pages);
         }
 
         if ($target !== '' && ctype_digit($target)) {
-            $io->success(sprintf('Deleted %d rows.', $this->repository->deleteForElement((int) $target)));
+            $pages = $this->pageRefresher->pagesOfElement((int) $target);
 
-            return Command::SUCCESS;
+            return $this->finish($io, $this->repository->deleteForElement((int) $target), $pages);
         }
 
         if ($target !== '' && ImageMeasurementKey::isValid($target)) {
-            $io->success(sprintf('Deleted %d rows.', $this->repository->deleteForSlot($target)));
+            $pages = $this->pageRefresher->pagesOfSlot($target);
 
-            return Command::SUCCESS;
+            return $this->finish($io, $this->repository->deleteForSlot($target), $pages);
         }
 
         $io->error('Pass --all, a content element uid or a slot key like e123.r45 or s.textmedia-left.');
 
         return Command::INVALID;
+    }
+
+    /**
+     * @param list<int> $pages
+     */
+    private function finish(SymfonyStyle $io, int $deletedRows, array $pages): int
+    {
+        $refreshed = $deletedRows > 0 ? $this->pageRefresher->refresh($pages) : 0;
+        $io->success(sprintf('Deleted %d rows, refreshed %d pages.', $deletedRows, $refreshed));
+
+        return Command::SUCCESS;
     }
 }

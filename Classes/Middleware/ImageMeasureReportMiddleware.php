@@ -6,12 +6,12 @@ namespace Maispace\MaiAssets\Middleware;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementKey;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementPageRefresher;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementProfileResolver;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementRepository;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementScale;
 use Maispace\MaiAssets\Security\ImageMeasureTokenService;
 use Maispace\MaiAssets\Service\ImageMeasureScriptBuilder;
-use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -40,7 +40,7 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
         private ImageMeasurementRepository $repository,
         private ImageMeasurementProfileResolver $profileResolver,
         private CacheManager $cacheManager,
-        private StaticFileRemovalService $staticFileRemovalService,
+        private ImageMeasurementPageRefresher $pageRefresher,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -146,15 +146,13 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
             // slots: shared layout slots and referenced content elements span several pages.
             $pagesToRefresh[$pageUid] = true;
             foreach (array_keys($changedKeys) as $key) {
-                foreach ($this->pagesOfSlot($key) as $slotPageUid) {
+                foreach ($this->pageRefresher->pagesOfSlot($key) as $slotPageUid) {
                     $pagesToRefresh[$slotPageUid] = true;
                 }
             }
         }
 
-        foreach (array_keys($pagesToRefresh) as $refreshPageUid) {
-            $this->refreshPage($refreshPageUid);
-        }
+        $this->pageRefresher->refresh(array_keys($pagesToRefresh));
 
         return new JsonResponse(['status' => 'ok', 'changed' => $changedKeys !== []]);
     }
@@ -166,28 +164,6 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
         } catch (\Throwable) {
             // Missing table (database not yet compared) must not break measuring.
             return false;
-        }
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function pagesOfSlot(string $key): array
-    {
-        try {
-            return $this->repository->getPageUids($key);
-        } catch (\Throwable) {
-            return [];
-        }
-    }
-
-    private function refreshPage(int $pageUid): void
-    {
-        $this->cacheManager->flushCachesByTag('pageId_' . $pageUid);
-        try {
-            $this->staticFileRemovalService->purgeByPageUid($pageUid);
-        } catch (\Throwable) {
-            // Static file cache is optional.
         }
     }
 

@@ -30,5 +30,5 @@ Die Extension misst im Browser, wie breit ein Bild im jeweiligen Inhaltselement 
 - Bis genug Messwerte da sind (mindestens 3 Seitenaufrufe pro Viewport-Bereich), gelten die im Template angegebenen Breakpoints.
 - Gelernt wird pro Inhaltselement und Bild. Ändert sich Layout, Typ, Spalte oder Bild eines Elements im Backend, werden dessen Messwerte verworfen und neu gelernt.
 - Die Bildvarianten entstehen beim ersten Rendern der Seite. Mit `vendor/bin/typo3 maispace:assets:image-measure:warmup` lassen sie sich vorab erzeugen.
-- Messwerte zurücksetzen: `maispace:assets:image-measure:reset --all` oder `... reset 123` (Inhaltselement 123).
+- Messwerte zurücksetzen: `maispace:assets:image-measure:reset --all` oder `... reset 123` (Inhaltselement 123). Die betroffenen Seiten werden dabei neu erzeugt und nutzen bis zum neuen Lernen wieder die Template-Breakpoints.
 - Abschalten: Extension-Konfiguration `enableImageMeasurement`.

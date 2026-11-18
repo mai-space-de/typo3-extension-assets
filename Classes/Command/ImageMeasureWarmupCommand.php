@@ -77,6 +77,11 @@ final class ImageMeasureWarmupCommand extends Command
             } catch (\Throwable) {
                 // File or reference is gone: its measurements are useless.
                 $this->repository->deleteForSlot($slotKey);
+                try {
+                    $this->repository->deletePagesForSlot($slotKey);
+                } catch (\Throwable) {
+                    // Page table not yet created.
+                }
                 $skipped++;
                 continue;
             }

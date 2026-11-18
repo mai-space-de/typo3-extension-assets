@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\Tests\Unit\Middleware;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementPageRefresher;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementProfileResolver;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementRepository;
 use Maispace\MaiAssets\Middleware\ImageMeasureReportMiddleware;
@@ -143,7 +144,7 @@ final class ImageMeasureReportMiddlewareTest extends TestCase
             $this->repository,
             $this->profileResolver,
             $this->cacheManager,
-            $this->staticFileRemovalService,
+            new ImageMeasurementPageRefresher($this->repository, $this->cacheManager, $this->staticFileRemovalService),
         );
 
         $handler = $this->createMock(RequestHandlerInterface::class);

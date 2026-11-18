@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\Hook;
 
 use Maispace\MaiAssets\Cache\InvalidationService;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementPageRefresher;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementRepository;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 
@@ -13,6 +14,7 @@ final readonly class ContentElementSaveHook
     public function __construct(
         private InvalidationService $invalidationService,
         private ?ImageMeasurementRepository $imageMeasurementRepository = null,
+        private ?ImageMeasurementPageRefresher $imageMeasurementPageRefresher = null,
     ) {}
 
     /**
@@ -51,7 +53,11 @@ final readonly class ContentElementSaveHook
 
         if ($status !== 'new' && array_intersect($changedFields, self::LAYOUT_FIELDS) !== []) {
             try {
-                $this->imageMeasurementRepository?->deleteForElement($uid);
+                // Other pages showing the element (references) still render its old srcset/sizes.
+                $pages = $this->imageMeasurementPageRefresher?->pagesOfElement($uid) ?? [];
+                if (($this->imageMeasurementRepository?->deleteForElement($uid) ?? 0) > 0) {
+                    $this->imageMeasurementPageRefresher?->refresh($pages);
+                }
             } catch (\Throwable) {
                 // Measurement storage must never block saving content.
             }

@@ -229,6 +229,52 @@ class ImageMeasurementRepository
     }
 
     /**
+     * @return list<int> pages any slot of the content element (prefix "e123.") was reported from
+     */
+    public function getPageUidsForElement(int $elementUid): array
+    {
+        $queryBuilder = $this->connectionPool->getConnectionForTable(self::PAGE_TABLE)->createQueryBuilder();
+
+        return array_values(array_unique(array_map(intval(...), $queryBuilder
+            ->select('page_uid')
+            ->from(self::PAGE_TABLE)
+            ->where($queryBuilder->expr()->like(
+                'slot_key',
+                $queryBuilder->createNamedParameter($queryBuilder->escapeLikeWildcards('e' . $elementUid . '.') . '%'),
+            ))
+            ->executeQuery()
+            ->fetchFirstColumn())));
+    }
+
+    /**
+     * @return list<int> every page any slot was reported from
+     */
+    public function getAllPageUids(): array
+    {
+        return array_values(array_map(intval(...), $this->connectionPool
+            ->getConnectionForTable(self::PAGE_TABLE)
+            ->createQueryBuilder()
+            ->select('page_uid')
+            ->distinct()
+            ->from(self::PAGE_TABLE)
+            ->executeQuery()
+            ->fetchFirstColumn()));
+    }
+
+    /**
+     * Forgets the pages of a slot that no longer exists (e.g. its file was deleted).
+     */
+    public function deletePagesForSlot(string $slotKey): int
+    {
+        $queryBuilder = $this->connectionPool->getConnectionForTable(self::PAGE_TABLE)->createQueryBuilder();
+
+        return (int) $queryBuilder
+            ->delete(self::PAGE_TABLE)
+            ->where($queryBuilder->expr()->eq('slot_key', $queryBuilder->createNamedParameter($slotKey)))
+            ->executeStatement();
+    }
+
+    /**
      * @param list<int> $sortedWidths
      */
     private function nextWiderOrWidest(array $sortedWidths, int $cssWidth): int
