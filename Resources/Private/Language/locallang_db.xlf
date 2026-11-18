@@ -14,10 +14,19 @@
                 <source>Note: only relevant for reference elements</source>
             </trans-unit>
             <trans-unit id="tt_content.tx_maiassets_is_critical">
-                <source>Override: Is critical (above-fold)</source>
+                <source>Critical (above-fold)</source>
             </trans-unit>
             <trans-unit id="tt_content.tx_maiassets_is_critical.description">
-                <source>Note: only relevant for reference elements</source>
+                <source>Automatic uses the measured above-fold data of real page views. Choose yes or no to override it for this element.</source>
+            </trans-unit>
+            <trans-unit id="tt_content.tx_maiassets_is_critical.auto">
+                <source>Automatic (measured)</source>
+            </trans-unit>
+            <trans-unit id="tt_content.tx_maiassets_is_critical.yes">
+                <source>Yes, always critical</source>
+            </trans-unit>
+            <trans-unit id="tt_content.tx_maiassets_is_critical.no">
+                <source>No, never critical</source>
             </trans-unit>
             <trans-unit id="palette.mai_assets_critical">
                 <source>Render as Critical</source>

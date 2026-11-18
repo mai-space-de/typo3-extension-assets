@@ -29,3 +29,24 @@ CREATE TABLE tx_maiassets_image_measure (
     UNIQUE KEY slot_sample (slot_key, vp_step, css_width),
     KEY tstamp (tstamp)
 );
+
+#
+# Critical override on content elements: 0 = automatic, 1 = critical, 2 = not critical.
+# Declared explicitly so the column keeps the former checkbox type (no data migration needed).
+#
+CREATE TABLE tt_content (
+    tx_maiassets_is_critical smallint(5) unsigned DEFAULT '0' NOT NULL
+);
+
+#
+# Table structure for table 'tx_maiassets_image_measure_page'
+# Pages an image slot was reported from, so a changed profile refreshes all of them.
+#
+CREATE TABLE tx_maiassets_image_measure_page (
+    uid int(11) NOT NULL auto_increment,
+    slot_key varchar(40) DEFAULT '' NOT NULL,
+    page_uid int(11) DEFAULT '0' NOT NULL,
+    tstamp int(11) DEFAULT '0' NOT NULL,
+    PRIMARY KEY (uid),
+    UNIQUE KEY slot_page (slot_key, page_uid)
+);

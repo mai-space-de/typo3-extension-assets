@@ -91,12 +91,9 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
 
         // Only content elements that really belong to this page may become
         // "critical"; otherwise a forged report could steer inlining decisions.
-        if (!$this->allUidsBelongToPage($criticalUids, $pageUid)) {
-            return new JsonResponse(
-                ['status' => 'invalid', 'errors' => ['criticalUids must reference content elements of the page']],
-                400,
-            );
-        }
+        // Elements rendered from other pages (references, sliding footer content)
+        // are dropped instead of rejecting the whole report.
+        $criticalUids = $this->filterUidsOfPage($criticalUids, $pageUid);
 
         $changed = $this->aboveFoldCacheService->updateCriticalUids($pageUid, $bucket, $criticalUids);
 
@@ -109,18 +106,19 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
 
     /**
      * @param list<int> $uids
+     * @return list<int> the given UIDs that are content elements of the page, in reported order
      */
-    private function allUidsBelongToPage(array $uids, int $pageUid): bool
+    private function filterUidsOfPage(array $uids, int $pageUid): array
     {
         $uids = array_values(array_unique($uids));
         if ($uids === []) {
-            return true;
+            return [];
         }
 
         $queryBuilder = $this->connectionPool->getConnectionForTable('tt_content')->createQueryBuilder();
         $queryBuilder->getRestrictions()->removeAll();
         $found = $queryBuilder
-            ->count('uid')
+            ->select('uid')
             ->from('tt_content')
             ->where(
                 $queryBuilder->expr()->in('uid', $queryBuilder->createNamedParameter($uids, Connection::PARAM_INT_ARRAY)),
@@ -128,9 +126,11 @@ final readonly class AboveFoldReportMiddleware implements MiddlewareInterface
                 $queryBuilder->expr()->eq('deleted', 0),
             )
             ->executeQuery()
-            ->fetchOne();
+            ->fetchFirstColumn();
 
-        return (int) $found === count($uids);
+        $found = array_map(intval(...), $found);
+
+        return array_values(array_filter($uids, static fn(int $uid): bool => in_array($uid, $found, true)));
     }
 
     private function validate(array $data): array

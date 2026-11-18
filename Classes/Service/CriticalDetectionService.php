@@ -21,47 +21,59 @@ final readonly class CriticalDetectionService
         private ConnectionPool $connectionPool,
     ) {}
 
+    /** tx_maiassets_is_critical: decide from observer data and position heuristic. */
+    public const int OVERRIDE_AUTO = 0;
+    /** tx_maiassets_is_critical: editor marked the element as critical. */
+    public const int OVERRIDE_CRITICAL = 1;
+    /** tx_maiassets_is_critical: editor marked the element as not critical. */
+    public const int OVERRIDE_NOT_CRITICAL = 2;
+
     public function isCritical(int $pageUid, int $elementUid): bool
     {
-        // 1. Check tx_maiassets_force_critical DB field
         $record = $this->getContentRecord($elementUid);
         if ($record === null) {
             return false;
         }
 
-        if ((bool) ($record['tx_maiassets_force_critical'] ?? false)) {
-            return true;
-        }
-
-        // 2. Check tx_maiassets_is_critical DB field — honour editor override
-        if (array_key_exists('tx_maiassets_is_critical', $record)) {
-            // If the editor explicitly set it to 0, honour that
-            if ((int) $record['tx_maiassets_is_critical'] === 0) {
-                return false;
-            }
-            if ((int) $record['tx_maiassets_is_critical'] === 1) {
-                return true;
-            }
+        // 1. + 2. Editor decisions (force flag, override select)
+        $override = self::resolveEditorOverride($record);
+        if ($override !== null) {
+            return $override;
         }
 
         // 3. Cache service result (from observer reports)
-        $allCriticalUids = $this->aboveFoldCacheService->getAllCriticalUids($pageUid);
-        if (in_array($elementUid, $allCriticalUids, true)) {
+        if (in_array($elementUid, $this->aboveFoldCacheService->getAllCriticalUids($pageUid), true)) {
             return true;
         }
 
         // 4. Fallback: position/sorting heuristic
         $colPos = (int) ($record['colPos'] ?? 0);
-        $sorting = (int) ($record['sorting'] ?? 0);
         $threshold = $this->getThresholdForColPos($colPos);
-
         if ($threshold <= 0) {
             return false;
         }
 
         // Count elements in same colPos with lower sorting (= higher on page)
-        $position = $this->getElementPositionInColPos($pageUid, $colPos, $sorting);
+        $position = $this->getElementPositionInColPos($pageUid, $colPos, (int) ($record['sorting'] ?? 0));
         return $position < $threshold;
+    }
+
+    /**
+     * Editor decision stored on the content record; null means "decide automatically".
+     *
+     * @param array<string, mixed> $record
+     */
+    public static function resolveEditorOverride(array $record): ?bool
+    {
+        if ((bool) ($record['tx_maiassets_force_critical'] ?? false)) {
+            return true;
+        }
+
+        return match ((int) ($record['tx_maiassets_is_critical'] ?? self::OVERRIDE_AUTO)) {
+            self::OVERRIDE_CRITICAL => true,
+            self::OVERRIDE_NOT_CRITICAL => false,
+            default => null,
+        };
     }
 
     public function getThresholdForColPos(int $colPos): int
