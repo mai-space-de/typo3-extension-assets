@@ -16,6 +16,8 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 class ImageMeasurementRepository
 {
     public const string TABLE = 'tx_maiassets_image_measure';
+    /** Pages an image slot was reported from; needed to refresh every page that renders a slot. */
+    public const string PAGE_TABLE = 'tx_maiassets_image_measure_page';
 
     public function __construct(
         private readonly ConnectionPool $connectionPool,
@@ -171,6 +173,59 @@ class ImageMeasurementRepository
             ->delete(self::TABLE)
             ->where($queryBuilder->expr()->lt('tstamp', $queryBuilder->createNamedParameter($timestamp, Connection::PARAM_INT)))
             ->executeStatement();
+    }
+
+    /**
+     * Remembers that a slot is rendered on a page. Returns true when the page was not known yet.
+     *
+     * The number of pages per slot is capped by {@see ImageMeasurementScale::MAX_PAGES_PER_SLOT}.
+     */
+    public function rememberPage(string $slotKey, int $pageUid): bool
+    {
+        if ($pageUid <= 0) {
+            return false;
+        }
+
+        $connection = $this->connectionPool->getConnectionForTable(self::PAGE_TABLE);
+        $queryBuilder = $connection->createQueryBuilder();
+        $pageUids = array_map(intval(...), $queryBuilder
+            ->select('page_uid')
+            ->from(self::PAGE_TABLE)
+            ->where($queryBuilder->expr()->eq('slot_key', $queryBuilder->createNamedParameter($slotKey)))
+            ->executeQuery()
+            ->fetchFirstColumn());
+
+        if (in_array($pageUid, $pageUids, true) || count($pageUids) >= ImageMeasurementScale::MAX_PAGES_PER_SLOT) {
+            return false;
+        }
+
+        try {
+            $connection->insert(self::PAGE_TABLE, [
+                'slot_key' => $slotKey,
+                'page_uid' => $pageUid,
+                'tstamp' => time(),
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // A parallel request registered the page first.
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @return list<int> pages the slot was reported from
+     */
+    public function getPageUids(string $slotKey): array
+    {
+        $queryBuilder = $this->connectionPool->getConnectionForTable(self::PAGE_TABLE)->createQueryBuilder();
+
+        return array_values(array_map(intval(...), $queryBuilder
+            ->select('page_uid')
+            ->from(self::PAGE_TABLE)
+            ->where($queryBuilder->expr()->eq('slot_key', $queryBuilder->createNamedParameter($slotKey)))
+            ->executeQuery()
+            ->fetchFirstColumn()));
     }
 
     /**

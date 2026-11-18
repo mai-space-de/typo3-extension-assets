@@ -93,8 +93,11 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
 
         $viewportStep = ImageMeasurementScale::viewportStep($viewport);
         $accepted = 0;
-        $changed = false;
         $seen = [];
+        /** @var array<string, true> $changedKeys slots whose profile changed with this report */
+        $changedKeys = [];
+        /** @var array<int, true> $pagesToRefresh */
+        $pagesToRefresh = [];
 
         foreach ($items as $item) {
             if (!is_array($item)) {
@@ -116,15 +119,21 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
                 continue;
             }
             $seen[$key] = true;
+            $accepted++;
 
             $before = $this->profileResolver->signature($key);
-            if (!$this->repository->record($key, $viewportStep, $cssWidth)) {
-                $accepted++;
-                continue;
+            $after = $before;
+            if ($this->repository->record($key, $viewportStep, $cssWidth)) {
+                $after = $this->profileResolver->signature($key);
+                if ($before !== $after) {
+                    $changedKeys[$key] = true;
+                }
             }
-            $accepted++;
-            if ($before !== $this->profileResolver->signature($key)) {
-                $changed = true;
+
+            // The token proves the page really renders this slot. A page seen for the first
+            // time may have been cached before the current profile existed: refresh it once.
+            if ($this->rememberPage($key, $pageUid) && $after !== '') {
+                $pagesToRefresh[$pageUid] = true;
             }
         }
 
@@ -132,17 +141,54 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
             return new JsonResponse(['status' => 'forbidden'], 403);
         }
 
-        if ($changed) {
-            // The rendered srcset/sizes of this page are outdated.
-            $this->cacheManager->flushCachesByTag('pageId_' . $pageUid);
-            try {
-                $this->staticFileRemovalService->purgeByPageUid($pageUid);
-            } catch (\Throwable) {
-                // Static file cache is optional.
+        if ($changedKeys !== []) {
+            // The rendered srcset/sizes are outdated on every page that shows one of these
+            // slots: shared layout slots and referenced content elements span several pages.
+            $pagesToRefresh[$pageUid] = true;
+            foreach (array_keys($changedKeys) as $key) {
+                foreach ($this->pagesOfSlot($key) as $slotPageUid) {
+                    $pagesToRefresh[$slotPageUid] = true;
+                }
             }
         }
 
-        return new JsonResponse(['status' => 'ok', 'changed' => $changed]);
+        foreach (array_keys($pagesToRefresh) as $refreshPageUid) {
+            $this->refreshPage($refreshPageUid);
+        }
+
+        return new JsonResponse(['status' => 'ok', 'changed' => $changedKeys !== []]);
+    }
+
+    private function rememberPage(string $key, int $pageUid): bool
+    {
+        try {
+            return $this->repository->rememberPage($key, $pageUid);
+        } catch (\Throwable) {
+            // Missing table (database not yet compared) must not break measuring.
+            return false;
+        }
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function pagesOfSlot(string $key): array
+    {
+        try {
+            return $this->repository->getPageUids($key);
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    private function refreshPage(int $pageUid): void
+    {
+        $this->cacheManager->flushCachesByTag('pageId_' . $pageUid);
+        try {
+            $this->staticFileRemovalService->purgeByPageUid($pageUid);
+        } catch (\Throwable) {
+            // Static file cache is optional.
+        }
     }
 
     private function isRateLimited(ServerRequestInterface $request): bool

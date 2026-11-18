@@ -13,6 +13,10 @@ Bilder in Inhaltselementen werden responsive ausgeliefert. Ein SVG-Sprite bünde
 
 Subresource Integrity setzt Prüfsummen auf lokale Dateien. Für die Look-Vorschau darf die Prüfsumme mit dem Wert `none` ausgeschaltet werden, sonst bleibt die Vorschau ohne Styles.
 
+## Above-the-fold
+
+Die Extension merkt sich, welche Inhaltselemente beim Laden im sichtbaren Bereich liegen, und lädt deren Bilder mit hoher Priorität. Im Tab **Render as Critical** lässt sich das pro Element überschreiben: **Automatisch (gemessen)** ist der Standard, **Ja** bzw. **Nein** erzwingen die Entscheidung.
+
 ## Bericht
 
 Administratoren sehen unter **System → Assets Report**, ob Seiten für Optimierung, Early Hints und den statischen Cache bereit sind.
@@ -21,7 +25,8 @@ Administratoren sehen unter **System → Assets Report**, ob Seiten für Optimie
 
 Die Extension misst im Browser, wie breit ein Bild im jeweiligen Inhaltselement wirklich dargestellt wird (Hero, Text/Medien links/rechts, Text/Medien oben usw.). Daraus erzeugt sie `sizes` und `srcset`, sodass jedes Element nur die Bildgröße lädt, die es braucht.
 
-- Optional (Entwickler): Mit `slot="textmedia-left"` am ViewHelper teilen sich alle Elemente mit demselben Namen ein gelerntes Profil. Nur verwenden, wenn das Layout wirklich identisch ist (gleiche Spalte/Container).
+- Optional (Entwickler): Mit `slot="textmedia-left"` am ViewHelper teilen sich alle Elemente mit demselben Namen ein gelerntes Profil. Nur verwenden, wenn das Layout wirklich identisch ist (gleiche Spalte/Container). Ändert sich das Profil, werden alle Seiten neu erzeugt, auf denen der Slot gemessen wurde.
+- `<mai:picture.source>` übernimmt ebenfalls die gemessenen Breiten (die `media`-Bedingung bleibt). Mit `measured="false"` bleiben die angegebenen Werte.
 - Bis genug Messwerte da sind (mindestens 3 Seitenaufrufe pro Viewport-Bereich), gelten die im Template angegebenen Breakpoints.
 - Gelernt wird pro Inhaltselement und Bild. Ändert sich Layout, Typ, Spalte oder Bild eines Elements im Backend, werden dessen Messwerte verworfen und neu gelernt.
 - Die Bildvarianten entstehen beim ersten Rendern der Seite. Mit `vendor/bin/typo3 maispace:assets:image-measure:warmup` lassen sie sich vorab erzeugen.

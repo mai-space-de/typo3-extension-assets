@@ -81,13 +81,16 @@ class PictureViewHelper extends AbstractViewHelper
                        && $this->criticalityResolver->isElementAboveFold($elementUid, $pageUid),
         };
 
+        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid, (string) $this->arguments['slot']);
+
         $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
         $viewHelperVariableContainer->add(self::class, 'fileReference', $image);
         $viewHelperVariableContainer->add(self::class, 'isCritical', $isCritical);
         $viewHelperVariableContainer->add(self::class, 'earlyHintCollector', $this->earlyHintCollector);
+        // Child sources replace their configured widths/sizes with the learned ones.
+        $viewHelperVariableContainer->add(self::class, 'measurementProfile', $measurement?->profile);
 
         $sources = $this->renderChildSources();
-        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid, (string) $this->arguments['slot']);
 
         if ($sources === '' && $measurement?->profile !== null) {
             // Learned layout widths: one source per format, the browser picks via the measured sizes.
@@ -119,6 +122,7 @@ class PictureViewHelper extends AbstractViewHelper
         $viewHelperVariableContainer->remove(self::class, 'fileReference');
         $viewHelperVariableContainer->remove(self::class, 'isCritical');
         $viewHelperVariableContainer->remove(self::class, 'earlyHintCollector');
+        $viewHelperVariableContainer->remove(self::class, 'measurementProfile');
 
         $processingInstructions = [];
         if ($width > 0) {

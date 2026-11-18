@@ -14,12 +14,17 @@ use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\CriticalDetectionService;
 use Maispace\MaiAssets\Service\ImageVariantService;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementContext;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementProfile;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementService;
 use Maispace\MaiAssets\ViewHelpers\Image\PictureViewHelper;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use RuntimeException;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration as Typo3ExtensionConfiguration;
+use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
+use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3Fluid\Fluid\Core\Rendering\RenderingContext;
 use TYPO3Fluid\Fluid\Core\Variables\StandardVariableProvider;
@@ -273,6 +278,62 @@ final class PictureViewHelperTest extends TestCase
         self::assertFalse($container->exists(PictureViewHelper::class, 'fileReference'));
         self::assertFalse($container->exists(PictureViewHelper::class, 'isCritical'));
         self::assertFalse($container->exists(PictureViewHelper::class, 'earlyHintCollector'));
+        self::assertFalse($container->exists(PictureViewHelper::class, 'measurementProfile'));
+    }
+
+    /**
+     * Child sources must see the measured profile, otherwise art-directed pictures keep oversized widths.
+     */
+    public function testMeasuredProfileIsAvailableToChildSources(): void
+    {
+        $profile = new ImageMeasurementProfile('640px', [640, 1280]);
+        $measurementService = $this->createMock(ImageMeasurementService::class);
+        $measurementService->method('prepare')->willReturn(new ImageMeasurementContext('e5.r9', 'token', $profile));
+
+        $vh = new class (
+            new PictureSourceRenderer($this->createImageVariantService($this->stubImageService())),
+            $this->stubImageService(),
+            $this->criticalityResolver,
+            $this->earlyHintCollector,
+            $measurementService,
+        ) extends PictureViewHelper {
+            public mixed $seenProfile = null;
+
+            protected function renderChildSources(): string
+            {
+                $this->seenProfile = $this->renderingContext->getViewHelperVariableContainer()
+                    ->get(PictureViewHelper::class, 'measurementProfile');
+
+                return '<source srcset="/f/child.avif 640w">';
+            }
+        };
+
+        $GLOBALS['TYPO3_REQUEST'] = (new ServerRequest('https://example.test/'))
+            ->withAttribute('routing', new PageArguments(12, '0', []));
+        $vh->setRenderingContext($this->createRenderingContext());
+        $vh->setArguments([
+            'image'         => new \stdClass(),
+            'alt'           => '',
+            'width'         => 0,
+            'height'        => 0,
+            'critical'      => 'false',
+            'elementUid'    => 5,
+            'slot'          => '',
+            'quality'       => 85,
+            'fileExtension' => '',
+            'crossorigin'   => '',
+            'class'         => '',
+            'sizes'         => '100vw',
+        ]);
+
+        try {
+            $result = $vh->render();
+        } finally {
+            unset($GLOBALS['TYPO3_REQUEST']);
+        }
+
+        self::assertSame($profile, $vh->seenProfile);
+        self::assertStringContainsString('data-mai-m="e5.r9:token"', $result);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────────

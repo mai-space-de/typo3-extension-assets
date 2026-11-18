@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\ViewHelpers\Image\Picture;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementProfile;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use Maispace\MaiAssets\ViewHelpers\Image\PictureViewHelper;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -12,6 +13,10 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 /**
  * Renders a <source> element inside a <mai:picture> container.
  * Must be used as a direct child of PictureViewHelper.
+ *
+ * Once the parent image has a measured size profile, its widths and sizes
+ * replace the configured {@code srcset}/{@code sizes} (the media query stays),
+ * unless {@code measured="false"} is set.
  */
 class SourceViewHelper extends AbstractViewHelper
 {
@@ -30,6 +35,7 @@ class SourceViewHelper extends AbstractViewHelper
         $this->registerArgument('quality', 'int', 'Image quality', false, 85);
         $this->registerArgument('width', 'int', 'Fallback width', false, 0);
         $this->registerArgument('height', 'int', 'Fallback height', false, 0);
+        $this->registerArgument('measured', 'bool', 'Use the measured widths/sizes of the parent picture once they exist', false, true);
     }
 
     public function render(): string
@@ -53,6 +59,16 @@ class SourceViewHelper extends AbstractViewHelper
         $widths = (array) $this->arguments['srcset'];
         $sizes = (string) $this->arguments['sizes'];
         $formats = (array) $this->arguments['formats'];
+
+        $profile = $viewHelperVariableContainer->exists(PictureViewHelper::class, 'measurementProfile')
+            ? $viewHelperVariableContainer->get(PictureViewHelper::class, 'measurementProfile')
+            : null;
+        if ($profile instanceof ImageMeasurementProfile && (bool) $this->arguments['measured']) {
+            $widths = $profile->widths;
+            $sizes = $profile->sizes;
+            // No preload hint: a hint for a single candidate could differ from what the browser selects.
+            $earlyHintCollector = null;
+        }
 
         $registeredEarlyHint = false;
 

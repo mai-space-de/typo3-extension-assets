@@ -41,6 +41,8 @@ final class ImageMeasurementScale
     public const int MAX_HITS_PER_STEP = 300;
     /** Distinct width rows stored per slot and viewport step. */
     public const int MAX_ROWS_PER_STEP = 8;
+    /** Pages remembered per slot for cache invalidation (shared slots, references). */
+    public const int MAX_PAGES_PER_SLOT = 500;
     /** Share of samples a measured width has to cover. */
     public const float COVERAGE = 0.9;
 

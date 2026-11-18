@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\Tests\Unit\ViewHelpers\Image\Picture;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementProfile;
 use Maispace\MaiAssets\Service\ImageVariantService;
 use Maispace\MaiAssets\Service\PictureSourceRenderer;
 use Maispace\MaiAssets\ViewHelpers\Image\Picture\SourceViewHelper;
@@ -280,6 +281,48 @@ final class SourceViewHelperTest extends TestCase
         self::assertCount(1, $earlyHintCollector->getAll());
     }
 
+    public function testMeasuredProfileReplacesConfiguredWidthsAndSizes(): void
+    {
+        $earlyHintCollector = new EarlyHintCandidateCollector();
+        $subject = $this->createViewHelper(
+            $this->stubVariantService(),
+            withPictureContext: true,
+            media: '(min-width: 768px)',
+            srcset: [1200, 1600],
+            sizes: '100vw',
+            isCritical: true,
+            earlyHintCollector: $earlyHintCollector,
+            profile: new ImageMeasurementProfile('(max-width: 960px) 480px, 640px', [480, 640, 960, 1280]),
+        );
+
+        $result = $subject->render();
+
+        self::assertStringContainsString('media="(min-width: 768px)"', $result);
+        self::assertStringContainsString('sizes="(max-width: 960px) 480px, 640px"', $result);
+        self::assertStringContainsString('/f/test-avif-640.img 640w', $result);
+        self::assertStringNotContainsString('1600w', $result);
+        self::assertStringNotContainsString('100vw', $result);
+        // A preload for one candidate could differ from what the browser picks.
+        self::assertCount(0, $earlyHintCollector->getAll());
+    }
+
+    public function testMeasuredProfileIsIgnoredWhenOptedOut(): void
+    {
+        $subject = $this->createViewHelper(
+            $this->stubVariantService(),
+            withPictureContext: true,
+            srcset: [1200, 1600],
+            sizes: '100vw',
+            profile: new ImageMeasurementProfile('640px', [640, 1280]),
+            measured: false,
+        );
+
+        $result = $subject->render();
+
+        self::assertStringContainsString('1600w', $result);
+        self::assertStringContainsString('sizes="100vw"', $result);
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────────
 
     private function createViewHelper(
@@ -291,6 +334,8 @@ final class SourceViewHelperTest extends TestCase
         array $formats = ['avif', 'webp'],
         bool $isCritical = false,
         ?EarlyHintCandidateCollector $earlyHintCollector = null,
+        ?ImageMeasurementProfile $profile = null,
+        bool $measured = true,
     ): SourceViewHelper {
         $vh = new SourceViewHelper(new PictureSourceRenderer($variantService));
 
@@ -301,6 +346,7 @@ final class SourceViewHelperTest extends TestCase
             $container->add(PictureViewHelper::class, 'fileReference', new \stdClass());
             $container->add(PictureViewHelper::class, 'isCritical', $isCritical);
             $container->add(PictureViewHelper::class, 'earlyHintCollector', $earlyHintCollector);
+            $container->add(PictureViewHelper::class, 'measurementProfile', $profile);
         }
 
         $vh->setRenderingContext($ctx);
@@ -312,6 +358,7 @@ final class SourceViewHelperTest extends TestCase
             'quality' => 85,
             'width'   => 0,
             'height'  => 0,
+            'measured' => $measured,
         ]);
 
         return $vh;
