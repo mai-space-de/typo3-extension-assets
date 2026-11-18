@@ -7,8 +7,10 @@
     var REPORT_TTL = 86400000; // one report per image and viewport step and day
     var MAX_ITEMS = 24;
     var STEP = 160;
+    var SEND_DELAY = 2000;
+    var IDLE_TIMEOUT = 5000;
 
-    if (!window.fetch && !window.XMLHttpRequest) return;
+    if (!navigator.sendBeacon && !window.fetch) return;
     if (SAMPLE_RATE < 100 && Math.random() * 100 >= SAMPLE_RATE) return;
 
     function viewportStep(width) {
@@ -60,36 +62,61 @@
             }
         }
 
-        if (window.fetch) {
-            fetch(ENDPOINT, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: payload,
-                keepalive: true,
-                credentials: 'omit'
-            }).then(function (response) {
-                if (response.ok) remember();
-            }).catch(function () {});
-            return;
+        // Lowest priority transport: a beacon never competes with page resources and
+        // never shows up in the critical request chain. Its response is not readable,
+        // so an accepted beacon counts as delivered.
+        if (navigator.sendBeacon) {
+            try {
+                if (navigator.sendBeacon(ENDPOINT, new Blob([payload], {type: 'application/json'}))) {
+                    remember();
+                    return;
+                }
+            } catch (e) {
+                // Fall through to fetch
+            }
         }
 
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', ENDPOINT, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4 && xhr.status === 200) remember();
-        };
-        xhr.send(payload);
+        if (!window.fetch) return;
+        fetch(ENDPOINT, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: payload,
+            keepalive: true,
+            credentials: 'omit',
+            priority: 'low'
+        }).then(function (response) {
+            if (response.ok) remember();
+        }).catch(function () {});
+    }
+
+    var done = false;
+
+    function run() {
+        if (done) return;
+        done = true;
+        window.removeEventListener('pagehide', run);
+        document.removeEventListener('visibilitychange', onHidden);
+        collect();
+    }
+
+    function onHidden() {
+        if (document.visibilityState === 'hidden') run();
     }
 
     function schedule() {
-        // Let the layout settle (fonts, late CSS) before measuring.
-        if (typeof requestIdleCallback === 'function') {
-            requestIdleCallback(collect, {timeout: 3000});
-        } else {
-            setTimeout(collect, 500);
-        }
+        // Let the layout settle (fonts, late CSS) and stay out of the loading phase;
+        // leaving the page earlier still sends the measurement.
+        setTimeout(function () {
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(run, {timeout: IDLE_TIMEOUT});
+            } else {
+                run();
+            }
+        }, SEND_DELAY);
     }
+
+    window.addEventListener('pagehide', run);
+    document.addEventListener('visibilitychange', onHidden);
 
     if (document.readyState === 'complete') {
         schedule();
