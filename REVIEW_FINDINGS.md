@@ -214,18 +214,25 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 
 ### Bilder und Video
 
-- [ ] **W46 `fetchpriority` an `<source>`** – kein gültiges Attribut (wirkungslos).
-- [ ] **W47 Video-Facade: Poster immer `loading="lazy"`**, auch als LCP-Bild above the fold.
+- [x] **W46 `fetchpriority` an `<source>`** – kein gültiges Attribut (wirkungslos).
+  → Erledigt: entfernt; das `<img>` des `<picture>` trägt `fetchpriority`.
+- [x] **W47 Video-Facade: Poster immer `loading="lazy"`**, auch als LCP-Bild above the fold.
+  → Erledigt: Mit `isCritical` lädt das Poster der Facade `eager` mit `fetchpriority="high"`.
 - [ ] **W48 Video-Facade/Lazy-Video brauchen JavaScript, das die Extension nicht mitliefert**
   (`<template>`-iframe, `data-lazy`/`data-src`).
+  → **Offen, Rückfrage nötig:** Die Klassen (`mai-video-play`, `<template>`, `data-lazy`) deuten darauf hin, dass das Theme das JavaScript liefert. Ein mitgeliefertes Skript würde dann doppelt reagieren (zwei iframes). Soll die Extension ein eigenes, abschaltbares Skript mitbringen?
 - [ ] **W49 YouTube-Poster `maxresdefault.jpg` existiert nicht für jedes Video**
   (graues 120×90-Platzhalterbild).
-- [ ] **W50 YouTube-/Vimeo-ID wird nicht validiert** (nur HTML-escaped, nicht URL-codiert).
-- [ ] **W51 Codec-Varianten (`.av1.mp4`/`.hevc.mp4`) werden selten gefunden**
+  → **Offen, Rückfrage nötig:** Alternative `hqdefault.jpg` (480×360) existiert immer, ist aber unschärfer; `maxresdefault` mit Fallback braucht JavaScript (siehe W48). Welche Variante?
+- [x] **W50 YouTube-/Vimeo-ID wird nicht validiert** (nur HTML-escaped, nicht URL-codiert).
+  → Erledigt: YouTube nur `[A-Za-z0-9_-]{11}`, Vimeo nur Ziffern; ungültige IDs rendern nichts.
+- [x] **W51 Codec-Varianten (`.av1.mp4`/`.hevc.mp4`) werden selten gefunden**
   URL-codierte Dateinamen und nicht lokale Storages (CDN) scheitern an `file_exists()`;
   die Prüfung läuft bei jedem Rendern.
+  → Erledigt: Pfad wird dekodiert geprüft (`%20`), entfernte URLs (CDN) werden übersprungen statt falsch geprüft.
 - [ ] **W52 Bilder ohne `elementUid` teilen einen Messschlüssel** (`e0.f…`): dieselbe Datei
   in verschiedenen Layouts (Header/Footer) mischt ihre Breiten.
+  → **Offen, Rückfrage nötig:** Ohne `elementUid`/`slot` gibt es keinen eindeutigen Ort. Optionen: a) solche Bilder nicht messen (keine gelernten Größen), b) Schlüssel zusätzlich mit Seite (trennt nur seitenweise), c) so lassen. Empfehlung: a), Templates sollten `elementUid` oder `slot` übergeben.
 
 ### Sonstiges
 

@@ -64,7 +64,7 @@ final class PictureSourceRendererTest extends TestCase
         self::assertStringContainsString('media="(min-width: 768px)"', $result);
     }
 
-    public function testCriticalDefaultSourcesHaveFetchpriority(): void
+    public function testSourcesCarryNoFetchpriority(): void
     {
         $subject = $this->createRenderer($this->stubVariantService());
 
@@ -76,7 +76,8 @@ final class PictureSourceRendererTest extends TestCase
             null,
         );
 
-        self::assertStringContainsString('fetchpriority="high"', $result);
+        // fetchpriority is an <img> attribute; the picture's <img> carries it.
+        self::assertStringNotContainsString('fetchpriority', $result);
     }
 
     public function testCriticalDefaultSourcesRegisterEarlyHint(): void

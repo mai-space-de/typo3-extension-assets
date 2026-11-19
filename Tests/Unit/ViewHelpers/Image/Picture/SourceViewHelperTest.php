@@ -228,9 +228,9 @@ final class SourceViewHelperTest extends TestCase
     }
 
     /**
-     * Critical image has fetchpriority="high" on <source> elements.
+     * fetchpriority is not a <source> attribute; the <img> of the picture carries it.
      */
-    public function testCriticalImageHasFetchpriorityOnSource(): void
+    public function testCriticalImageHasNoFetchpriorityOnSource(): void
     {
         $subject = $this->createViewHelper(
             $this->stubVariantService(),
@@ -240,7 +240,7 @@ final class SourceViewHelperTest extends TestCase
 
         $result = $subject->render();
 
-        self::assertStringContainsString('fetchpriority="high"', $result);
+        self::assertStringNotContainsString('fetchpriority', $result);
         self::assertStringContainsString('<source', $result);
     }
 
