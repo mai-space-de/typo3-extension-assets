@@ -2,7 +2,8 @@
 
 Ergebnis einer vollständigen Durchsicht aller Klassen unter `Classes/`, der
 TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
-`[x]` erledigt (mit Commit/Test-Hinweis). Stand: alle Punkte erledigt.
+`[x]` erledigt (mit Commit/Test-Hinweis). Stand: K1–N27 erledigt, Abschnitte
+„Weitere Befunde“ und „Restrisiken“ offen.
 
 ## Kritisch – falsche oder veraltete Inhalte für Besucher
 
@@ -100,3 +101,101 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
   (Fatal Error, die Testsuite brach dort ab).
 - [x] `GeneralUtility::resolveBackPath()` in `StaticFileCacheDirectory` ist ab TYPO3 v15 entfernt.
   → Ersetzt durch `Symfony\Component\Filesystem\Path::canonicalize()`.
+
+## Weitere Befunde aus dem Review (bisher nicht in der Liste)
+
+### Statischer Cache und Auslieferung
+
+- [ ] **W28 Statische Antworten ohne CSP- und Cache-Header**
+  `StaticFileServeMiddleware` antwortet vor `typo3/cms-frontend/csp-headers`; statisch
+  ausgelieferte Seiten haben keine CSP und keine `Cache-Control`-/Sicherheits-Header.
+- [ ] **W29 Doppelte Kodierung bei aktiver TYPO3-Output-Kompression**
+  Eine `.br`/`.gz`-Variante mit `Content-Encoding` kann von der Frontend-Kompression ein
+  zweites Mal gepackt werden.
+- [ ] **W30 `Accept-Encoding` ignoriert `q=0`**
+  `br;q=0` wird als Brotli-Unterstützung gelesen.
+- [ ] **W31 Statische Datei entsteht nur beim Erzeugen des Page-Caches**
+  Ist der Page-Cache warm, schreibt weder ein Besucher noch der Warmup-Request die Datei;
+  sie entsteht erst nach dem nächsten Ablauf/Leeren des Page-Caches.
+- [ ] **W32 Jede Inhaltsänderung setzt die Above-fold-Daten zurück**
+  `InvalidationService` löscht bei jedem Speichern (auch reiner Textänderung) die
+  Bucket-Daten; die Seite verliert damit ihre Bereitschaft und den statischen Cache, bis
+  alle Viewport-Bereiche erneut gemeldet haben.
+
+### Assets (CSS/JS)
+
+- [ ] **W33 Kritisches CSS: ganzes Stylesheet inline an der ViewHelper-Position**
+  Bei `critical="auto"` reicht irgendein Observer-Eintrag der Seite, und jede Datei wird
+  vollständig als `<style>` dort eingefügt, wo der ViewHelper steht (ggf. im `<body>`).
+- [ ] **W34 Relative `url()` ohne existierendes Ziel bleiben relativ**
+  Im kompilierten CSS unter `typo3temp/…/compiled/` zeigen sie danach ins Leere.
+- [ ] **W35 `getPublicWebPath()` mit projektspezifischem Sonderfall**
+  Hart codiertes `packages/typo3-extension-*` → `vendor/maispace/*`; absoluter Pfad mit
+  führendem `/` bricht Installationen in Unterverzeichnissen.
+- [ ] **W36 `JsViewHelper` kennt `integrity="none"` nicht**
+  Der CSS-ViewHelper schaltet SRI damit ab, der JS-ViewHelper gibt `integrity="none"` aus.
+- [ ] **W37 Nicht öffentliche Quellen werden nicht veröffentlicht**
+  JS/CSS aus `Resources/Private` (ohne Minify/SCSS) wird mit einem nicht erreichbaren
+  Pfad eingebunden (404).
+- [ ] **W38 SRI-Hash wird bei jedem Rendern neu berechnet** (kein Cache; Performance)
+- [ ] **W39 Dev-Server standardmäßig im Development-Kontext aktiv**
+  `useDevServer = auto` lädt in jedem Development-Kontext von `localhost:5173`, auch ohne
+  laufenden Vite-Server (alle Assets fehlen).
+
+### SVG und Icons
+
+- [ ] **W40 ID-Kollisionen im Sprite** – interne IDs (Gradients, Clip-Paths, Masks) mehrerer
+  Symbole kollidieren; gleiches Problem bei mehrfach eingebetteten Inline-SVGs.
+- [ ] **W41 Icons aus USER_INT-Bereichen fehlen im Sprite** (Sprite entsteht vor dem
+  Rendern der ungecachten Teile).
+- [ ] **W42 Sprite kann doppelt im Dokument landen** (`mai:svg.sprite` plus automatisches
+  Einfügen durch den Listener → doppelte IDs).
+- [ ] **W43 Kinder in anderen XML-Namespaces fallen aus dem Sprite**
+  `SimpleXMLElement::children()` liefert nur den Default-Namespace.
+
+### HTML-Minifizierung
+
+- [ ] **W44 Verschachtelte geschützte Blöcke gehen verloren**
+  Ein `<script>`/`<style>`/`<textarea>` innerhalb von `<pre>`/`<code>` bleibt als
+  `<!--PROTECTED_n-->` stehen (`strtr()` ersetzt nur einmal).
+- [ ] **W45 Ungecachte Seiten werden zweimal minifiziert** (Listener und Middleware).
+
+### Bilder und Video
+
+- [ ] **W46 `fetchpriority` an `<source>`** – kein gültiges Attribut (wirkungslos).
+- [ ] **W47 Video-Facade: Poster immer `loading="lazy"`**, auch als LCP-Bild above the fold.
+- [ ] **W48 Video-Facade/Lazy-Video brauchen JavaScript, das die Extension nicht mitliefert**
+  (`<template>`-iframe, `data-lazy`/`data-src`).
+- [ ] **W49 YouTube-Poster `maxresdefault.jpg` existiert nicht für jedes Video**
+  (graues 120×90-Platzhalterbild).
+- [ ] **W50 YouTube-/Vimeo-ID wird nicht validiert** (nur HTML-escaped, nicht URL-codiert).
+- [ ] **W51 Codec-Varianten (`.av1.mp4`/`.hevc.mp4`) werden selten gefunden**
+  URL-codierte Dateinamen und nicht lokale Storages (CDN) scheitern an `file_exists()`;
+  die Prüfung läuft bei jedem Rendern.
+- [ ] **W52 Bilder ohne `elementUid` teilen einen Messschlüssel** (`e0.f…`): dieselbe Datei
+  in verschiedenen Layouts (Header/Footer) mischt ihre Breiten.
+
+### Sonstiges
+
+- [ ] **W53 Regressionsbefehl schreibt die Baseline in den Extension-Ordner**
+  (`EXT:mai_assets/Resources/Private/Baselines/`, bei Composer im read-only `vendor/`).
+- [ ] **W54 Je Bild zwei DB-Abfragen in `CriticalDetectionService`** (keine Zwischenspeicherung).
+- [ ] **W55 Rate-Limit der Report-Endpunkte schreibt bei jedem Request in den DB-Cache.**
+- [ ] **W56 Warmup-Queue löscht jeden Lauf alle verarbeiteten Einträge** (keine Historie
+  für Fehleranalyse).
+- [ ] **W57 Backend-Bericht ignoriert Seitenrechte** (nur relevant, falls das Modul nicht
+  mehr auf Admins beschränkt ist).
+
+## Restrisiken der erledigten Punkte
+
+- [ ] **R1 TYPO3 v12 ungetestet** – Tag/Lebensdauer-Übernahme für den statischen Index über
+  `$GLOBALS['TSFE']`, `CacheFlushEvent`, `ConsumableNonce`.
+- [ ] **R2 Echtes 103 nur theoretisch geprüft** (FrankenPHP `headers_send()`).
+- [ ] **R3 H6: Liste kritischer Elemente wächst** bis zur nächsten Inhaltsänderung
+  (seltene sehr hohe Viewports markieren dauerhaft mehr Elemente).
+- [ ] **R4 H8: Im CLI gelten nur Konfigurationen mit `sites => ['*']`**
+  (z. B. Sprite im Warmup-Befehl ohne site-spezifische Icons).
+- [ ] **R5 H10: Browser ohne AVIF bekommen keinen Bild-Preload.**
+- [ ] **R6 M14: Extern eingebundenes CSS durchläuft `BeforeAssetInjectionEvent` nicht mehr**
+  (bestehende Listener prüfen).
+- [ ] **R7 PHPStan und PHP-CS-Fixer liefen lokal nicht** (nur in der CI).
