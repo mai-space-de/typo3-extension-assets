@@ -2,8 +2,8 @@
 
 Ergebnis einer vollständigen Durchsicht aller Klassen unter `Classes/`, der
 TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
-`[x]` erledigt (mit Commit/Test-Hinweis). Stand: K1–N27 erledigt, Abschnitte
-„Weitere Befunde“ und „Restrisiken“ offen.
+`[x]` erledigt (mit Commit/Test-Hinweis). Stand: alles erledigt bis auf sechs Punkte, die eine
+Entscheidung brauchen bzw. nur außerhalb dieser Umgebung prüfbar sind (W39, W48, W49, W52, R3, R8).
 
 ## Abgleich mit dem ursprünglichen Review-Bericht
 
@@ -155,7 +155,7 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 - [x] **W31 Statische Datei entsteht nur beim Erzeugen des Page-Caches**
   Ist der Page-Cache warm, schreibt weder ein Besucher noch der Warmup-Request die Datei;
   sie entsteht erst nach dem nächsten Ablauf/Leeren des Page-Caches.
-  → Erledigt: `StaticFileWriterMiddleware` schreibt die Datei aus der fertigen Antwort, nach frischem Rendern und nach einem Page-Cache-Treffer (füllt fehlende/ungültige Dateien, gültige bleiben). Der Event-Listener ist nur noch Fallback für TYPO3 ohne `frontend.page.parts`.
+  → Erledigt: `StaticFileWriterMiddleware` schreibt die Datei aus der fertigen Antwort, nach frischem Rendern und nach einem Page-Cache-Treffer (füllt fehlende/ungültige Dateien, gültige bleiben). Der frühere Event-Listener ist entfernt (siehe R1).
 - [x] **W32 Jede Inhaltsänderung setzt die Above-fold-Daten zurück**
   `InvalidationService` löscht bei jedem Speichern (auch reiner Textänderung) die
   Bucket-Daten; die Seite verliert damit ihre Bereitschaft und den statischen Cache, bis
