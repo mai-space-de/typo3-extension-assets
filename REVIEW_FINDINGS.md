@@ -2,8 +2,7 @@
 
 Ergebnis einer vollständigen Durchsicht aller Klassen unter `Classes/`, der
 TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
-`[x]` erledigt (mit Commit/Test-Hinweis). Stand: alles erledigt bis auf sechs Punkte, die eine
-Entscheidung brauchen bzw. nur außerhalb dieser Umgebung prüfbar sind (W39, W48, W49, W52, R3, R8).
+`[x]` erledigt (mit Commit/Test-Hinweis). Stand: alles erledigt bis auf R8 (nur mit TYPO3-Testumgebung/Staging prüfbar).
 
 ## Abgleich mit dem ursprünglichen Review-Bericht
 
@@ -184,13 +183,10 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   → Erledigt: Nicht öffentlich erreichbare CSS-/JS-Quellen werden nach `typo3temp/assets/mai_assets/compiled/` kopiert (`AssetPathUtility::isPubliclyReachable()`).
 - [x] **W38 SRI-Hash wird bei jedem Rendern neu berechnet** (kein Cache; Performance)
   → Erledigt: Hash pro Dateiversion (Pfad, Änderungszeit, Größe) nur einmal pro Prozess berechnet; gecachte Seiten rendern ohnehin nicht neu.
-- [ ] **W39 Dev-Server standardmäßig im Development-Kontext aktiv**
+- [x] **W39 Dev-Server standardmäßig im Development-Kontext aktiv**
   `useDevServer = auto` lädt in jedem Development-Kontext von `localhost:5173`, auch ohne
   laufenden Vite-Server (alle Assets fehlen).
-  → **Offen, Rückfrage nötig:** Eine Erreichbarkeitsprüfung aus PHP würde in Container-Setups
-  falsch liegen (Vite auf dem Host: Browser erreicht ihn, PHP im Container nicht). Optionen:
-  a) Standard auf `0` ändern (Dev-Server nur bewusst einschalten), b) Prüfung per TCP mit
-  Abschaltung bei Nichterreichbarkeit, c) so lassen und dokumentieren.
+  → Entschieden: so lassen. Dokumentiert in `ext_conf_template.txt` und im Handbuch (ohne laufenden Vite `useDevServer = 0`).
 
 ### SVG und Icons
 
@@ -222,12 +218,12 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   → Erledigt: entfernt; das `<img>` des `<picture>` trägt `fetchpriority`.
 - [x] **W47 Video-Facade: Poster immer `loading="lazy"`**, auch als LCP-Bild above the fold.
   → Erledigt: Mit `isCritical` lädt das Poster der Facade `eager` mit `fetchpriority="high"`.
-- [ ] **W48 Video-Facade/Lazy-Video brauchen JavaScript, das die Extension nicht mitliefert**
+- [x] **W48 Video-Facade/Lazy-Video brauchen JavaScript, das die Extension nicht mitliefert**
   (`<template>`-iframe, `data-lazy`/`data-src`).
-  → **Offen, Rückfrage nötig:** Die Klassen (`mai-video-play`, `<template>`, `data-lazy`) deuten darauf hin, dass das Theme das JavaScript liefert. Ein mitgeliefertes Skript würde dann doppelt reagieren (zwei iframes). Soll die Extension ein eigenes, abschaltbares Skript mitbringen?
-- [ ] **W49 YouTube-Poster `maxresdefault.jpg` existiert nicht für jedes Video**
+  → Entschieden: Skript mitliefern. Erledigt: `Resources/Public/JavaScript/VideoFacade.js` (Facade per Klick, Lazy-Hintergrundvideos, Poster-Fallback, respektiert `prefers-reduced-motion`), vom ViewHelper nur bei Bedarf eingebunden. Abschaltbar/ersetzbar über `videoScript` oder die AssetCollector-Kennung `mai-video`. In Chromium geprüft. Nebenbei: iframes haben jetzt einen `title`.
+- [x] **W49 YouTube-Poster `maxresdefault.jpg` existiert nicht für jedes Video**
   (graues 120×90-Platzhalterbild).
-  → **Offen, Rückfrage nötig:** Alternative `hqdefault.jpg` (480×360) existiert immer, ist aber unschärfer; `maxresdefault` mit Fallback braucht JavaScript (siehe W48). Welche Variante?
+  → Entschieden: `maxresdefault`, Fallback `hqdefault`. Erledigt über `data-fallback-src` und das Video-Skript (greift bei Fehler und beim 120×90-Platzhalter); in Chromium geprüft.
 - [x] **W50 YouTube-/Vimeo-ID wird nicht validiert** (nur HTML-escaped, nicht URL-codiert).
   → Erledigt: YouTube nur `[A-Za-z0-9_-]{11}`, Vimeo nur Ziffern; ungültige IDs rendern nichts.
 - [x] **W51 Codec-Varianten (`.av1.mp4`/`.hevc.mp4`) werden selten gefunden**
@@ -271,9 +267,9 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   (FrankenPHP) grün.
 - [x] **R2 Echtes 103 nur theoretisch geprüft** (FrankenPHP `headers_send()`).
   → Geprüft mit FrankenPHP 1.13 (PHP 8.5) und dem echten `EarlyHintsMiddleware`: `curl -v` zeigt `103 Early Hints` mit `Link`, danach `200` mit genau einem `Link`-Header.
-- [ ] **R3 H6: Liste kritischer Elemente wächst** bis zur nächsten Inhaltsänderung
+- [x] **R3 H6: Liste kritischer Elemente wächst** bis zur nächsten Inhaltsänderung
   (seltene sehr hohe Viewports markieren dauerhaft mehr Elemente).
-  → **Offen, Rückfrage nötig:** a) so lassen (Liste wächst, Positions-/Layoutänderungen setzen zurück), b) Mehrheitslogik: eine UID zählt erst, wenn sie in einem Mindestanteil der Reports eines Buckets vorkommt (braucht Zähler pro UID).
+  → Entschieden: so lassen (Liste wächst, solange Elemente oben gemeldet werden; Positions-/Layoutänderungen setzen zurück). Im Handbuch dokumentiert.
 - [x] **R4 H8: Im CLI gelten nur Konfigurationen mit `sites => ['*']`**
   (z. B. Sprite im Warmup-Befehl ohne site-spezifische Icons).
   → Erledigt: Der Warmup-Befehl baut das Sprite nicht mehr scheinbar „vor“ (nichts wurde gespeichert), sondern prüft die für alle Sites konfigurierten Icons auf gültiges SVG und meldet fehlerhafte. Site-spezifische Icons kennt das CLI weiterhin nicht – ohne Wirkung, da das Sprite pro Seite entsteht.

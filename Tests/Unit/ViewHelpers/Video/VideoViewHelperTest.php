@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Tests\Unit\ViewHelpers\Video;
 
+use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\ViewHelpers\Video\VideoViewHelper;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration as Typo3ExtensionConfiguration;
+use TYPO3\CMS\Core\Page\AssetCollector;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -92,12 +95,63 @@ final class VideoViewHelperTest extends TestCase
         self::assertStringNotContainsString('hevc', $html);
     }
 
+    public function testYoutubePosterFallsBackToHqdefault(): void
+    {
+        $html = $this->render(['youtubeId' => 'dQw4w9WgXcQ']);
+
+        self::assertStringContainsString('src="https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"', $html);
+        self::assertStringContainsString('data-fallback-src="https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg"', $html);
+        self::assertStringContainsString('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1" title="Intro"', $html);
+    }
+
+    public function testFacadeIncludesTheVideoScriptOnce(): void
+    {
+        $assetCollector = new AssetCollector();
+
+        $this->render(['youtubeId' => 'dQw4w9WgXcQ'], $assetCollector, []);
+        $this->render(['vimeoId' => '76979871'], $assetCollector, []);
+
+        self::assertSame(
+            ['mai-video' => ['source' => ExtensionConfiguration::DEFAULT_VIDEO_SCRIPT, 'attributes' => ['defer' => 'defer'], 'options' => []]],
+            $assetCollector->getJavaScripts(),
+        );
+    }
+
+    public function testThemeScriptReplacesTheDefaultAndEmptyDisablesIt(): void
+    {
+        $theme = new AssetCollector();
+        $this->render(['youtubeId' => 'dQw4w9WgXcQ'], $theme, ['videoScript' => 'https://cdn.example/video.js']);
+        self::assertSame('https://cdn.example/video.js', $theme->getJavaScripts()['mai-video']['source']);
+        self::assertSame(['external' => true], $theme->getJavaScripts()['mai-video']['options']);
+
+        $none = new AssetCollector();
+        $this->render(['youtubeId' => 'dQw4w9WgXcQ'], $none, ['videoScript' => '']);
+        self::assertSame([], $none->getJavaScripts());
+    }
+
+    public function testThemeRegistrationWithTheSameIdentifierWins(): void
+    {
+        $assetCollector = new AssetCollector();
+        $assetCollector->addJavaScript('mai-video', 'EXT:site/Resources/Public/JavaScript/video.js');
+
+        $this->render(['youtubeId' => 'dQw4w9WgXcQ'], $assetCollector, []);
+
+        self::assertSame('EXT:site/Resources/Public/JavaScript/video.js', $assetCollector->getJavaScripts()['mai-video']['source']);
+    }
+
     /**
      * @param array<string, mixed> $arguments
+     * @param array<string, mixed>|null $configuration extension configuration; null = no script handling
      */
-    private function render(array $arguments): string
+    private function render(array $arguments, ?AssetCollector $assetCollector = null, ?array $configuration = null): string
     {
-        $viewHelper = new VideoViewHelper();
+        $extensionConfiguration = null;
+        if ($configuration !== null) {
+            $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mai_assets'] = $configuration;
+            $extensionConfiguration = new ExtensionConfiguration((new \ReflectionClass(Typo3ExtensionConfiguration::class))->newInstanceWithoutConstructor());
+            unset($GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mai_assets']);
+        }
+        $viewHelper = new VideoViewHelper($assetCollector, $extensionConfiguration);
         $viewHelper->setArguments(array_merge([
             'file' => null,
             'youtubeId' => '',

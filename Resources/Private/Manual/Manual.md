@@ -40,7 +40,16 @@ Die Extension misst im Browser, wie breit ein Bild im jeweiligen Inhaltselement 
 - Alte kompilierte CSS/JS-Dateien löschen: `vendor/bin/typo3 maispace:assets:compiled:prune --older-than=2592000` (30 Tage; ohne Option gilt `processingCacheLifetime`). Danach werden Seiten-Cache und statische Dateien geleert.
 - Statische HTML-Dateien folgen dem Seiten-Cache: Was den Seiten-Cache leert (Speichern im Backend, „Frontend-Caches leeren“, `cache:flush`, Ablauf durch Start-/Stoppzeit), macht auch die statische Datei ungültig.
 
+## Video
+
+`mai:video` gibt für YouTube/Vimeo eine Vorschau (Poster + Play-Button) aus; das eingebettete Video und seine Cookies werden erst nach dem Klick geladen. Hintergrundvideos (`type="background"`) laden erst, wenn sie in die Nähe des sichtbaren Bereichs kommen. Fehlt das große YouTube-Vorschaubild (`maxresdefault`), wird automatisch `hqdefault` verwendet.
+
+Das dafür nötige Skript liefert die Extension mit. Extension-Einstellung `videoScript`: eigener Pfad (`EXT:…` oder URL) ersetzt es durch ein Theme-Skript, leer lädt keins. Alternativ registriert das Theme ein Skript mit der AssetCollector-Kennung `mai-video`.
+
 ## Hinweise für Entwickler
+
+- Dev-Server: `useDevServer = auto` lädt Styles und Skripte in **jedem** Development-Kontext von `devServerUri` (Standard `http://localhost:5173`). Läuft dort kein Vite, fehlen alle Assets – dann `useDevServer = 0` setzen.
+- Above-the-fold: Die Liste der kritischen Elemente einer Seite wächst mit jedem Bericht, in dem ein Element im sichtbaren Bereich lag, und wird bei Positions- oder Layoutänderungen (Sortierung, Spalte, Sichtbarkeit, Bilder, Layout) zurückgesetzt.
 
 - `BeforeAssetInjectionEvent` läuft nur noch dort, wo Inhalt direkt ins HTML eingefügt wird (kritisches CSS inline, minifiziertes JavaScript). Extern eingebundene Stylesheets durchlaufen es nicht mehr.
 - Voraussetzung ist TYPO3 14 (die Listener nutzen `AfterCacheableContentIsGeneratedEvent::getContent()`, der statische Cache `frontend.page.parts`; beides gibt es erst ab 14).

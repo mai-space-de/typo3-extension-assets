@@ -40,7 +40,10 @@ staticFileCacheDir =
 # cat=Static File Cache//30; type=boolean; label=Enable Debug Headers: Emit x-mai-static-ready and x-mai-static-cache response headers for ops and QA inspection. Disable in production.
 debugHeaders = 0
 
-# cat=Dev Server//10; type=options[auto,1,0]; label=Use Dev Server: Enable to load assets from a Vite dev server instead of compiled files. "auto" enables this in Development context only.
+# cat=Video//10; type=string; label=Video script: Script for mai:video (starts YouTube/Vimeo facades on click, loads lazy background videos, falls back to hqdefault posters). Set an own path (EXT:… or URL) to replace it with a theme script, leave empty to load none. Default: EXT:mai_assets/Resources/Public/JavaScript/VideoFacade.js
+videoScript = EXT:mai_assets/Resources/Public/JavaScript/VideoFacade.js
+
+# cat=Dev Server//10; type=options[auto,1,0]; label=Use Dev Server: Load assets from a Vite dev server instead of compiled files. "auto" enables this in every Development context, also without a running Vite server (assets are then missing): set 0 in Development contexts without Vite.
 useDevServer = auto
 
 # cat=Dev Server//20; type=string; label=Dev Server URI: Full URI of the Vite dev server (e.g. http://localhost:5173). Only used when "Use Dev Server" is enabled.

@@ -4,12 +4,22 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Video;
 
+use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class VideoViewHelper extends AbstractViewHelper
 {
     protected $escapeOutput = false;
+
+    /** AssetCollector identifier of the video script; a theme can use it to replace the script. */
+    public const string SCRIPT_IDENTIFIER = 'mai-video';
+
+    public function __construct(
+        private readonly ?AssetCollector $assetCollector = null,
+        private readonly ?ExtensionConfiguration $extensionConfiguration = null,
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -39,7 +49,12 @@ class VideoViewHelper extends AbstractViewHelper
         $extraClass = $class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES) : '';
 
         if ($type === 'background') {
-            return $this->renderBackground($file, $isCritical, $classAttr);
+            $html = $this->renderBackground($file, $isCritical, $classAttr);
+            if (str_contains($html, ' data-lazy')) {
+                $this->includeScript();
+            }
+
+            return $html;
         }
 
         // Content type. IDs end up in iframe URLs: only valid ones are accepted.
@@ -51,10 +66,14 @@ class VideoViewHelper extends AbstractViewHelper
         }
 
         if ($youtubeId !== '') {
+            $this->includeScript();
+
             return $this->renderYoutubeFacade($youtubeId, $poster, $title, $extraClass, $isCritical);
         }
 
         if ($vimeoId !== '') {
+            $this->includeScript();
+
             return $this->renderVimeoFacade($vimeoId, $poster, $title, $extraClass, $isCritical);
         }
 
@@ -99,8 +118,12 @@ class VideoViewHelper extends AbstractViewHelper
     private function renderYoutubeFacade(string $youtubeId, ?object $poster, string $title, string $extraClass, bool $isCritical): string
     {
         $posterUrl = $poster !== null ? $this->getFileUrl($poster) : '';
+        $fallbackAttr = '';
         if ($posterUrl === '') {
-            $posterUrl = 'https://img.youtube.com/vi/' . htmlspecialchars($youtubeId, ENT_QUOTES) . '/maxresdefault.jpg';
+            // maxresdefault does not exist for every video; the video script then switches to
+            // hqdefault, which always exists.
+            $posterUrl = 'https://img.youtube.com/vi/' . $youtubeId . '/maxresdefault.jpg';
+            $fallbackAttr = ' data-fallback-src="https://img.youtube.com/vi/' . $youtubeId . '/hqdefault.jpg"';
         }
 
         $titleAttr = $title !== '' ? ' title="' . htmlspecialchars($title, ENT_QUOTES) . '"' : '';
@@ -108,12 +131,14 @@ class VideoViewHelper extends AbstractViewHelper
 
         return '<div class="mai-video-facade mai-video-youtube' . $extraClass . '">'
             . '<img src="' . htmlspecialchars($posterUrl, ENT_QUOTES) . '"'
+            . $fallbackAttr
             . ' alt="' . htmlspecialchars($title, ENT_QUOTES) . '"'
             . $this->posterLoading($isCritical) . ' class="mai-video-poster">'
             . '<button class="mai-video-play" aria-label="Play video"' . $titleAttr . '>'
             . '<svg aria-hidden="true" focusable="false"><use href="#mai-icon-play"/></svg>'
             . '</button>'
             . '<template><iframe src="' . htmlspecialchars($iframeUrl, ENT_QUOTES) . '"'
+            . ' title="' . htmlspecialchars($title !== '' ? $title : 'YouTube video', ENT_QUOTES) . '"'
             . ' frameborder="0" allowfullscreen'
             . ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"'
             . '></iframe></template>'
@@ -136,6 +161,7 @@ class VideoViewHelper extends AbstractViewHelper
             . '<svg aria-hidden="true" focusable="false"><use href="#mai-icon-play"/></svg>'
             . '</button>'
             . '<template><iframe src="' . htmlspecialchars($iframeUrl, ENT_QUOTES) . '"'
+            . ' title="' . htmlspecialchars($title !== '' ? $title : 'Vimeo video', ENT_QUOTES) . '"'
             . ' frameborder="0" allowfullscreen'
             . ' allow="autoplay; fullscreen; picture-in-picture"'
             . '></iframe></template>'
@@ -227,5 +253,30 @@ class VideoViewHelper extends AbstractViewHelper
     private function posterLoading(bool $isCritical): string
     {
         return $isCritical ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"';
+    }
+
+    /**
+     * Registers the video script (facade activation, lazy background videos, poster
+     * fallback) once per page. The extension setting "videoScript" replaces it with a
+     * theme script or disables it (empty).
+     */
+    private function includeScript(): void
+    {
+        if ($this->assetCollector === null || $this->extensionConfiguration === null) {
+            return;
+        }
+
+        $script = $this->extensionConfiguration->getVideoScript();
+        if ($script === '' || $this->assetCollector->hasJavaScript(self::SCRIPT_IDENTIFIER)) {
+            return;
+        }
+
+        // EXT: paths are resolved by the AssetCollector itself; anything else is a URL.
+        $this->assetCollector->addJavaScript(
+            self::SCRIPT_IDENTIFIER,
+            $script,
+            ['defer' => 'defer'],
+            str_starts_with($script, 'EXT:') ? [] : ['external' => true],
+        );
     }
 }

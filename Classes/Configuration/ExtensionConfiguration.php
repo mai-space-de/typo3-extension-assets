@@ -14,6 +14,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 final class ExtensionConfiguration
 {
     private const string EXTENSION_KEY = 'mai_assets';
+    public const string DEFAULT_VIDEO_SCRIPT = 'EXT:mai_assets/Resources/Public/JavaScript/VideoFacade.js';
 
     private bool $enableScssProcessing;
     private bool $enableMinification;
@@ -34,6 +35,7 @@ final class ExtensionConfiguration
     private bool $enableImageMeasurement;
     private int $imageMeasureSampleRate;
     private int $criticalCssMaxInlineBytes;
+    private string $videoScript;
 
     public function __construct(Typo3ExtensionConfiguration $typo3ExtensionConfiguration)
     {
@@ -64,6 +66,7 @@ final class ExtensionConfiguration
         $this->enableImageMeasurement = (bool) ($raw['enableImageMeasurement'] ?? true);
         $this->imageMeasureSampleRate = max(1, min(100, (int) ($raw['imageMeasureSampleRate'] ?? 100)));
         $this->criticalCssMaxInlineBytes = max(0, (int) ($raw['criticalCssMaxInlineBytes'] ?? 14336));
+        $this->videoScript = trim((string) ($raw['videoScript'] ?? self::DEFAULT_VIDEO_SCRIPT));
     }
 
     public static function getInstance(): self
@@ -179,6 +182,14 @@ final class ExtensionConfiguration
     public function getCriticalCssMaxInlineBytes(): int
     {
         return $this->criticalCssMaxInlineBytes;
+    }
+
+    /**
+     * Script for mai:video facades and lazy videos (EXT: path or URL); empty = none.
+     */
+    public function getVideoScript(): string
+    {
+        return $this->videoScript;
     }
 
     public function getImageMeasureSampleRate(): int
