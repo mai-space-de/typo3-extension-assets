@@ -77,21 +77,46 @@ final class CriticalDetectionServiceTest extends TestCase
         self::assertFalse($subject->isCritical(1, 7));
     }
 
+    public function testPositionHeuristicCountsOnlyLiveElementsOfTheSameLanguage(): void
+    {
+        $subject = $this->createSubject(
+            record: ['uid' => 30, 'pid' => 1, 'colPos' => 0, 'sorting' => 512, 'sys_language_uid' => 0, 'tx_maiassets_is_critical' => 0, 'tx_maiassets_force_critical' => 0],
+            observedUids: [],
+            thresholds: [0 => 2],
+            elementsAbove: 1,
+        );
+
+        self::assertTrue($subject->isCritical(1, 30));
+        self::assertContains(['sys_language_uid', ':dcValue1'], $this->comparisons);
+        self::assertContains(['t3ver_wsid', ':dcValue1'], $this->comparisons);
+    }
+
+    /** @var list<array{0: string, 1: mixed}> */
+    private array $comparisons = [];
+
     /**
      * @param array<string, mixed> $record
      * @param list<int>            $observedUids critical UIDs reported for the "desktop" bucket
+     * @param array<int, int>      $thresholds   criticalThresholdByColPos
      */
-    private function createSubject(array $record, array $observedUids): CriticalDetectionService
+    private function createSubject(array $record, array $observedUids, array $thresholds = [], int $elementsAbove = 0): CriticalDetectionService
     {
         $result = $this->createMock(Result::class);
         $result->method('fetchAssociative')->willReturn($record);
+        $result->method('fetchOne')->willReturn($elementsAbove);
 
         $queryBuilder = $this->createMock(QueryBuilder::class);
-        foreach (['select', 'from', 'where', 'setMaxResults'] as $method) {
+        foreach (['select', 'from', 'where', 'setMaxResults', 'count'] as $method) {
             $queryBuilder->method($method)->willReturnSelf();
         }
         $queryBuilder->method('createNamedParameter')->willReturn(':dcValue1');
-        $queryBuilder->method('expr')->willReturn($this->createMock(ExpressionBuilder::class));
+        $expr = $this->createMock(ExpressionBuilder::class);
+        $expr->method('eq')->willReturnCallback(function (string $field, mixed $value): string {
+            $this->comparisons[] = [$field, $value];
+
+            return $field . ' = ' . $value;
+        });
+        $queryBuilder->method('expr')->willReturn($expr);
         $queryBuilder->method('executeQuery')->willReturn($result);
 
         $connectionPool = $this->createMock(ConnectionPool::class);
@@ -107,8 +132,8 @@ final class CriticalDetectionServiceTest extends TestCase
         $aboveFoldCacheService = (new \ReflectionClass(AboveFoldCacheService::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty(AboveFoldCacheService::class, 'cache'))->setValue($aboveFoldCacheService, $cacheFrontend);
 
-        // No colPos thresholds: the position heuristic never marks anything critical.
-        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mai_assets'] = ['criticalThresholdByColPos' => []];
+        // Thresholds per colPos (none by default: the position heuristic marks nothing critical).
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mai_assets'] = ['criticalThresholdByColPos' => $thresholds];
         $extensionConfiguration = new ExtensionConfiguration(
             (new \ReflectionClass(Typo3ExtensionConfiguration::class))->newInstanceWithoutConstructor(),
         );

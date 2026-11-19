@@ -51,6 +51,14 @@ final class AboveFoldObserverScriptBuilderTest extends TestCase
         self::assertStringContainsString('var PAGE_UID = 10;', $result);
     }
 
+    public function testScriptCarriesTheCspNonce(): void
+    {
+        $builder = new AboveFoldObserverScriptBuilder($this->makeConfig(enableMinification: false));
+
+        self::assertStringStartsWith('<script nonce="n0nce">', $builder->build('x', 1, 1, 'tok', '[]', ' nonce="n0nce"'));
+        self::assertStringStartsWith('<script>', $builder->build('x', 1, 1, 'tok', '[]'));
+    }
+
     private function makeConfig(bool $enableMinification): ExtensionConfiguration
     {
         $config = (new \ReflectionClass(ExtensionConfiguration::class))

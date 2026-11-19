@@ -66,12 +66,15 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
   nicht mehr im Processor. Extern eingebundenes CSS durchläuft es nicht mehr.
 - [x] **M15 Statische Antworten ohne `Vary: Accept-Encoding`**
 - [x] **M16 Seiten ohne Early-Hint-Manifest werden nie statisch gecacht**
-- [ ] **M17 Inline-Skripte (Above-fold, Image-Measure) ohne CSP-Nonce**
-- [ ] **M18 `str_ireplace('</body>'|'</head>')` ersetzt alle Vorkommen**
-- [ ] **M19 Sprite-Einfügung per `preg_replace`** (`$1`/`\1` im SVG werden als
+- [x] **M17 Inline-Skripte (Above-fold, Image-Measure) ohne CSP-Nonce**
+  → Erledigt: `nonce` aus dem Request; TYPO3 ersetzt ihn in gecachten Seiten. In Chromium mit
+  strikter CSP geprüft.
+- [x] **M18 `str_ireplace('</body>'|'</head>')` ersetzt alle Vorkommen**
+  → Erledigt: `HtmlInjectionUtility` (letztes `</body>`, erstes `</head>`, erstes `<body>`).
+- [x] **M19 Sprite-Einfügung per `preg_replace`** (`$1`/`\1` im SVG werden als
   Rückverweis interpretiert)
-- [ ] **M20 Positions-Heuristik zählt Übersetzungen und Workspace-Versionen mit**
-- [ ] **M21 Icon-Provider entfernt `width`/`height` auch an inneren Elementen**
+- [x] **M20 Positions-Heuristik zählt Übersetzungen und Workspace-Versionen mit**
+- [x] **M21 Icon-Provider entfernt `width`/`height` auch an inneren Elementen**
 
 ## Niedrig
 

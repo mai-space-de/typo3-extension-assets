@@ -9,6 +9,7 @@ use Maispace\MaiAssets\Collector\SvgSpriteCollector;
 use Maispace\MaiAssets\Configuration\ExtensionConfigurationDiscovery;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
+use Maispace\MaiAssets\Utility\HtmlInjectionUtility;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
@@ -29,12 +30,7 @@ final readonly class SvgSpriteInjectionListener
         // Inject SVG sprite immediately after <body> opening tag
         $sprite = $this->svgSpriteCollector->build();
         if ($sprite !== '') {
-            $content = (string) preg_replace(
-                '/<body([^>]*)>/i',
-                '<body$1>' . $sprite,
-                $content,
-                1,
-            );
+            $content = HtmlInjectionUtility::afterBodyStart($content, $sprite);
         }
 
         // Inject font preload links into <head>
@@ -58,7 +54,7 @@ final readonly class SvgSpriteInjectionListener
 
         $headInsert = $fontLinks . $preconnectLinks;
         if ($headInsert !== '') {
-            $content = str_ireplace('</head>', $headInsert . '</head>', $content);
+            $content = HtmlInjectionUtility::beforeHeadEnd($content, $headInsert);
         }
 
         $event->setContent($content);

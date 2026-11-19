@@ -9,6 +9,7 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Event\BeforeObserverScriptInjectedEvent;
 use Maispace\MaiAssets\Security\AboveFoldTokenService;
 use Maispace\MaiAssets\Service\AboveFoldObserverScriptBuilder;
+use Maispace\MaiAssets\Utility\HtmlInjectionUtility;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -69,6 +70,7 @@ final readonly class AboveFoldObserverListener
             $resetTimestamp,
             $token,
             $validBuckets,
+            HtmlInjectionUtility::nonceAttribute($request->getAttribute('nonce')),
         );
 
         $innerEvent = new BeforeObserverScriptInjectedEvent($script);
@@ -80,12 +82,6 @@ final readonly class AboveFoldObserverListener
 
         $finalScript = $innerEvent->getScript();
 
-        $content = str_ireplace(
-            '</body>',
-            $finalScript . '</body>',
-            $event->getContent(),
-        );
-
-        $event->setContent($content);
+        $event->setContent(HtmlInjectionUtility::beforeBodyEnd($event->getContent(), $finalScript));
     }
 }

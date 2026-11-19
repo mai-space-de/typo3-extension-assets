@@ -18,7 +18,7 @@ final readonly class ImageMeasureScriptBuilder
         private ExtensionConfiguration $extensionConfiguration,
     ) {}
 
-    public function build(string $scriptTemplate, int $pageUid): string
+    public function build(string $scriptTemplate, int $pageUid, string $nonceAttribute = ''): string
     {
         if ($this->extensionConfiguration->isEnableMinification()) {
             $minifier = new JS();
@@ -36,6 +36,6 @@ final readonly class ImageMeasureScriptBuilder
             $scriptTemplate,
         );
 
-        return '<script>' . $script . '</script>';
+        return '<script' . $nonceAttribute . '>' . $script . '</script>';
     }
 }

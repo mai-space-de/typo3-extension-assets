@@ -19,6 +19,7 @@ final readonly class AboveFoldObserverScriptBuilder
 
     /**
      * @param string $scriptTemplate Raw JS template (may contain ###PLACEHOLDER### markers)
+     * @param string $nonceAttribute ' nonce="…"' or empty, see HtmlInjectionUtility::nonceAttribute()
      */
     public function build(
         string $scriptTemplate,
@@ -26,6 +27,7 @@ final readonly class AboveFoldObserverScriptBuilder
         int $resetTimestamp,
         string $token,
         string $validBucketsJson,
+        string $nonceAttribute = '',
     ): string {
         if ($this->extensionConfiguration->isEnableMinification()) {
             $minifier = new JS();
@@ -41,6 +43,6 @@ final readonly class AboveFoldObserverScriptBuilder
             $scriptTemplate,
         );
 
-        return '<script>' . $script . '</script>';
+        return '<script' . $nonceAttribute . '>' . $script . '</script>';
     }
 }

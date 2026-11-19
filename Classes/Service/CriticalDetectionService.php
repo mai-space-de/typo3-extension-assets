@@ -54,7 +54,12 @@ final readonly class CriticalDetectionService
         }
 
         // Count elements in same colPos with lower sorting (= higher on page)
-        $position = $this->getElementPositionInColPos($pageUid, $colPos, (int) ($record['sorting'] ?? 0));
+        $position = $this->getElementPositionInColPos(
+            $pageUid,
+            $colPos,
+            (int) ($record['sorting'] ?? 0),
+            (int) ($record['sys_language_uid'] ?? 0),
+        );
         return $position < $threshold;
     }
 
@@ -106,7 +111,7 @@ final readonly class CriticalDetectionService
             ->getQueryBuilderForTable('tt_content');
 
         $result = $queryBuilder
-            ->select('uid', 'pid', 'colPos', 'sorting', 'tx_maiassets_is_critical', 'tx_maiassets_force_critical')
+            ->select('uid', 'pid', 'colPos', 'sorting', 'sys_language_uid', 'tx_maiassets_is_critical', 'tx_maiassets_force_critical')
             ->from('tt_content')
             ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($elementUid, Connection::PARAM_INT)))
             ->setMaxResults(1)
@@ -116,7 +121,11 @@ final readonly class CriticalDetectionService
         return $row !== false ? $row : null;
     }
 
-    private function getElementPositionInColPos(int $pageUid, int $colPos, int $sorting): int
+    /**
+     * Elements above the given one in the same column: only live records of the same
+     * language count (translations and workspace versions share pid, colPos and sorting).
+     */
+    private function getElementPositionInColPos(int $pageUid, int $colPos, int $sorting, int $languageUid): int
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('tt_content');
@@ -130,6 +139,8 @@ final readonly class CriticalDetectionService
                 $queryBuilder->expr()->lt('sorting', $queryBuilder->createNamedParameter($sorting, Connection::PARAM_INT)),
                 $queryBuilder->expr()->eq('hidden', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
                 $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter($languageUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('t3ver_wsid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
             )
             ->executeQuery()
             ->fetchOne();
