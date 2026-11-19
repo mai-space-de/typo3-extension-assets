@@ -17,6 +17,19 @@ class InvalidationService implements SingletonInterface
     public const TARGET_EARLY_HINTS = 'early_hints';
     public const TARGET_STATIC_FILE = 'static_file';
     public const TARGET_ABOVE_FOLD = 'above_fold';
+    /** Ask browsers to report again (new reset timestamp) but keep the collected data. */
+    public const TARGET_ABOVE_FOLD_RECHECK = 'above_fold_recheck';
+
+    /**
+     * Fields that move elements or change their size substantially: their change
+     * invalidates the collected above-fold data (and with it the page's readiness).
+     */
+    private const array POSITION_FIELDS = [
+        'pid', 'colPos', 'sorting', 'hidden', 'deleted', 'starttime', 'endtime', 'fe_group',
+        'sys_language_uid', 'CType', 'list_type', 'layout', 'frame_class', 'space_before_class',
+        'space_after_class', 'imageorient', 'imagecols', 'imagewidth', 'imageheight', 'image',
+        'assets', 'media', 'tx_container_parent', 'tx_maiassets_is_critical', 'tx_maiassets_force_critical',
+    ];
 
     public function __construct(
         private readonly CacheManager $cacheManager,
@@ -28,8 +41,8 @@ class InvalidationService implements SingletonInterface
     /**
      * Content save → page cache, early hints, static file.
      *
-     * When position-relevant fields change (sorting, colPos, pid, hidden, deleted, starttime, endtime),
-     * also invalidate the above-fold observer cache since element visibility/position affects criticality.
+     * When position-relevant fields change (sorting, colPos, pid, hidden, layout, images, …) the
+     * above-fold observer data is reset; other changes only request a new report from browsers.
      */
     public function invalidateAfterContentSave(int $pageUid, array $changedFields): void
     {
@@ -66,10 +79,15 @@ class InvalidationService implements SingletonInterface
      */
     private function resolveContentSaveTargets(array $changedFields): array
     {
-        // All content changes invalidate above-fold cache, page cache, early hints, and static files.
-        // This ensures readiness is reset whenever content changes, forcing re-detection of critical elements.
+        // Position or layout changes reset the above-fold data. Other changes (texts) only
+        // ask browsers to report again: newly visible elements are merged in, while the
+        // page keeps its readiness and therefore its static file cache.
+        $aboveFoldTarget = array_intersect($changedFields, self::POSITION_FIELDS) !== []
+            ? self::TARGET_ABOVE_FOLD
+            : self::TARGET_ABOVE_FOLD_RECHECK;
+
         return [
-            self::TARGET_ABOVE_FOLD,
+            $aboveFoldTarget,
             self::TARGET_PAGE_CACHE,
             self::TARGET_EARLY_HINTS,
             self::TARGET_STATIC_FILE,
@@ -99,6 +117,7 @@ class InvalidationService implements SingletonInterface
                 self::TARGET_PAGE_CACHE, self::TARGET_EARLY_HINTS => $this->flushByPageTag($pageUid, $pageTagFlushed),
                 self::TARGET_STATIC_FILE => $this->purgeStaticFiles($pageUid, $staticFilesPurged),
                 self::TARGET_ABOVE_FOLD     => $this->clearAboveFoldCache($pageUid),
+                self::TARGET_ABOVE_FOLD_RECHECK => $this->requestAboveFoldRecheck($pageUid),
                 default                     => false,
             };
 
@@ -132,6 +151,16 @@ class InvalidationService implements SingletonInterface
     {
         try {
             $this->aboveFoldCacheService->clearCriticalUids($pageUid);
+            $this->aboveFoldCacheService->bumpResetTimestamp($pageUid);
+            return true;
+        } catch (\Exception) {
+            return false;
+        }
+    }
+
+    private function requestAboveFoldRecheck(int $pageUid): bool
+    {
+        try {
             $this->aboveFoldCacheService->bumpResetTimestamp($pageUid);
             return true;
         } catch (\Exception) {

@@ -152,10 +152,11 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   Ist der Page-Cache warm, schreibt weder ein Besucher noch der Warmup-Request die Datei;
   sie entsteht erst nach dem nächsten Ablauf/Leeren des Page-Caches.
   → Erledigt: `StaticFileWriterMiddleware` schreibt die Datei aus der fertigen Antwort, nach frischem Rendern und nach einem Page-Cache-Treffer (füllt fehlende/ungültige Dateien, gültige bleiben). Der Event-Listener ist nur noch Fallback für TYPO3 ohne `frontend.page.parts`.
-- [ ] **W32 Jede Inhaltsänderung setzt die Above-fold-Daten zurück**
+- [x] **W32 Jede Inhaltsänderung setzt die Above-fold-Daten zurück**
   `InvalidationService` löscht bei jedem Speichern (auch reiner Textänderung) die
   Bucket-Daten; die Seite verliert damit ihre Bereitschaft und den statischen Cache, bis
   alle Viewport-Bereiche erneut gemeldet haben.
+  → Erledigt: Nur Positions-/Layout-Felder (pid, colPos, sorting, hidden, Start/Stopp, CType, Layout, Bilder, …) setzen die Daten zurück. Andere Änderungen erhöhen nur den Reset-Zeitstempel (`TARGET_ABOVE_FOLD_RECHECK`): Browser melden neu, die Bereitschaft bleibt.
 
 ### Assets (CSS/JS)
 
