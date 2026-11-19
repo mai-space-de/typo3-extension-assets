@@ -66,6 +66,9 @@ services:
     Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector:
         shared: true
 
+    Maispace\MaiAssets\StaticFileCache\StaticFileWriteRegistry:
+        shared: true
+
     Maispace\MaiAssets\EarlyHints\EarlyHintCacheService:
         shared: true
 

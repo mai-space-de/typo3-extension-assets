@@ -11,6 +11,7 @@ use Maispace\MaiAssets\EventListener\StaticHtmlWriterListener;
 use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
+use Maispace\MaiAssets\StaticFileCache\StaticFileWriteRegistry;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -19,6 +20,7 @@ use Psr\Http\Message\UriInterface;
 use TYPO3\CMS\Core\Cache\CacheDataCollector;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Cache\CacheTag;
+use TYPO3\CMS\Core\Security\ContentSecurityPolicy\ConsumableNonce;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
@@ -33,6 +35,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
     private EarlyHintCacheService $earlyHintCacheService;
     private FrontendInterface $earlyHintFrontend;
     private PageOptimizationReadinessService $readinessService;
+    private StaticFileWriteRegistry $writeRegistry;
 
     protected function setUp(): void
     {
@@ -66,6 +69,8 @@ final class StaticHtmlWriterListenerTest extends TestCase
             ->willReturn($this->earlyHintFrontend);
 
         $this->earlyHintCacheService = new EarlyHintCacheService($cacheManager);
+
+        $this->writeRegistry = new StaticFileWriteRegistry();
 
         $this->readinessService = new PageOptimizationReadinessService(
             $this->aboveFoldCacheService,
@@ -264,6 +269,22 @@ final class StaticHtmlWriterListenerTest extends TestCase
         );
     }
 
+    public function testWrittenFileIsHandedToTheHeaderRecorderWithItsNonce(): void
+    {
+        $this->stubReadyPageWithManifest(42, 0);
+        $writer = $this->createMock(StaticHtmlWriterService::class);
+        $writer->method('writeByPageId')->willReturn(true);
+        $nonce = new ConsumableNonce();
+
+        $before = time();
+        $this->makeListener($writer)($this->makeEvent('<html>ready</html>', 42, 0, nonce: $nonce));
+
+        $pending = $this->writeRegistry->take();
+        self::assertNotNull($pending);
+        self::assertSame([42, 0, '', $nonce->value], [$pending['page'], $pending['language'], $pending['variant'], $pending['nonce']]);
+        self::assertGreaterThanOrEqual($before + StaticFileIndex::DEFAULT_LIFETIME, $pending['expires']);
+    }
+
     public function testFailedWriteIsNotRegistered(): void
     {
         $this->stubReadyPageWithManifest(42, 0);
@@ -348,6 +369,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
             $this->readinessService,
             $guard,
             $index ?? $this->createMock(StaticFileIndex::class),
+            $this->writeRegistry,
         );
     }
 
@@ -358,9 +380,10 @@ final class StaticHtmlWriterListenerTest extends TestCase
         string $pageType = '0',
         array $routeArguments = [],
         ?CacheDataCollector $cacheCollector = null,
+        ?ConsumableNonce $nonce = null,
     ): AfterCacheableContentIsGeneratedEvent {
         return new AfterCacheableContentIsGeneratedEvent(
-            $this->createRequest($pageUid, $languageUid, pageType: $pageType, routeArguments: $routeArguments, cacheCollector: $cacheCollector),
+            $this->createRequest($pageUid, $languageUid, pageType: $pageType, routeArguments: $routeArguments, cacheCollector: $cacheCollector, nonce: $nonce),
             $content,
             'cache-id',
             true,
@@ -378,6 +401,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
         string $pageType = '0',
         array $routeArguments = [],
         ?CacheDataCollector $cacheCollector = null,
+        ?ConsumableNonce $nonce = null,
     ): ServerRequestInterface {
         $routing = $this->routing($pageUid, $pageType, $routeArguments);
 
@@ -392,7 +416,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
             }
         };
 
-        return $this->requestFor($method, $uri, $routing, $language, $cacheCollector);
+        return $this->requestFor($method, $uri, $routing, $language, $cacheCollector, $nonce);
     }
 
     private function routing(int $pageUid, string $pageType = '0', array $routeArguments = []): object
@@ -421,7 +445,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
         };
     }
 
-    private function requestFor(string $method, string $uri, object $routing, object $language, ?CacheDataCollector $cacheCollector): ServerRequestInterface
+    private function requestFor(string $method, string $uri, object $routing, object $language, ?CacheDataCollector $cacheCollector, ?ConsumableNonce $nonce = null): ServerRequestInterface
     {
         $uriObject = $this->createMock(UriInterface::class);
         $uriObject->method('__toString')->willReturn($uri);
@@ -435,6 +459,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
                 'routing' => $routing,
                 'language' => $language,
                 'frontend.cache.collector' => $cacheCollector,
+                'nonce' => $nonce,
                 default => null,
             });
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Maispace\MaiAssets\Middleware\StaticFileServeMiddleware;
+use Maispace\MaiAssets\Middleware\StaticFileHeaderRecorderMiddleware;
 use Maispace\MaiAssets\Middleware\AboveFoldReportMiddleware;
 use Maispace\MaiAssets\Middleware\EarlyHintsMiddleware;
 use Maispace\MaiAssets\Middleware\ImageMeasureReportMiddleware;
@@ -16,6 +17,13 @@ return [
             'target' => StaticFileServeMiddleware::class,
             'after' => [
                 'maispace/mai-assets/early-hints',
+            ],
+        ],
+        // Inside the CSP middleware: records the headers of the rendered page for its static file.
+        'maispace/mai-assets/static-file-header-recorder' => [
+            'target' => StaticFileHeaderRecorderMiddleware::class,
+            'after' => [
+                'typo3/cms-frontend/csp-headers',
             ],
         ],
         'maispace/mai-assets/above-fold-report' => [

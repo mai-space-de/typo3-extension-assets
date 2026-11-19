@@ -11,6 +11,7 @@ use Maispace\MaiAssets\Middleware\StaticFileServeMiddleware;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
 use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
+use Maispace\MaiAssets\StaticFileCache\StaticContentSecurityPolicy;
 use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -36,6 +37,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
     private EarlyHintCacheService $earlyHintCacheService;
     /** @var list<array{0: int, 1: int, 2: string}> */
     private array $purged = [];
+    private ?StaticContentSecurityPolicy $contentSecurityPolicy = null;
 
     protected function setUp(): void
     {
@@ -360,6 +362,88 @@ final class StaticFileServeMiddlewareTest extends TestCase
         self::assertSame([[1, 0, '']], $this->purged);
     }
 
+    public function testRecordedHeadersOfThePageAreReplayed(): void
+    {
+        $this->writeStaticFileById(1, 0, '<html><body>ID</body></html>');
+        file_put_contents(\dirname($this->filePathById(1, 0)) . '/meta.json', (string) json_encode([
+            'headers' => ['X-Frame-Options' => ['SAMEORIGIN'], 'Cache-Control' => ['public, max-age=86400'], 'Set-Cookie' => ['x=1']],
+            'nonce' => '',
+            'expires' => time() + 60,
+        ]));
+
+        $result = $this->makeMiddleware()->process(
+            $this->makeGetRequest('https://example.com/', pageArguments: $this->makePageArguments(1)),
+            $this->handler,
+        );
+
+        self::assertSame('SAMEORIGIN', $result->getHeaderLine('X-Frame-Options'));
+        self::assertMatchesRegularExpression('/^public, max-age=(59|60)$/', $result->getHeaderLine('Cache-Control'));
+        self::assertFalse($result->hasHeader('Set-Cookie'));
+    }
+
+    public function testRefusedEncodingIsNotServed(): void
+    {
+        $this->writeStaticFileById(1, 0, '<html><body>plain</body></html>');
+        $this->writeCompressedFileById(1, 0, 'br', 'BROTLI');
+        $this->writeCompressedFileById(1, 0, 'gz', 'GZIP');
+
+        $result = $this->makeMiddleware()->process(
+            $this->makeGetRequest('https://example.com/', ['accept-encoding' => ['gzip, br;q=0']], $this->makePageArguments(1)),
+            $this->handler,
+        );
+
+        self::assertSame('gzip', $result->getHeaderLine('Content-Encoding'));
+        self::assertSame('GZIP', (string) $result->getBody());
+    }
+
+    public function testPrecompressedVariantsAreSkippedWithAContentSecurityPolicy(): void
+    {
+        // A nonce in the HTML is request specific; the compressed files cannot carry it.
+        $this->writeStaticFileById(1, 0, '<html><body>plain</body></html>');
+        $this->writeCompressedFileById(1, 0, 'br', 'BROTLI');
+        $policy = $this->createMock(StaticContentSecurityPolicy::class);
+        $policy->method('apply')->willReturnCallback(
+            static fn($request, $response) => $response->withHeader('Content-Security-Policy', "default-src 'self'"),
+        );
+        $this->contentSecurityPolicy = $policy;
+
+        $result = $this->makeMiddleware()->process(
+            $this->makeGetRequest('https://example.com/', ['accept-encoding' => ['br']], $this->makePageArguments(1)),
+            $this->handler,
+        );
+
+        self::assertSame('', $result->getHeaderLine('Content-Encoding'));
+        self::assertSame('<html><body>plain</body></html>', (string) $result->getBody());
+        self::assertSame("default-src 'self'", $result->getHeaderLine('Content-Security-Policy'));
+    }
+
+    public function testPrecompressedVariantsAreSkippedWithOutputCompression(): void
+    {
+        $this->writeStaticFileById(1, 0, '<html><body>plain</body></html>');
+        $this->writeCompressedFileById(1, 0, 'gz', 'GZIP');
+        $GLOBALS['TYPO3_CONF_VARS']['FE']['compressionLevel'] = 5;
+
+        try {
+            $result = $this->makeMiddleware()->process(
+                $this->makeGetRequest('https://example.com/', ['accept-encoding' => ['gzip']], $this->makePageArguments(1)),
+                $this->handler,
+            );
+        } finally {
+            unset($GLOBALS['TYPO3_CONF_VARS']['FE']['compressionLevel']);
+        }
+
+        self::assertSame('', $result->getHeaderLine('Content-Encoding'));
+        self::assertSame('<html><body>plain</body></html>', (string) $result->getBody());
+    }
+
+    public function testAcceptEncodingQualities(): void
+    {
+        self::assertSame(
+            ['gzip' => 1.0, 'br' => 0.0, 'deflate' => 0.5, '*' => 0.1],
+            StaticFileServeMiddleware::parseAcceptEncoding('gzip, br;q=0, deflate; q=0.5, *;q=0.1'),
+        );
+    }
+
     public function testServedFileVariesOnAcceptEncoding(): void
     {
         $this->writeStaticFileById(1, 0, '<html><body>ID</body></html>');
@@ -560,6 +644,14 @@ final class StaticFileServeMiddlewareTest extends TestCase
     // Helpers
     // -----------------------------------------------------------------
 
+    private function noPolicy(): StaticContentSecurityPolicy
+    {
+        $policy = $this->createMock(StaticContentSecurityPolicy::class);
+        $policy->method('apply')->willReturnArgument(1);
+
+        return $policy;
+    }
+
     private function shareableGuard(): StaticCacheRequestGuard
     {
         $guard = $this->createMock(StaticCacheRequestGuard::class);
@@ -597,6 +689,8 @@ final class StaticFileServeMiddlewareTest extends TestCase
             $this->shareableGuard(),
             $index,
             $removal,
+            new StaticHtmlWriterService($this->cacheDirectory, $config),
+            $this->contentSecurityPolicy ?? $this->noPolicy(),
         );
     }
 

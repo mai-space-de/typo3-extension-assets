@@ -8,9 +8,11 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
+use Maispace\MaiAssets\StaticFileCache\StaticFileWriteRegistry;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
+use TYPO3\CMS\Core\Security\ContentSecurityPolicy\ConsumableNonce;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
 /**
@@ -45,6 +47,7 @@ final readonly class StaticHtmlWriterListener
         private PageOptimizationReadinessService $readinessService,
         private StaticCacheRequestGuard $requestGuard,
         private StaticFileIndex $staticFileIndex,
+        private StaticFileWriteRegistry $writeRegistry,
     ) {}
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void
@@ -93,6 +96,17 @@ final readonly class StaticHtmlWriterListener
 
         [$tags, $lifetime] = $this->resolvePageCacheMetadata($request);
         $this->staticFileIndex->register($pageUid, $languageUid, $tags, $lifetime, $variant);
+
+        // The response headers are only known once the response is built; the recorder
+        // middleware stores them. The nonce in the HTML is replaced on delivery.
+        $nonce = $request->getAttribute('nonce');
+        $this->writeRegistry->remember(
+            $pageUid,
+            $languageUid,
+            $variant,
+            $nonce instanceof ConsumableNonce ? $nonce->value : '',
+            time() + StaticFileIndex::effectiveLifetime($lifetime),
+        );
     }
 
     /**

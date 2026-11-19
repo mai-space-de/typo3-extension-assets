@@ -10,12 +10,15 @@ use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
 use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
 use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
+use Maispace\MaiAssets\StaticFileCache\StaticContentSecurityPolicy;
+use Maispace\MaiAssets\StaticFileCache\StaticResponseHeaders;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Http\HtmlResponse;
+use TYPO3\CMS\Core\Http\StreamFactory;
 
 /**
  * Serves a cached static HTML file from disk when available, falling
@@ -65,6 +68,8 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
         private StaticCacheRequestGuard $requestGuard,
         private StaticFileIndex $staticFileIndex,
         private StaticFileRemovalService $staticFileRemovalService,
+        private StaticHtmlWriterService $staticHtmlWriterService,
+        private StaticContentSecurityPolicy $contentSecurityPolicy,
     ) {}
 
     public function process(
@@ -129,23 +134,44 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
                 return $handler->handle($request);
             }
 
+            // Headers of the rendered page (config.additionalHeaders, Cache-Control, …).
+            $metadata = $this->staticHtmlWriterService->readMetadata($pageUid, $languageUid, $variant);
+            $headers = StaticResponseHeaders::forDelivery($metadata['headers'], $metadata['expires'], time());
+            $headers['Content-Type'] = ['text/html; charset=utf-8'];
             // The body depends on Accept-Encoding (br/gzip variants): shared caches must key on it.
-            $headers = ['Content-Type' => 'text/html; charset=utf-8', 'Vary' => 'Accept-Encoding'];
+            $headers['Vary'] = ['Accept-Encoding'];
 
             // --- Hybrid delivery: add preload Link headers from early hints manifest ---
             // The EarlyHintsMiddleware already sent these as HTTP 103; we repeat them on the
             // 200 response as a fallback for clients / proxies that do not support 103.
             $this->addEarlyHintLinkHeaders($pageUid, $languageUid, $variant, $headers);
 
-            $filePath = $this->resolveContentEncoding($filePath, $request, $headers);
-
             if ($this->extensionConfiguration->isDebugHeaders()) {
-                $headers['X-Mai-Static-Cache'] = '1';
+                $headers['X-Mai-Static-Cache'] = ['1'];
             }
 
-            $content = file_get_contents($filePath);
+            // Same Content-Security-Policy as a dynamically delivered page; the nonce stored
+            // in the HTML is replaced by the one of this request.
+            $response = $this->contentSecurityPolicy->apply(
+                $request,
+                new HtmlResponse($plainContent, 200, $headers),
+                $metadata['nonce'],
+            );
 
-            return new HtmlResponse((string) $content, 200, $headers);
+            // Pre-compressed variants cannot carry a request specific nonce, and PHP or
+            // TYPO3 output compression would encode them a second time.
+            if (StaticContentSecurityPolicy::hasPolicy($response) || $this->isOutputCompressed()) {
+                return $response;
+            }
+
+            $encoding = $this->negotiateEncoding($filePath, $request);
+            if ($encoding === null) {
+                return $response;
+            }
+
+            return $response
+                ->withHeader('Content-Encoding', $encoding['coding'])
+                ->withBody((new StreamFactory())->createStream((string) file_get_contents($encoding['file'])));
         } catch (\Throwable) {
             // Fail open: any error during static file serving delegates
             // to the normal TYPO3 rendering path.
@@ -217,7 +243,7 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
      *   (no page resolved).
      * - No early hints manifest exists for the current page+language.
      *
-     * @param array<string, string> $headers  Reference to the response headers array.
+     * @param array<string, list<string>> $headers  Reference to the response headers array.
      */
     private function addEarlyHintLinkHeaders(
         int $pageUid,
@@ -235,38 +261,58 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
             $linkValues[] = $candidate->toLinkHeaderValue();
         }
 
-        $headers['Link'] = implode(', ', $linkValues);
+        $headers['Link'] = [implode(', ', $linkValues)];
     }
 
     /**
-     * Negotiate the best Content-Encoding variant for the current request.
+     * Best pre-compressed variant the client accepts: brotli before gzip, codings
+     * with q=0 count as refused.
      *
-     * Brotli is preferred over gzip when the client advertises both.
-     * Returns the absolute path to the chosen variant and appends the
-     * ``Content-Encoding`` header to the $headers array.
-     *
-     * @param array<string, string> $headers  Reference to the response headers array.
+     * @return array{coding: string, file: string}|null
      */
-    private function resolveContentEncoding(
-        string $filePath,
-        ServerRequestInterface $request,
-        array &$headers,
-    ): string {
-        foreach ($request->getHeader('accept-encoding') as $acceptEncoding) {
-            if (str_contains($acceptEncoding, 'br')) {
-                if (is_file($filePath . '.br') && is_readable($filePath . '.br')) {
-                    $headers['Content-Encoding'] = 'br';
-                    return $filePath . '.br';
-                }
-            }
-            if (str_contains($acceptEncoding, 'gzip')) {
-                if (is_file($filePath . '.gz') && is_readable($filePath . '.gz')) {
-                    $headers['Content-Encoding'] = 'gzip';
-                    return $filePath . '.gz';
-                }
+    private function negotiateEncoding(string $filePath, ServerRequestInterface $request): ?array
+    {
+        $accepted = self::parseAcceptEncoding($request->getHeaderLine('Accept-Encoding'));
+
+        foreach (['br' => '.br', 'gzip' => '.gz'] as $coding => $suffix) {
+            $quality = $accepted[$coding] ?? $accepted['*'] ?? 0.0;
+            if ($quality > 0.0 && is_file($filePath . $suffix) && is_readable($filePath . $suffix)) {
+                return ['coding' => $coding, 'file' => $filePath . $suffix];
             }
         }
 
-        return $filePath;
+        return null;
+    }
+
+    /**
+     * @return array<string, float> coding => quality
+     */
+    public static function parseAcceptEncoding(string $header): array
+    {
+        $codings = [];
+        foreach (explode(',', strtolower($header)) as $part) {
+            $segments = array_map(trim(...), explode(';', $part));
+            $coding = array_shift($segments);
+            if ($coding === '') {
+                continue;
+            }
+            $quality = 1.0;
+            foreach ($segments as $parameter) {
+                if (preg_match('/^q\s*=\s*([0-9.]+)$/', $parameter, $matches) === 1) {
+                    $quality = (float) $matches[1];
+                }
+            }
+            $codings[$coding] = $quality;
+        }
+
+        return $codings;
+    }
+
+    private function isOutputCompressed(): bool
+    {
+        $zlib = strtolower((string) ini_get('zlib.output_compression'));
+
+        return (int) ($GLOBALS['TYPO3_CONF_VARS']['FE']['compressionLevel'] ?? 0) > 0
+            || ($zlib !== '' && $zlib !== '0' && $zlib !== 'off');
     }
 }

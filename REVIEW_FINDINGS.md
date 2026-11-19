@@ -133,14 +133,17 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 
 ### Statischer Cache und Auslieferung
 
-- [ ] **W28 Statische Antworten ohne CSP- und Cache-Header**
+- [x] **W28 Statische Antworten ohne CSP- und Cache-Header**
   `StaticFileServeMiddleware` antwortet vor `typo3/cms-frontend/csp-headers`; statisch
   ausgelieferte Seiten haben keine CSP und keine `Cache-Control`-/Sicherheits-Header.
-- [ ] **W29 Doppelte Kodierung bei aktiver TYPO3-Output-Kompression**
+  → Erledigt: Ein Recorder-Middleware (innerhalb der CSP-Middleware) speichert die Header der gerenderten Seite als `meta.json` neben der Datei; Auslieferung spielt sie wieder ab (`max-age`/`s-maxage` auf die Restlaufzeit gekürzt). CSP über `ContentSecurityPolicyHeaders::applyToResponse()` (TYPO3 14) mit Austausch des gespeicherten Nonce gegen den neuen. Neues HTML löscht veraltete Metadaten.
+- [x] **W29 Doppelte Kodierung bei aktiver TYPO3-Output-Kompression**
   Eine `.br`/`.gz`-Variante mit `Content-Encoding` kann von der Frontend-Kompression ein
   zweites Mal gepackt werden.
-- [ ] **W30 `Accept-Encoding` ignoriert `q=0`**
+  → Erledigt: Mit CSP oder aktiver Output-Kompression (`FE.compressionLevel`, `zlib.output_compression`) wird die unkomprimierte Datei ausgeliefert.
+- [x] **W30 `Accept-Encoding` ignoriert `q=0`**
   `br;q=0` wird als Brotli-Unterstützung gelesen.
+  → Erledigt: `Accept-Encoding` wird mit q-Werten ausgewertet (`q=0` = abgelehnt, `*` berücksichtigt).
 - [ ] **W31 Statische Datei entsteht nur beim Erzeugen des Page-Caches**
   Ist der Page-Cache warm, schreibt weder ein Besucher noch der Warmup-Request die Datei;
   sie entsteht erst nach dem nächsten Ablauf/Leeren des Page-Caches.
@@ -229,3 +232,7 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 - [ ] **R6 M14: Extern eingebundenes CSS durchläuft `BeforeAssetInjectionEvent` nicht mehr**
   (bestehende Listener prüfen).
 - [ ] **R7 PHPStan und PHP-CS-Fixer liefen lokal nicht** (nur in der CI).
+- [ ] **R8 CSP für statische Antworten nur per Unit-Test geprüft**: Nonce-Austausch und
+  Header-Logik getestet, der Aufruf von `applyToResponse()` mit echter Site-CSP-Konfiguration
+  nicht (braucht einen Functional-Test mit TYPO3). In TYPO3 12/13 fehlt die Methode; dort
+  bleibt die statische Antwort ohne CSP.

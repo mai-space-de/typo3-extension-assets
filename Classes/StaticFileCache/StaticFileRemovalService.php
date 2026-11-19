@@ -109,8 +109,10 @@ class StaticFileRemovalService implements LoggerAwareInterface
 
                 return;
             }
-            foreach (['', '.gz', '.br'] as $suffix) {
-                $file = $directory . StaticHtmlWriterService::INDEX_FILENAME . $suffix;
+            $files = [StaticHtmlWriterService::INDEX_FILENAME, StaticHtmlWriterService::INDEX_FILENAME . '.gz',
+                StaticHtmlWriterService::INDEX_FILENAME . '.br', StaticHtmlWriterService::METADATA_FILENAME];
+            foreach ($files as $name) {
+                $file = $directory . $name;
                 if (is_file($file)) {
                     unlink($file);
                 }

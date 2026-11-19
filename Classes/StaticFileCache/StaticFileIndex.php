@@ -53,8 +53,16 @@ class StaticFileIndex
             self::identifier($pageUid, $languageUid, $variant),
             ['page' => $pageUid, 'language' => $languageUid, 'variant' => $variant],
             $tags,
-            $lifetime > 0 && $lifetime <= self::MAX_LIFETIME ? $lifetime : self::DEFAULT_LIFETIME,
+            self::effectiveLifetime($lifetime),
         );
+    }
+
+    /**
+     * Lifetime actually used for a registration (see {@see self::register()}).
+     */
+    public static function effectiveLifetime(int $lifetime): int
+    {
+        return $lifetime > 0 && $lifetime <= self::MAX_LIFETIME ? $lifetime : self::DEFAULT_LIFETIME;
     }
 
     public function isValid(int $pageUid, int $languageUid, string $variant = ''): bool
