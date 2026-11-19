@@ -30,7 +30,7 @@ Die Extension misst im Browser, wie breit ein Bild im jeweiligen Inhaltselement 
 - Optional (Entwickler): Mit `slot="textmedia-left"` am ViewHelper teilen sich alle Elemente mit demselben Namen ein gelerntes Profil. Nur verwenden, wenn das Layout wirklich identisch ist (gleiche Spalte/Container). Ändert sich das Profil, werden alle Seiten neu erzeugt, auf denen der Slot gemessen wurde.
 - `<mai:picture.source>` übernimmt ebenfalls die gemessenen Breiten (die `media`-Bedingung bleibt). Mit `measured="false"` bleiben die angegebenen Werte.
 - Bis genug Messwerte da sind (mindestens 3 Seitenaufrufe pro Viewport-Bereich), gelten die im Template angegebenen Breakpoints.
-- Gelernt wird pro Inhaltselement und Bild. Ändert sich Layout, Typ, Spalte oder Bild eines Elements im Backend, werden dessen Messwerte verworfen und neu gelernt.
+- Gelernt wird pro Inhaltselement und Bild. Bilder ohne `elementUid` und ohne `slot` werden nicht gemessen (ihr Ort ist nicht eindeutig). Ändert sich Layout, Typ, Spalte oder Bild eines Elements im Backend, werden dessen Messwerte verworfen und neu gelernt.
 - Die Bildvarianten entstehen beim ersten Rendern der Seite. Mit `vendor/bin/typo3 maispace:assets:image-measure:warmup` lassen sie sich vorab erzeugen.
 - Messwerte zurücksetzen: `maispace:assets:image-measure:reset --all` oder `... reset 123` (Inhaltselement 123). Die betroffenen Seiten werden dabei neu erzeugt und nutzen bis zum neuen Lernen wieder die Template-Breakpoints.
 - Abschalten: Extension-Konfiguration `enableImageMeasurement`.

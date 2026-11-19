@@ -234,7 +234,7 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   URL-codierte Dateinamen und nicht lokale Storages (CDN) scheitern an `file_exists()`;
   die Prüfung läuft bei jedem Rendern.
   → Erledigt: Pfad wird dekodiert geprüft (`%20`), entfernte URLs (CDN) werden übersprungen statt falsch geprüft.
-- [ ] **W52 Bilder ohne `elementUid` teilen einen Messschlüssel** (`e0.f…`): dieselbe Datei
+- [x] **W52 Bilder ohne `elementUid` teilen einen Messschlüssel** (`e0.f…`): dieselbe Datei
   in verschiedenen Layouts (Header/Footer) mischt ihre Breiten.
   → **Offen, Rückfrage nötig:** Ohne `elementUid`/`slot` gibt es keinen eindeutigen Ort. Optionen: a) solche Bilder nicht messen (keine gelernten Größen), b) Schlüssel zusätzlich mit Seite (trennt nur seitenweise), c) so lassen. Empfehlung: a), Templates sollten `elementUid` oder `slot` übergeben.
 
