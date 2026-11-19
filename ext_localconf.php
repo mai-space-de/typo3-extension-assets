@@ -20,6 +20,14 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets
     'groups'   => ['system'],
 ];
 
+// Rate limits of the public report endpoints (one counter per IP and minute). Database
+// by default; on busy sites point it to a memory backend (APCu, Redis) in settings.php.
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets_rate_limit'] ??= [
+    'frontend' => VariableFrontend::class,
+    'backend'  => Typo3DatabaseBackend::class,
+    'groups'   => ['system'],
+];
+
 // Register general assets cache (SVG inline, etc.)
 $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets'] ??= [
     'frontend' => VariableFrontend::class,

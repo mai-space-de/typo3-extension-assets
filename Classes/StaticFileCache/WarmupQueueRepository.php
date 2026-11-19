@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\StaticFileCache;
 
 use Doctrine\DBAL\ArrayParameterType;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
 /**
@@ -120,15 +121,20 @@ class WarmupQueueRepository
     /**
      * Delete already-processed entries (call_date > 0), oldest first, in batches.
      *
+     * @param int $processedBefore only entries processed before this timestamp (keeps a
+     *                             recent history of warmup results for analysis)
      * @return int Number of deleted rows
      */
-    public function cleanupOld(int $limit = 1000): int
+    public function cleanupOld(int $limit = 1000, int $processedBefore = PHP_INT_MAX): int
     {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable(self::TABLE);
         $uids = $queryBuilder
             ->select('uid')
             ->from(self::TABLE)
-            ->where($queryBuilder->expr()->gt('call_date', 0))
+            ->where(
+                $queryBuilder->expr()->gt('call_date', 0),
+                $queryBuilder->expr()->lt('call_date', $queryBuilder->createNamedParameter($processedBefore, Connection::PARAM_INT)),
+            )
             ->orderBy('call_date', 'ASC')
             ->setMaxResults($limit)
             ->executeQuery()

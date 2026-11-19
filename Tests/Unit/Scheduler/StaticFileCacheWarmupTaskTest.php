@@ -65,7 +65,13 @@ final class StaticFileCacheWarmupTaskTest extends TestCase
                 ['uid' => 1, 'call_result' => 200],
                 ['uid' => 2, 'call_result' => 404],
             ]);
-        $queueRepository->expects(self::once())->method('cleanupOld')->with(1000)->willReturn(0);
+        // Results of the last days are kept for analysis.
+        $queueRepository->expects(self::once())->method('cleanupOld')
+            ->with(1000, self::logicalAnd(
+                self::lessThanOrEqual(time() - StaticFileCacheWarmupTask::KEEP_RESULTS_SECONDS),
+                self::greaterThan(time() - StaticFileCacheWarmupTask::KEEP_RESULTS_SECONDS - 60),
+            ))
+            ->willReturn(0);
 
         $httpClientService = $this->createMock(WarmupHttpClientService::class);
         $httpClientService

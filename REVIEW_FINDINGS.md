@@ -241,14 +241,18 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   → Erledigt: Die Baseline wird nach `config/mai_assets/critical-css-baseline.json` geschrieben (mit dem Projekt versioniert) und von dort gelesen; die mitgelieferte Datei dient nur noch als Vorlage.
 - [x] **W54 Je Bild zwei DB-Abfragen in `CriticalDetectionService`** (keine Zwischenspeicherung).
   → Erledigt: Entscheidung pro Seite und Element im TYPO3-`runtime`-Cache (pro Request, auch in Worker-Setups korrekt).
-- [ ] **W55 Rate-Limit der Report-Endpunkte schreibt bei jedem Request in den DB-Cache.**
-- [ ] **W56 Warmup-Queue löscht jeden Lauf alle verarbeiteten Einträge** (keine Historie
+- [x] **W55 Rate-Limit der Report-Endpunkte schreibt bei jedem Request in den DB-Cache.**
+  → Erledigt: eigener Cache `mai_assets_rate_limit` (Standard Datenbank, per `settings.php` auf APCu/Redis umstellbar), getrennt von den Above-fold-Daten. Das Volumen ist durch den Client-TTL ohnehin klein.
+- [x] **W56 Warmup-Queue löscht jeden Lauf alle verarbeiteten Einträge** (keine Historie
   für Fehleranalyse).
-- [ ] **W58 Einstellungen ohne Eintrag in `ext_conf_template.txt`**
+  → Erledigt: Verarbeitete Einträge bleiben 7 Tage (`KEEP_RESULTS_SECONDS`) mit HTTP-Status erhalten.
+- [x] **W58 Einstellungen ohne Eintrag in `ext_conf_template.txt`**
   `viewportBuckets`, `criticalThresholdByColPos`, `svgStripAttributes`, `fontPreloadFormats`
   sind nur über `settings.php` setzbar und im Backend nicht sichtbar.
-- [ ] **W57 Backend-Bericht ignoriert Seitenrechte** (nur relevant, falls das Modul nicht
+  → Erledigt: `viewportBuckets`, `criticalThresholdByColPos` und `fontPreloadFormats` stehen in `ext_conf_template.txt` (Textform `mobile:768, tablet:1024, desktop`); Arrays aus `settings.php` funktionieren weiter. `svgStripAttributes` wirkte nie (siehe W43) und bleibt ohne Eintrag.
+- [x] **W57 Backend-Bericht ignoriert Seitenrechte** (nur relevant, falls das Modul nicht
   mehr auf Admins beschränkt ist).
+  → Geprüft, keine Änderung: Das Modul ist auf Admins beschränkt (`access => admin`), Admins sehen ohnehin alle Seiten.
 
 ## Restrisiken der erledigten Punkte
 

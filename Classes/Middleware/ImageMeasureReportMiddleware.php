@@ -170,7 +170,8 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
     private function isRateLimited(ServerRequestInterface $request): bool
     {
         try {
-            $cache = $this->cacheManager->getCache('mai_assets_above_fold');
+            // Own cache: can be moved to APCu/Redis without touching the above-fold data.
+            $cache = $this->cacheManager->getCache('mai_assets_rate_limit');
             $ip = (string) ($request->getServerParams()['REMOTE_ADDR'] ?? 'unknown');
             $key = 'imgratelimit_' . md5($ip);
 

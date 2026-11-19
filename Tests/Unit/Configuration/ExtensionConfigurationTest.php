@@ -43,4 +43,37 @@ final class ExtensionConfigurationTest extends TestCase
 
         self::assertSame($expected, $configuration->getObserverRootMargin());
     }
+
+    public function testListSettingsAcceptTheStringFormOfTheExtensionConfiguration(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mai_assets'] = [
+            'viewportBuckets' => 'small:600, large',
+            'criticalThresholdByColPos' => '0:3, 2:1',
+            'fontPreloadFormats' => 'WOFF2, woff',
+        ];
+
+        $configuration = new ExtensionConfiguration(
+            (new \ReflectionClass(Typo3ExtensionConfiguration::class))->newInstanceWithoutConstructor(),
+        );
+
+        self::assertSame(['small' => 600, 'large' => PHP_INT_MAX], $configuration->getViewportBuckets());
+        self::assertSame([0 => 3, 2 => 1], $configuration->getCriticalThresholdByColPos());
+        self::assertSame(['woff2', 'woff'], $configuration->getFontPreloadFormats());
+    }
+
+    public function testArraysFromSettingsPhpStillWork(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mai_assets'] = [
+            'viewportBuckets' => ['mobile' => 768, 'desktop' => PHP_INT_MAX],
+            'criticalThresholdByColPos' => [],
+        ];
+
+        $configuration = new ExtensionConfiguration(
+            (new \ReflectionClass(Typo3ExtensionConfiguration::class))->newInstanceWithoutConstructor(),
+        );
+
+        self::assertSame(['mobile' => 768, 'desktop' => PHP_INT_MAX], $configuration->getViewportBuckets());
+        self::assertSame([], $configuration->getCriticalThresholdByColPos());
+        self::assertSame(['woff2'], $configuration->getFontPreloadFormats());
+    }
 }

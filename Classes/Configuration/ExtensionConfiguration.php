@@ -49,10 +49,11 @@ final class ExtensionConfiguration
         $this->enableCompression = (bool) ($raw['enableCompression'] ?? true);
         $this->compressionLevel = (int) ($raw['compressionLevel'] ?? 6);
         $this->enableBrotli = (bool) ($raw['enableBrotli'] ?? true);
-        $this->criticalThresholdByColPos = (array) ($raw['criticalThresholdByColPos'] ?? [0 => 2, 1 => 0, 3 => 0]);
-        $this->viewportBuckets = (array) ($raw['viewportBuckets'] ?? ['mobile' => 768, 'tablet' => 1024, 'desktop' => PHP_INT_MAX]);
+        // Arrays (settings.php) or the string form of ext_conf_template.txt.
+        $this->criticalThresholdByColPos = self::parseIntMap($raw['criticalThresholdByColPos'] ?? null, [0 => 2, 1 => 0, 3 => 0]);
+        $this->viewportBuckets = self::parseIntMap($raw['viewportBuckets'] ?? null, ['mobile' => 768, 'tablet' => 1024, 'desktop' => PHP_INT_MAX]);
         $this->svgStripAttributes = (array) ($raw['svgStripAttributes'] ?? ['id', 'class', 'style']);
-        $this->fontPreloadFormats = (array) ($raw['fontPreloadFormats'] ?? ['woff2']);
+        $this->fontPreloadFormats = self::parseList($raw['fontPreloadFormats'] ?? null, ['woff2']);
         $this->observerRootMargin = self::sanitizeRootMargin((string) ($raw['observerRootMargin'] ?? '0px'));
         $this->processingCacheLifetime = (int) ($raw['processingCacheLifetime'] ?? 0);
         $this->enableStaticFileCache = (bool) ($raw['enableStaticFileCache'] ?? false);
@@ -193,5 +194,51 @@ final class ExtensionConfiguration
         $value = trim($value);
 
         return preg_match('/^-?\d+(\.\d+)?(px|%)(\s+-?\d+(\.\d+)?(px|%)){0,3}$/', $value) === 1 ? $value : '0px';
+    }
+
+    /**
+     * "mobile:768, tablet:1024, desktop" (a key without value is unlimited) or an array.
+     *
+     * @param array<int|string, int> $default
+     * @return array<int|string, int>
+     */
+    private static function parseIntMap(mixed $value, array $default): array
+    {
+        if (is_array($value)) {
+            return $value === [] ? [] : array_map(intval(...), $value);
+        }
+        if (!is_string($value) || trim($value) === '') {
+            return $default;
+        }
+
+        $map = [];
+        foreach (explode(',', $value) as $pair) {
+            $parts = array_map(trim(...), explode(':', $pair, 2));
+            if ($parts[0] === '') {
+                continue;
+            }
+            $key = ctype_digit($parts[0]) ? (int) $parts[0] : $parts[0];
+            $map[$key] = isset($parts[1]) && $parts[1] !== '' ? (int) $parts[1] : PHP_INT_MAX;
+        }
+
+        return $map === [] ? $default : $map;
+    }
+
+    /**
+     * "woff2, woff" or an array.
+     *
+     * @param list<string> $default
+     * @return list<string>
+     */
+    private static function parseList(mixed $value, array $default): array
+    {
+        if (is_array($value)) {
+            return array_values(array_map(strval(...), $value));
+        }
+        if (!is_string($value) || trim($value) === '') {
+            return $default;
+        }
+
+        return array_values(array_filter(array_map(trim(...), explode(',', strtolower($value)))));
     }
 }

@@ -13,6 +13,15 @@ compressionLevel = 6
 # cat=Asset Processing//50; type=boolean; label=Enable Brotli Compression: Write pre-compressed Brotli (.br) variants alongside gzip variants. Requires the PHP brotli extension.
 enableBrotli = 1
 
+# cat=Above Fold//10; type=string; label=Viewport buckets: name:maximum viewport width, comma separated; a name without width is unlimited. Every bucket must report before a page is cached statically. Default: mobile:768, tablet:1024, desktop
+viewportBuckets = mobile:768, tablet:1024, desktop
+
+# cat=Above Fold//20; type=string; label=Critical elements per column (fallback without measurements): colPos:number of elements from the top, comma separated. Default: 0:2, 1:0, 3:0
+criticalThresholdByColPos = 0:2, 1:0, 3:0
+
+# cat=Asset Processing//55; type=string; label=Font preload formats: file extensions of fonts from Configuration/Fonts.php that are preloaded, comma separated. Default: woff2
+fontPreloadFormats = woff2
+
 # cat=Asset Processing//60; type=string; label=Observer Root Margin: IntersectionObserver rootMargin of the above-fold detection (px or %, e.g. 0px or 0px 0px 200px 0px). A bottom margin also marks elements just below the fold as critical. Default: 0px.
 observerRootMargin = 0px
 

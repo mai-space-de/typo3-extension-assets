@@ -29,6 +29,9 @@ use TYPO3\CMS\Scheduler\Task\AbstractTask;
  */
 final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwareInterface
 {
+    /** How long processed queue entries (with their HTTP status) are kept. */
+    public const int KEEP_RESULTS_SECONDS = 7 * 86400;
+
     use LoggerAwareTrait;
 
     /**
@@ -133,7 +136,8 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
             $totalDeleted = 0;
 
             while (true) {
-                $deleted = $queueRepository->cleanupOld($batchSize);
+                // Results of the last days stay visible for analysis.
+                $deleted = $queueRepository->cleanupOld($batchSize, time() - self::KEEP_RESULTS_SECONDS);
                 $totalDeleted += $deleted;
 
                 if ($deleted < $batchSize) {
