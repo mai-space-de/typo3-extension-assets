@@ -19,13 +19,13 @@ final readonly class EarlyHintCacheService implements SingletonInterface
         $this->cache = $cacheManager->getCache(self::CACHE_IDENTIFIER);
     }
 
-    public function store(int $pageUid, int $languageUid, EarlyHintCandidateCollector $collector): void
+    public function store(int $pageUid, int $languageUid, EarlyHintCandidateCollector $collector, string $variant = ''): void
     {
         if ($collector->isEmpty()) {
             return;
         }
 
-        $key = $this->buildKey($pageUid, $languageUid);
+        $key = $this->buildKey($pageUid, $languageUid, $variant);
         $serialized = $this->serializeCandidates($collector->getAll());
         $tags = ['mai_assets', 'pageId_' . $pageUid];
 
@@ -35,9 +35,9 @@ final readonly class EarlyHintCacheService implements SingletonInterface
     /**
      * @return array<int, EarlyHintCandidate>
      */
-    public function load(int $pageUid, int $languageUid): array
+    public function load(int $pageUid, int $languageUid, string $variant = ''): array
     {
-        $key = $this->buildKey($pageUid, $languageUid);
+        $key = $this->buildKey($pageUid, $languageUid, $variant);
         $data = $this->cache->get($key);
 
         if (!is_array($data)) {
@@ -47,9 +47,12 @@ final readonly class EarlyHintCacheService implements SingletonInterface
         return $this->deserializeCandidates($data);
     }
 
-    private function buildKey(int $pageUid, int $languageUid): string
+    /**
+     * @param string $variant URL variant of the page, see StaticCacheRequestGuard::variantOf()
+     */
+    private function buildKey(int $pageUid, int $languageUid, string $variant = ''): string
     {
-        return 'earlyhints_' . $pageUid . '_' . $languageUid;
+        return 'earlyhints_' . $pageUid . '_' . $languageUid . ($variant !== '' ? '_' . $variant : '');
     }
 
     /**
@@ -66,6 +69,9 @@ final readonly class EarlyHintCacheService implements SingletonInterface
                 'as'          => $candidate->as,
                 'type'        => $candidate->type,
                 'crossorigin' => $candidate->crossorigin,
+                'imagesrcset' => $candidate->imageSrcset,
+                'imagesizes'  => $candidate->imageSizes,
+                'media'       => $candidate->media,
             ];
         }
         return $rows;
@@ -91,6 +97,9 @@ final readonly class EarlyHintCacheService implements SingletonInterface
                 as: (string) ($row['as'] ?? ''),
                 type: (string) ($row['type'] ?? ''),
                 crossorigin: (string) ($row['crossorigin'] ?? ''),
+                imageSrcset: (string) ($row['imagesrcset'] ?? ''),
+                imageSizes: (string) ($row['imagesizes'] ?? ''),
+                media: (string) ($row['media'] ?? ''),
             );
         }
         return $candidates;

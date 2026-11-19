@@ -25,7 +25,7 @@ use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
  *
  * These integration tests verify that the underlying services correctly
  * interact with the TYPO3 caching framework, ensuring the readiness gate
- * (consumed directly by StaticHtmlWriterListener and CacheWarmupService)
+ * (consumed directly by StaticFileWriterMiddleware and CacheWarmupService)
  * works end-to-end:
  *
  * - Incomplete viewport buckets → PageOptimizationReadinessService::isReady
@@ -76,7 +76,7 @@ final class StaticFileCacheReadinessIntegrationTest extends TestCase
         $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
 
-        new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets'))
             ->setValue($config, [
                 'mobile'  => 768,
                 'tablet'  => 1024,

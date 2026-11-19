@@ -5,13 +5,23 @@
     var SERVER_RESET_TIMESTAMP = ###SERVER_RESET_TIMESTAMP###;
     var REPORT_TOKEN = '###REPORT_TOKEN###';
     var VALID_BUCKETS = ###VALID_BUCKETS###;
+    // Configured viewport buckets: name => maximum viewport width (extension configuration)
+    var BUCKET_LIMITS = ###BUCKET_LIMITS###;
+    var ROOT_MARGIN = '###ROOT_MARGIN###';
+    var ENDPOINT = '/api/mai-assets/above-fold-report';
+    var SEND_DELAY = 2000;
+    var IDLE_TIMEOUT = 5000;
 
-    // Determine viewport bucket
+    // Determine viewport bucket: the smallest configured bucket the viewport fits into
     function getViewportBucket() {
         var width = window.innerWidth || document.documentElement.clientWidth;
-        if (width <= 768) return 'mobile';
-        if (width <= 1024) return 'tablet';
-        return 'desktop';
+        var names = Object.keys(BUCKET_LIMITS).sort(function (a, b) {
+            return BUCKET_LIMITS[a] - BUCKET_LIMITS[b];
+        });
+        for (var i = 0; i < names.length; i++) {
+            if (width <= BUCKET_LIMITS[names[i]]) return names[i];
+        }
+        return names.length ? names[names.length - 1] : 'desktop';
     }
 
     var bucket = (function () {
@@ -35,18 +45,23 @@
 
     var criticalUids = [];
     var observer = null;
+    var observed = false; // first IntersectionObserver callback arrived
+    var done = false;
+
+    function freeze() {
+        // Only the initial viewport counts: once the user scrolls, stop collecting.
+        if (observer) {
+            observer.disconnect();
+            observer = null;
+        }
+    }
 
     function observeElements() {
         var elements = document.querySelectorAll('[data-ce-uid]');
-        if (!elements.length) return;
-
-        var options = {
-            root: null,
-            rootMargin: '0px',
-            threshold: 0
-        };
+        if (!elements.length) return false;
 
         observer = new IntersectionObserver(function (entries) {
+            observed = true;
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) {
                     var uid = parseInt(entry.target.getAttribute('data-ce-uid'), 10);
@@ -55,43 +70,100 @@
                     }
                 }
             });
-        }, options);
+        }, {
+            root: null,
+            rootMargin: ROOT_MARGIN,
+            threshold: 0
+        });
 
         elements.forEach(function (el) {
             observer.observe(el);
         });
+
+        return true;
+    }
+
+    function remember() {
+        try {
+            localStorage.setItem(storageKey, String(SERVER_RESET_TIMESTAMP));
+        } catch (e) {
+            // Ignore storage errors
+        }
+    }
+
+    // Lowest priority transport: a beacon never competes with page resources and
+    // never shows up in the critical request chain. Its response is not readable,
+    // so an accepted beacon counts as delivered.
+    function post(payload) {
+        if (navigator.sendBeacon) {
+            try {
+                if (navigator.sendBeacon(ENDPOINT, new Blob([payload], {type: 'application/json'}))) {
+                    remember();
+                    return;
+                }
+            } catch (e) {
+                // Fall through to fetch
+            }
+        }
+
+        if (window.fetch) {
+            fetch(ENDPOINT, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: payload,
+                keepalive: true,
+                credentials: 'omit',
+                priority: 'low'
+            }).then(function (response) {
+                if (response.ok) remember();
+            }).catch(function () {});
+        }
     }
 
     function sendReport() {
-        if (observer) {
-            observer.disconnect();
-            observer = null;
-        }
+        if (done) return;
+        done = true;
+        freeze();
+        removeListeners();
 
-        var payload = JSON.stringify({
+        // Scrolled before the first observation: the data would not describe the initial viewport.
+        if (!observed) return;
+
+        post(JSON.stringify({
             pageUid: PAGE_UID,
             resetTimestamp: SERVER_RESET_TIMESTAMP,
             token: REPORT_TOKEN,
             bucket: bucket,
             criticalUids: criticalUids
-        });
-
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/mai-assets/above-fold-report', true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-                try {
-                    localStorage.setItem(storageKey, String(SERVER_RESET_TIMESTAMP));
-                } catch (e) {
-                    // Ignore storage errors
-                }
-            }
-        };
-        xhr.send(payload);
+        }));
     }
 
-    // Wait for window load, then disconnect and send report
+    function onScroll() {
+        freeze();
+        window.removeEventListener('scroll', onScroll);
+    }
+
+    function onHidden() {
+        if (document.visibilityState === 'hidden') sendReport();
+    }
+
+    function removeListeners() {
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('pagehide', sendReport);
+        document.removeEventListener('visibilitychange', onHidden);
+    }
+
+    function scheduleReport() {
+        // Well after load and only when the main thread is idle; leaving the page sends earlier.
+        setTimeout(function () {
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(sendReport, {timeout: IDLE_TIMEOUT});
+            } else {
+                sendReport();
+            }
+        }, SEND_DELAY);
+    }
+
     function init() {
         if (typeof IntersectionObserver === 'undefined') {
             return;
@@ -108,22 +180,18 @@
             return;
         }
 
-        observeElements();
+        if (!observeElements()) {
+            return;
+        }
+
+        window.addEventListener('scroll', onScroll, {passive: true});
+        window.addEventListener('pagehide', sendReport);
+        document.addEventListener('visibilitychange', onHidden);
 
         if (document.readyState === 'complete') {
-            if (typeof requestIdleCallback === 'function') {
-                requestIdleCallback(sendReport);
-            } else {
-                setTimeout(sendReport, 0);
-            }
+            scheduleReport();
         } else {
-            window.addEventListener('load', function () {
-                if (typeof requestIdleCallback === 'function') {
-                    requestIdleCallback(sendReport);
-                } else {
-                    setTimeout(sendReport, 0);
-                }
-            });
+            window.addEventListener('load', scheduleReport);
         }
     }
 

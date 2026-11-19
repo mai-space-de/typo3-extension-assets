@@ -56,7 +56,13 @@ class MaiSvgIconProvider extends AbstractSvgIconProvider
 
         $svgContent = (string) file_get_contents($resolvedPath);
         $svgContent = preg_replace('/<\?xml[^?]*\?>\s*/i', '', $svgContent) ?? $svgContent;
-        $svgContent = preg_replace('/\s(width|height)="[^"]*"/i', '', $svgContent) ?? $svgContent;
+        // Only the root element is sized by CSS; inner shapes (<rect width="…">) keep their geometry.
+        $svgContent = preg_replace_callback(
+            '/<svg\b[^>]*>/i',
+            static fn(array $match): string => preg_replace('/\s(width|height)\s*=\s*("[^"]*"|\'[^\']*\')/i', '', $match[0]) ?? $match[0],
+            $svgContent,
+            1,
+        ) ?? $svgContent;
 
         return $svgContent;
     }

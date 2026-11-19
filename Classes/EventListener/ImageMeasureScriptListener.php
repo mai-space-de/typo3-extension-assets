@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\EventListener;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Service\ImageMeasureScriptBuilder;
+use Maispace\MaiAssets\Utility\HtmlInjectionUtility;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
@@ -46,8 +47,12 @@ final readonly class ImageMeasureScriptListener
             return;
         }
 
-        $script = $this->scriptBuilder->build((string) file_get_contents($scriptPath), $pageUid);
+        $script = $this->scriptBuilder->build(
+            (string) file_get_contents($scriptPath),
+            $pageUid,
+            HtmlInjectionUtility::nonceAttribute($event->getRequest()->getAttribute('nonce')),
+        );
 
-        $event->setContent(str_ireplace('</body>', $script . '</body>', $content));
+        $event->setContent(HtmlInjectionUtility::beforeBodyEnd($content, $script));
     }
 }

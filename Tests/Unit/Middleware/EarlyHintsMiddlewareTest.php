@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\Tests\Unit\Middleware;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\Middleware\EarlyHintsMiddleware;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -120,6 +121,19 @@ final class EarlyHintsMiddlewareTest extends TestCase
         (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
     }
 
+    public function testProcessLoadsTheManifestOfTheUrlVariant(): void
+    {
+        // /news/article-b has its own manifest instead of the one of the plain page.
+        $pageArguments = $this->makePageArguments(7, ['tx_news_pi1' => ['news' => 3]]);
+        $this->cacheFrontend->expects(self::once())->method('get')
+            ->with('earlyhints_7_0_' . StaticCacheRequestGuard::variantOf($pageArguments))
+            ->willReturn(false);
+
+        $request = $this->makeGetRequest(pageArguments: $pageArguments, language: null);
+
+        (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+    }
+
     // -------------------------------------------------------------------------
     // Cache lookup with correct key (page + language UIDs)
     // -------------------------------------------------------------------------
@@ -171,6 +185,8 @@ final class EarlyHintsMiddlewareTest extends TestCase
         ]);
 
         $this->handler->expects(self::once())->method('handle')->willReturn($this->response);
+        // The hints are attached to the final response.
+        $this->response->method('withHeader')->willReturnSelf();
 
         $request = $this->makeGetRequest(
             pageArguments: $this->makePageArguments(10),
@@ -239,6 +255,35 @@ final class EarlyHintsMiddlewareTest extends TestCase
         self::assertSame($responseWithLink, $result);
     }
 
+    public function testProcessAttachesLinkHeadersInEveryProductionContext(): void
+    {
+        // Without headers_send() (PHP-FPM) no real 103 is possible; the final response
+        // carries the hints (previously only Production/Hetzner did).
+        Environment::initialize(
+            new ApplicationContext('Production'),
+            true,
+            true,
+            '/project',
+            '/project/public',
+            '/project/var',
+            '/project/config',
+            '/project/public/index.php',
+            'UNIX',
+        );
+
+        $this->cacheFrontend->method('get')->willReturn([
+            ['href' => '/assets/style.css', 'rel' => 'preload', 'as' => 'style', 'type' => '', 'crossorigin' => ''],
+        ]);
+        $responseWithLink = $this->createMock(ResponseInterface::class);
+        $this->response->expects(self::once())->method('withHeader')
+            ->with('Link', '</assets/style.css>; rel=preload; as=style')
+            ->willReturn($responseWithLink);
+
+        $request = $this->makeGetRequest(pageArguments: $this->makePageArguments(1), language: $this->makeLanguage(0));
+
+        self::assertSame($responseWithLink, (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler));
+    }
+
     public function testProcessDoesNotAttachLinkHeadersOnHetznerWhenCacheEmpty(): void
     {
         Environment::initialize(
@@ -292,10 +337,11 @@ final class EarlyHintsMiddlewareTest extends TestCase
         return $request;
     }
 
-    private function makePageArguments(int $pageId): PageArguments
+    private function makePageArguments(int $pageId, array $routeArguments = []): PageArguments
     {
         $pageArguments = $this->createMock(PageArguments::class);
         $pageArguments->method('getPageId')->willReturn($pageId);
+        $pageArguments->method('getRouteArguments')->willReturn($routeArguments);
         return $pageArguments;
     }
 

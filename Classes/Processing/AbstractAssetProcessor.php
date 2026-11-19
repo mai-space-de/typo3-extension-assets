@@ -7,7 +7,6 @@ namespace Maispace\MaiAssets\Processing;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Event\AfterCssProcessedEvent;
 use Maispace\MaiAssets\Event\AfterJsProcessedEvent;
-use Maispace\MaiAssets\Event\BeforeAssetInjectionEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -22,7 +21,14 @@ abstract class AbstractAssetProcessor implements AssetProcessorInterface
 
     final public function process(string $content, string $sourcePath): string
     {
-        $cacheKey = md5($this->getSourceFingerprint($sourcePath) . serialize($this->getSettingsHash()));
+        // The input content is part of the key: callers pass already transformed content
+        // (e.g. compiled SCSS for minification), whose source file hash alone would not
+        // change when only an imported partial changes.
+        $cacheKey = md5(
+            hash('sha256', $content)
+            . $this->getSourceFingerprint($sourcePath)
+            . serialize($this->getSettingsHash()),
+        );
         $cacheFile = $this->getCacheDir() . $cacheKey . '.' . $this->getCacheExtension();
 
         if (file_exists($cacheFile)) {
@@ -46,10 +52,9 @@ abstract class AbstractAssetProcessor implements AssetProcessorInterface
             $processed = $cssEvent->getProcessedCss();
         }
 
-        $event = new BeforeAssetInjectionEvent($processed, $type, $sourcePath);
-        $this->eventDispatcher->dispatch($event);
-
-        return $event->getContent();
+        // BeforeAssetInjectionEvent is dispatched by the ViewHelper that injects the
+        // content; dispatching it here as well applied listeners twice.
+        return $processed;
     }
 
     abstract protected function doProcess(string $content, string $sourcePath): string;

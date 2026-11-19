@@ -9,6 +9,8 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Event\ModifyCriticalThresholdEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
@@ -19,49 +21,94 @@ final readonly class CriticalDetectionService
         private ExtensionConfiguration $extensionConfiguration,
         private EventDispatcherInterface $eventDispatcher,
         private ConnectionPool $connectionPool,
+        private ?CacheManager $cacheManager = null,
     ) {}
 
+    /** tx_maiassets_is_critical: decide from observer data and position heuristic. */
+    public const int OVERRIDE_AUTO = 0;
+    /** tx_maiassets_is_critical: editor marked the element as critical. */
+    public const int OVERRIDE_CRITICAL = 1;
+    /** tx_maiassets_is_critical: editor marked the element as not critical. */
+    public const int OVERRIDE_NOT_CRITICAL = 2;
+
+    /**
+     * Memoized per request (TYPO3 runtime cache): a page with many images asks for every
+     * image, which cost two database queries each.
+     */
     public function isCritical(int $pageUid, int $elementUid): bool
     {
-        // 1. Check tx_maiassets_force_critical DB field
+        $runtimeCache = $this->runtimeCache();
+        $key = 'mai_assets_critical_' . $pageUid . '_' . $elementUid;
+        if ($runtimeCache !== null && $runtimeCache->has($key)) {
+            return (bool) $runtimeCache->get($key);
+        }
+
+        $isCritical = $this->detect($pageUid, $elementUid);
+        $runtimeCache?->set($key, $isCritical);
+
+        return $isCritical;
+    }
+
+    private function detect(int $pageUid, int $elementUid): bool
+    {
         $record = $this->getContentRecord($elementUid);
         if ($record === null) {
             return false;
         }
 
-        if ((bool) ($record['tx_maiassets_force_critical'] ?? false)) {
-            return true;
-        }
-
-        // 2. Check tx_maiassets_is_critical DB field — honour editor override
-        if (array_key_exists('tx_maiassets_is_critical', $record)) {
-            // If the editor explicitly set it to 0, honour that
-            if ((int) $record['tx_maiassets_is_critical'] === 0) {
-                return false;
-            }
-            if ((int) $record['tx_maiassets_is_critical'] === 1) {
-                return true;
-            }
+        // 1. + 2. Editor decisions (force flag, override select)
+        $override = self::resolveEditorOverride($record);
+        if ($override !== null) {
+            return $override;
         }
 
         // 3. Cache service result (from observer reports)
-        $allCriticalUids = $this->aboveFoldCacheService->getAllCriticalUids($pageUid);
-        if (in_array($elementUid, $allCriticalUids, true)) {
+        if (in_array($elementUid, $this->aboveFoldCacheService->getAllCriticalUids($pageUid), true)) {
             return true;
         }
 
         // 4. Fallback: position/sorting heuristic
         $colPos = (int) ($record['colPos'] ?? 0);
-        $sorting = (int) ($record['sorting'] ?? 0);
         $threshold = $this->getThresholdForColPos($colPos);
-
         if ($threshold <= 0) {
             return false;
         }
 
         // Count elements in same colPos with lower sorting (= higher on page)
-        $position = $this->getElementPositionInColPos($pageUid, $colPos, $sorting);
+        $position = $this->getElementPositionInColPos(
+            $pageUid,
+            $colPos,
+            (int) ($record['sorting'] ?? 0),
+            (int) ($record['sys_language_uid'] ?? 0),
+        );
         return $position < $threshold;
+    }
+
+    /**
+     * Editor decision stored on the content record; null means "decide automatically".
+     *
+     * @param array<string, mixed> $record
+     */
+    public static function resolveEditorOverride(array $record): ?bool
+    {
+        if ((bool) ($record['tx_maiassets_force_critical'] ?? false)) {
+            return true;
+        }
+
+        return match ((int) ($record['tx_maiassets_is_critical'] ?? self::OVERRIDE_AUTO)) {
+            self::OVERRIDE_CRITICAL => true,
+            self::OVERRIDE_NOT_CRITICAL => false,
+            default => null,
+        };
+    }
+
+    private function runtimeCache(): ?FrontendInterface
+    {
+        try {
+            return $this->cacheManager?->getCache('runtime');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function getThresholdForColPos(int $colPos): int
@@ -94,7 +141,7 @@ final readonly class CriticalDetectionService
             ->getQueryBuilderForTable('tt_content');
 
         $result = $queryBuilder
-            ->select('uid', 'pid', 'colPos', 'sorting', 'tx_maiassets_is_critical', 'tx_maiassets_force_critical')
+            ->select('uid', 'pid', 'colPos', 'sorting', 'sys_language_uid', 'tx_maiassets_is_critical', 'tx_maiassets_force_critical')
             ->from('tt_content')
             ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($elementUid, Connection::PARAM_INT)))
             ->setMaxResults(1)
@@ -104,7 +151,11 @@ final readonly class CriticalDetectionService
         return $row !== false ? $row : null;
     }
 
-    private function getElementPositionInColPos(int $pageUid, int $colPos, int $sorting): int
+    /**
+     * Elements above the given one in the same column: only live records of the same
+     * language count (translations and workspace versions share pid, colPos and sorting).
+     */
+    private function getElementPositionInColPos(int $pageUid, int $colPos, int $sorting, int $languageUid): int
     {
         $queryBuilder = $this->connectionPool
             ->getQueryBuilderForTable('tt_content');
@@ -118,6 +169,8 @@ final readonly class CriticalDetectionService
                 $queryBuilder->expr()->lt('sorting', $queryBuilder->createNamedParameter($sorting, Connection::PARAM_INT)),
                 $queryBuilder->expr()->eq('hidden', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
                 $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter($languageUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('t3ver_wsid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
             )
             ->executeQuery()
             ->fetchOne();

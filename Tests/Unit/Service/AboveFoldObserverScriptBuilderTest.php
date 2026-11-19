@@ -51,11 +51,28 @@ final class AboveFoldObserverScriptBuilderTest extends TestCase
         self::assertStringContainsString('var PAGE_UID = 10;', $result);
     }
 
+    public function testBucketLimitsAndRootMarginAreFilledIn(): void
+    {
+        $builder = new AboveFoldObserverScriptBuilder($this->makeConfig(enableMinification: false));
+
+        $result = $builder->build("var L = ###BUCKET_LIMITS###; var M = '###ROOT_MARGIN###';", 1, 1, 'tok', '[]', '', '{"small":600}', '0px 0px 200px 0px');
+
+        self::assertSame("<script>var L = {\"small\":600}; var M = '0px 0px 200px 0px';</script>", $result);
+    }
+
+    public function testScriptCarriesTheCspNonce(): void
+    {
+        $builder = new AboveFoldObserverScriptBuilder($this->makeConfig(enableMinification: false));
+
+        self::assertStringStartsWith('<script nonce="n0nce">', $builder->build('x', 1, 1, 'tok', '[]', ' nonce="n0nce"'));
+        self::assertStringStartsWith('<script>', $builder->build('x', 1, 1, 'tok', '[]'));
+    }
+
     private function makeConfig(bool $enableMinification): ExtensionConfiguration
     {
         $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
-        new \ReflectionProperty(ExtensionConfiguration::class, 'enableMinification')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableMinification'))
             ->setValue($config, $enableMinification);
 
         return $config;

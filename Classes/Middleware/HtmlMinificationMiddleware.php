@@ -43,7 +43,7 @@ final readonly class HtmlMinificationMiddleware implements MiddlewareInterface
 
         $tsSettings = $this->resolveSettings($request);
 
-        if (empty($tsSettings['enable'])) {
+        if (empty($tsSettings['enable']) || $this->wasMinifiedByListener($request)) {
             return $response;
         }
 
@@ -98,5 +98,35 @@ final readonly class HtmlMinificationMiddleware implements MiddlewareInterface
         $settings = $setup['plugin.']['tx_maispace_assets.']['settings.']['htmlMinification.'] ?? [];
 
         return is_array($settings) ? $settings : [];
+    }
+
+    /**
+     * The cacheable page content is minified by HtmlMinificationListener already. Only
+     * non-cached parts (USER_INT) or pages rendered without page cache need this pass.
+     */
+    private function wasMinifiedByListener(ServerRequestInterface $request): bool
+    {
+        $pageParts = $request->getAttribute('frontend.page.parts');
+        if (!is_object($pageParts) || !method_exists($pageParts, 'hasNotCachedContentElements')
+            || $pageParts->hasNotCachedContentElements()
+        ) {
+            return false;
+        }
+
+        if (method_exists($pageParts, 'hasPageContentBeenLoadedFromCache') && $pageParts->hasPageContentBeenLoadedFromCache()) {
+            return true;
+        }
+
+        $collector = $request->getAttribute('frontend.cache.collector');
+        if (!is_object($collector) || !method_exists($collector, 'getCacheEntries')) {
+            return false;
+        }
+        foreach ($collector->getCacheEntries() as $entry) {
+            if (is_object($entry) && property_exists($entry, 'identifier') && $entry->identifier === 'tsfe-page-cache') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

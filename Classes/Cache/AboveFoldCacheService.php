@@ -68,7 +68,7 @@ final class AboveFoldCacheService implements SingletonInterface
     }
 
     /**
-     * Store the critical UIDs reported for a viewport bucket.
+     * Merge the critical UIDs reported for a viewport bucket into the stored ones.
      *
      * The bucket is registered in the bucket index even when its UID list is
      * identical to the stored one (e.g. empty on both sides). Readiness is
@@ -90,8 +90,12 @@ final class AboveFoldCacheService implements SingletonInterface
         }
         $bucketIsNew = !in_array($bucket, $buckets, true);
 
-        $sortedNew = $newUids;
-        $sortedExisting = $existingUids;
+        // Reports are merged instead of replacing the stored list. A bucket covers many
+        // viewport heights (1366x768 and 1920x1080 are both "desktop"), so single reports
+        // differ; replacing made the list flip with every visitor and flushed the page
+        // cache each time. The union converges, content changes reset it (clearCriticalUids).
+        $sortedNew = array_values(array_unique(array_map(intval(...), array_merge($existingUids, $newUids))));
+        $sortedExisting = array_values(array_unique(array_map(intval(...), $existingUids)));
         sort($sortedNew);
         sort($sortedExisting);
 

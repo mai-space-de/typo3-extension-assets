@@ -120,4 +120,14 @@ final class HtmlMinificationServiceTest extends TestCase
         $result = $this->subject->minify($html, ['stripComments' => false, 'preserveTags' => 'code']);
         self::assertStringContainsString('  spaced   code  ', $result);
     }
+
+    public function testScriptInsidePreIsRestored(): void
+    {
+        // Regression: the inner <script> stayed as "<!--PROTECTED_0-->".
+        $html = "<pre>code\n  <script>var a = 1;</script>\n</pre>   <p>x</p>";
+
+        $result = (new HtmlMinificationService())->minify($html, ['preserveTags' => 'pre']);
+
+        self::assertSame("<pre>code\n  <script>var a = 1;</script>\n</pre> <p>x</p>", $result);
+    }
 }

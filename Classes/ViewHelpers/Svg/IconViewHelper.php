@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\ViewHelpers\Svg;
 
 use Maispace\MaiAssets\Collector\SvgSpriteCollector;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class IconViewHelper extends AbstractViewHelper
@@ -41,6 +42,13 @@ class IconViewHelper extends AbstractViewHelper
             $this->svgSpriteCollector->register($identifier, $resolvedPath);
         }
 
+        // Non-cached parts (USER_INT) render after the page sprite was built, or on a page
+        // cache hit where no sprite is built at all: deliver the symbol with the icon,
+        // once per request.
+        $lateSymbol = $this->rendersOutsideTheSprite() && !$this->svgSpriteCollector->isDelivered($identifier)
+            ? $this->svgSpriteCollector->buildSymbols([$identifier])
+            : '';
+
         // Build attributes
         $attrs = '';
 
@@ -56,15 +64,32 @@ class IconViewHelper extends AbstractViewHelper
         if ($label !== '') {
             // Meaningful icon: provide accessible label
             $roleAttr = ' role="img" aria-label="' . htmlspecialchars($label, ENT_QUOTES) . '"';
-            return '<svg' . $attrs . $roleAttr . '>'
+            return $lateSymbol . '<svg' . $attrs . $roleAttr . '>'
                 . '<title>' . htmlspecialchars($label, ENT_QUOTES) . '</title>'
                 . '<use href="#' . htmlspecialchars($identifier, ENT_QUOTES) . '"/>'
                 . '</svg>';
         }
 
         // Decorative icon
-        return '<svg' . $attrs . ' aria-hidden="true" focusable="false">'
+        return $lateSymbol . '<svg' . $attrs . ' aria-hidden="true" focusable="false">'
             . '<use href="#' . htmlspecialchars($identifier, ENT_QUOTES) . '"/>'
             . '</svg>';
+    }
+
+    private function rendersOutsideTheSprite(): bool
+    {
+        if ($this->svgSpriteCollector->isBuilt()) {
+            return true;
+        }
+
+        $request = method_exists($this->renderingContext, 'hasAttribute')
+            && $this->renderingContext->hasAttribute(ServerRequestInterface::class)
+            ? $this->renderingContext->getAttribute(ServerRequestInterface::class)
+            : ($GLOBALS['TYPO3_REQUEST'] ?? null);
+        $pageParts = $request instanceof ServerRequestInterface ? $request->getAttribute('frontend.page.parts') : null;
+
+        return is_object($pageParts)
+            && method_exists($pageParts, 'hasPageContentBeenLoadedFromCache')
+            && $pageParts->hasPageContentBeenLoadedFromCache();
     }
 }

@@ -198,4 +198,34 @@ final class StaticFileRemovalServiceTest extends TestCase
 
         $this->subject->purgeForLanguage($pageUid, $languageUid);
     }
+
+    public function testPurgeAllRemovesOnlyPageDirectories(): void
+    {
+        $base = sys_get_temp_dir() . '/mai_assets_purge_' . uniqid('', true) . '/';
+        mkdir($base . '12_0', 0777, true);
+        mkdir($base . '12_1', 0777, true);
+        mkdir($base . 'keep', 0777, true);
+        file_put_contents($base . '12_0/index.html', '<html></html>');
+        file_put_contents($base . '.htaccess', 'ForceType text/html');
+        $this->cacheDirectory->method('getAbsoluteBaseDirectory')->willReturn($base);
+
+        try {
+            self::assertSame(2, $this->subject->purgeAll());
+            self::assertDirectoryDoesNotExist($base . '12_0');
+            self::assertDirectoryDoesNotExist($base . '12_1');
+            self::assertDirectoryExists($base . 'keep');
+            self::assertFileExists($base . '.htaccess');
+        } finally {
+            @unlink($base . '.htaccess');
+            @rmdir($base . 'keep');
+            @rmdir($base);
+        }
+    }
+
+    public function testPurgeAllWithoutBaseDirectory(): void
+    {
+        $this->cacheDirectory->method('getAbsoluteBaseDirectory')->willReturn('/nonexistent/mai_assets_static/');
+
+        self::assertSame(0, $this->subject->purgeAll());
+    }
 }

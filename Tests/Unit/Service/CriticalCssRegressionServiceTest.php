@@ -164,4 +164,32 @@ final class CriticalCssRegressionServiceTest extends TestCase
         self::assertFalse($result['passed']);
         self::assertSame(10, $result['exceeded_by']);
     }
+
+    public function testBaselineIsWrittenIntoTheProjectConfigNotTheExtension(): void
+    {
+        $root = sys_get_temp_dir() . '/mai_baseline_' . uniqid('', true);
+        mkdir($root . '/config', 0777, true);
+        \TYPO3\CMS\Core\Core\Environment::initialize(
+            new \TYPO3\CMS\Core\Core\ApplicationContext('Testing'),
+            true,
+            true,
+            $root,
+            $root . '/public',
+            $root . '/var',
+            $root . '/config',
+            $root . '/public/index.php',
+            'UNIX',
+        );
+        $service = (new \ReflectionClass(CriticalCssRegressionService::class))->newInstanceWithoutConstructor();
+
+        try {
+            $service->setBaselineEntry('site-main', 1234);
+            $file = $root . '/config/' . CriticalCssRegressionService::PROJECT_BASELINE_FILE;
+            self::assertFileExists($file);
+            self::assertSame(1234, json_decode((string) file_get_contents($file), true)['site-main']);
+            self::assertSame(1234, $service->getBaseline()['site-main']);
+        } finally {
+            exec('rm -rf ' . escapeshellarg($root));
+        }
+    }
 }

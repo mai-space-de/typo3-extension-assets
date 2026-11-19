@@ -14,7 +14,9 @@ use Maispace\MaiAssets\Service\CompiledAssetPublisher;
 use Maispace\MaiAssets\Service\SriHashService;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
 use Maispace\MaiAssets\Utility\AttributeUtility;
+use Maispace\MaiAssets\Utility\HtmlInjectionUtility;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -62,7 +64,8 @@ class CssViewHelper extends AbstractViewHelper
             ? (bool) $this->arguments['minify']
             : $this->extensionConfiguration->isEnableMinification();
 
-        $routing = $GLOBALS['TYPO3_REQUEST']->getAttribute('routing');
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $routing = $request instanceof ServerRequestInterface ? $request->getAttribute('routing') : null;
         $pageUid = is_object($routing) && method_exists($routing, 'getPageId')
             ? (int) $routing->getPageId()
             : 0;
@@ -80,23 +83,29 @@ class CssViewHelper extends AbstractViewHelper
         $resolvedPath = $this->requireFile($src);
 
         if ($isCritical) {
-            // Compile + minify via publisher (cached), then read content and fire event
-            $compiledPath = $this->compiledAssetPublisher->publishStylesheet($resolvedPath, $minify);
-            $content = (string) file_get_contents($compiledPath);
+            // Compiled, minified and with absolute url() references (relative ones would
+            // resolve against the page URL once inlined).
+            $content = $this->compiledAssetPublisher->getInlineStylesheet($resolvedPath, $minify);
 
+            // critical="auto" inlines small stylesheets only: a large bundle inlined into every
+            // page bloats the HTML and can no longer be cached by the browser across pages.
+            $limit = $this->extensionConfiguration->getCriticalCssMaxInlineBytes();
+            if ($critical !== 'true' && $limit > 0 && strlen($content) > $limit) {
+                $isCritical = false;
+            }
+        }
+
+        if ($isCritical) {
             $event = new BeforeAssetInjectionEvent($content, 'css', $resolvedPath);
             $this->eventDispatcher->dispatch($event);
             $content = $event->getContent();
 
-            // Register the compiled external file as an early hint for uncached follow-up requests
-            $publicPath = PathUtility::getAbsoluteWebPath($compiledPath);
-            $this->earlyHintCollector->add(new EarlyHintCandidate(
-                href: $publicPath,
-                rel: 'preload',
-                as: 'style',
-            ));
-
-            $nonceAttr = $nonce !== '' ? ' nonce="' . htmlspecialchars($nonce, ENT_QUOTES) . '"' : '';
+            // No preload hint: the stylesheet is inlined, a preload would download it for nothing.
+            // Without an explicit nonce the CSP nonce of the request is used (TYPO3 replaces it
+            // in cached pages), otherwise a strict style-src blocks the inline styles.
+            $nonceAttr = $nonce !== ''
+                ? ' nonce="' . htmlspecialchars($nonce, ENT_QUOTES) . '"'
+                : HtmlInjectionUtility::nonceAttribute($request instanceof ServerRequestInterface ? $request->getAttribute('nonce') : null);
             return '<style' . $nonceAttr . '>' . $content . '</style>';
         }
 
@@ -105,8 +114,9 @@ class CssViewHelper extends AbstractViewHelper
 
         // For TYPO3 14+, convert relative paths to absolute URLs to avoid SystemResourceFactory resolution issues
         $typo3Version = new Typo3Version();
-        if ($typo3Version->getMajorVersion() >= 14 && !str_starts_with($publicPath, 'http')) {
-            $siteUrl = (string) $GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams')->getSiteUrl();
+        $normalizedParams = $request instanceof ServerRequestInterface ? $request->getAttribute('normalizedParams') : null;
+        if ($typo3Version->getMajorVersion() >= 14 && !str_starts_with($publicPath, 'http') && is_object($normalizedParams)) {
+            $siteUrl = (string) $normalizedParams->getSiteUrl();
             $publicPath = rtrim($siteUrl, '/') . '/' . ltrim($publicPath, '/');
         }
 

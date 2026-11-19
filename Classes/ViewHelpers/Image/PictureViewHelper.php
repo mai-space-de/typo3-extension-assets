@@ -81,17 +81,20 @@ class PictureViewHelper extends AbstractViewHelper
                        && $this->criticalityResolver->isElementAboveFold($elementUid, $pageUid),
         };
 
+        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid, (string) $this->arguments['slot']);
+
         $viewHelperVariableContainer = $this->renderingContext->getViewHelperVariableContainer();
         $viewHelperVariableContainer->add(self::class, 'fileReference', $image);
         $viewHelperVariableContainer->add(self::class, 'isCritical', $isCritical);
         $viewHelperVariableContainer->add(self::class, 'earlyHintCollector', $this->earlyHintCollector);
+        // Child sources replace their configured widths/sizes with the learned ones.
+        $viewHelperVariableContainer->add(self::class, 'measurementProfile', $measurement?->profile);
 
         $sources = $this->renderChildSources();
-        $measurement = $this->measurementService?->prepare($image, $elementUid, $pageUid, (string) $this->arguments['slot']);
 
         if ($sources === '' && $measurement?->profile !== null) {
             // Learned layout widths: one source per format, the browser picks via the measured sizes.
-            // No preload hint: a hint for a single candidate could differ from what the browser selects.
+            // The preload carries the same srcset/sizes, so it matches the browser's choice.
             $registeredEarlyHint = false;
             $sources = $this->pictureSourceRenderer->renderSourcesForMedia(
                 $image,
@@ -100,7 +103,7 @@ class PictureViewHelper extends AbstractViewHelper
                 $measurement->profile->sizes,
                 ['avif', 'webp'],
                 $isCritical,
-                null,
+                $this->earlyHintCollector,
                 $registeredEarlyHint,
             );
         }
@@ -119,6 +122,7 @@ class PictureViewHelper extends AbstractViewHelper
         $viewHelperVariableContainer->remove(self::class, 'fileReference');
         $viewHelperVariableContainer->remove(self::class, 'isCritical');
         $viewHelperVariableContainer->remove(self::class, 'earlyHintCollector');
+        $viewHelperVariableContainer->remove(self::class, 'measurementProfile');
 
         $processingInstructions = [];
         if ($width > 0) {

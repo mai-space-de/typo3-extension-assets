@@ -32,11 +32,16 @@ ExtensionManagementUtility::addTCAcolumns(
                     'FIELD:tx_maiassets_force_critical:REQ:false',
                 ],
             ],
+            // 0 = automatic (observer data / position heuristic), 1 = critical, 2 = not critical.
+            // Value 1 matches the former checkbox, so existing "enabled" records keep their meaning.
             'config' => [
-                'type' => 'check',
+                'type' => 'select',
+                'renderType' => 'selectSingle',
                 'default' => 0,
                 'items' => [
-                    ['label' => 'LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.enabled'],
+                    ['label' => 'LLL:EXT:mai_assets/Resources/Private/Language/locallang_db.xlf:tt_content.tx_maiassets_is_critical.auto', 'value' => 0],
+                    ['label' => 'LLL:EXT:mai_assets/Resources/Private/Language/locallang_db.xlf:tt_content.tx_maiassets_is_critical.yes', 'value' => 1],
+                    ['label' => 'LLL:EXT:mai_assets/Resources/Private/Language/locallang_db.xlf:tt_content.tx_maiassets_is_critical.no', 'value' => 2],
                 ],
             ],
         ],

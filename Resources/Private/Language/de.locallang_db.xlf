@@ -17,12 +17,24 @@
                 <target>Hinweis: nur für Referenzelemente relevant</target>
             </trans-unit>
             <trans-unit id="tt_content.tx_maiassets_is_critical">
-                <source>Override: Is critical (above-fold)</source>
-                <target>Überschreiben: Ist kritisch (above-the-fold)</target>
+                <source>Critical (above-fold)</source>
+                <target>Kritisch (above-the-fold)</target>
             </trans-unit>
             <trans-unit id="tt_content.tx_maiassets_is_critical.description">
-                <source>Note: only relevant for reference elements</source>
-                <target>Hinweis: nur für Referenzelemente relevant</target>
+                <source>Automatic uses the measured above-fold data of real page views. Choose yes or no to override it for this element.</source>
+                <target>Automatisch nutzt die gemessenen Above-the-fold-Daten echter Seitenaufrufe. Mit Ja oder Nein lässt sich das für dieses Element überschreiben.</target>
+            </trans-unit>
+            <trans-unit id="tt_content.tx_maiassets_is_critical.auto">
+                <source>Automatic (measured)</source>
+                <target>Automatisch (gemessen)</target>
+            </trans-unit>
+            <trans-unit id="tt_content.tx_maiassets_is_critical.yes">
+                <source>Yes, always critical</source>
+                <target>Ja, immer kritisch</target>
+            </trans-unit>
+            <trans-unit id="tt_content.tx_maiassets_is_critical.no">
+                <source>No, never critical</source>
+                <target>Nein, nie kritisch</target>
             </trans-unit>
             <trans-unit id="palette.mai_assets_critical">
                 <source>Render as Critical</source>

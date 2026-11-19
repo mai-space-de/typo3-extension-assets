@@ -14,7 +14,7 @@ use TYPO3\CMS\Core\Http\Client\GuzzleClientFactory;
  *
  * Replaces the boost-crawling half of the (uninstalled) lochmueller/staticfilecache
  * extension's ClientService: issues real GET requests against page URLs so that
- * AfterCacheableContentIsGeneratedEvent fires and StaticHtmlWriterListener
+ * the page is rendered and StaticFileWriterMiddleware
  * populates the static HTML cache.
  *
  * @see \Maispace\MaiAssets\StaticFileCache\WarmupQueueRepository

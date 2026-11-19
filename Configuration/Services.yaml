@@ -76,12 +76,11 @@ services:
               event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
               after: 'mai-assets/svg-sprite-injection'
 
-    Maispace\MaiAssets\EventListener\StaticHtmlWriterListener:
+    Maispace\MaiAssets\EventListener\StaticFileCacheFlushListener:
         tags:
             - name: event.listener
-              identifier: 'mai-assets/static-html-writer'
-              event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
-              after: 'mai-assets/html-minification'
+              identifier: 'mai-assets/static-file-cache-flush'
+              event: TYPO3\CMS\Core\Cache\Event\CacheFlushEvent
 
     Maispace\MaiAssets\EventListener\CriticalCacheInvalidationListener:
         tags:
@@ -110,6 +109,11 @@ services:
         tags:
             - name: console.command
               command: 'maispace:assets:image-measure:reset'
+
+    Maispace\MaiAssets\Command\PruneCompiledAssetsCommand:
+        tags:
+            - name: console.command
+              command: 'maispace:assets:compiled:prune'
 
     Maispace\MaiAssets\Command\CheckCriticalCssRegressionCommand:
         tags:

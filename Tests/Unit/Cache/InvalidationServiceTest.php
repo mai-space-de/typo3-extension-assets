@@ -76,10 +76,12 @@ final class InvalidationServiceTest extends TestCase
         $this->createService()->invalidateAfterContentSave(42, ['sorting']);
     }
 
-    public function testInvalidateAfterContentSaveNonPositionFieldsClearsAboveFold(): void
+    public function testInvalidateAfterContentSaveNonPositionFieldsOnlyRequestNewReports(): void
     {
+        // A text change keeps the collected data (and the page's readiness / static cache);
+        // a new reset timestamp makes browsers report again.
         $this->cacheManager->method('flushCachesByTag');
-        $this->aboveFoldFrontend->expects(self::once())->method('remove')->with('buckets_42');
+        $this->aboveFoldFrontend->expects(self::never())->method('remove');
         $this->aboveFoldFrontend->expects(self::once())->method('set')->with(
             'reset_42',
             self::anything(),
@@ -87,7 +89,7 @@ final class InvalidationServiceTest extends TestCase
         );
         $this->eventDispatcher->method('dispatch')->willReturnArgument(0);
         $this->staticFileRemovalService
-            ->expects(self::exactly(3))
+            ->expects(self::exactly(2))
             ->method('purgeByPageUid')
             ->with(42);
 

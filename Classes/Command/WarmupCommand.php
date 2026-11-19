@@ -7,8 +7,7 @@ namespace Maispace\MaiAssets\Command;
 use Maispace\MaiAssets\Collector\SvgSpriteCollector;
 use Maispace\MaiAssets\Configuration\ExtensionConfigurationDiscovery;
 use Maispace\MaiAssets\Exception\AssetException;
-use Maispace\MaiAssets\Processing\MinificationProcessor;
-use Maispace\MaiAssets\Processing\ScssProcessor;
+use Maispace\MaiAssets\Service\CompiledAssetPublisher;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -18,15 +17,14 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 #[AsCommand(
     name: 'maispace:assets:warmup',
-    description: 'Pre-warms asset caches (SVG sprites, SCSS compilation) at deploy time.',
+    description: 'Checks the SVG sprite icons and pre-publishes CSS/SCSS assets at deploy time.',
 )]
 final class WarmupCommand extends Command
 {
     public function __construct(
         private readonly ExtensionConfigurationDiscovery $extensionConfigurationDiscovery,
         private readonly SvgSpriteCollector $svgSpriteCollector,
-        private readonly ScssProcessor $scssProcessor,
-        private readonly MinificationProcessor $minificationProcessor,
+        private readonly CompiledAssetPublisher $compiledAssetPublisher,
     ) {
         parent::__construct();
     }
@@ -40,30 +38,37 @@ final class WarmupCommand extends Command
         $cacheHits = 0;
         $errors = 0;
 
-        // 1. Prime SVG sprite cache by triggering build()
+        // 1. Validate the sprite icons. The sprite itself is built per page (and per site:
+        //    in CLI only icons configured for all sites are known), nothing is cached here.
         $io->section('SVG sprite icons');
         try {
             $icons = $this->extensionConfigurationDiscovery->discoverSpriteIcons();
-            $io->text(sprintf('Discovered %d icon(s).', count($icons)));
+            $io->text(sprintf('Discovered %d icon(s) for all sites.', count($icons)));
 
-            $sprite = $this->svgSpriteCollector->build();
-            if ($sprite !== '') {
-                $io->text('SVG sprite built successfully.');
+            $this->svgSpriteCollector->build();
+            $invalid = array_keys(array_filter(
+                $icons,
+                fn(string $path, string $identifier): bool => !$this->svgSpriteCollector->isDelivered($identifier),
+                ARRAY_FILTER_USE_BOTH,
+            ));
+            if ($invalid !== []) {
+                $io->error(sprintf('Icons that are no valid SVG and are missing in the sprite: %s', implode(', ', $invalid)));
+                $errors += count($invalid);
+            } elseif ($icons !== []) {
+                $io->text('All icons are valid SVG.');
                 $processed++;
-            } else {
-                $io->text('No icons registered — sprite is empty.');
             }
         } catch (AssetException $e) {
-            $io->error('SVG sprite warmup failed: ' . $e->getMessage());
+            $io->error('SVG sprite check failed: ' . $e->getMessage());
             $errors++;
         }
 
-        // 2. Warm up SCSS/CSS assets from TypoScript warmup.assets setting
+        // 2. Warm up CSS/SCSS assets exactly as mai:asset.css publishes them
         $io->section('CSS/SCSS assets');
         $warmupAssets = $this->resolveWarmupAssets();
 
         if ($warmupAssets === []) {
-            $io->text('No warmup assets configured in plugin.tx_maispace_assets.settings.warmup.assets.');
+            $io->text('No warmup assets configured in $GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'mai_assets\'][\'warmup\'][\'assets\'].');
         }
 
         foreach ($warmupAssets as $assetPath) {
@@ -74,17 +79,10 @@ final class WarmupCommand extends Command
                 continue;
             }
 
-            $ext = strtolower(pathinfo($resolved, PATHINFO_EXTENSION));
-            $content = (string) file_get_contents($resolved);
-
             try {
-                if ($ext === 'scss') {
-                    $content = $this->scssProcessor->process($content, $resolved);
-                    $io->text(sprintf('[SCSS] Compiled: %s', $assetPath));
-                } else {
-                    $content = $this->minificationProcessor->process($content, $resolved);
-                    $io->text(sprintf('[CSS]  Minified: %s', $assetPath));
-                }
+                // Same publisher and cache file as mai:asset.css, so the first request is a hit.
+                $published = $this->compiledAssetPublisher->publishStylesheet($resolved);
+                $io->text(sprintf('Published: %s -> %s', $assetPath, basename($published)));
                 $processed++;
             } catch (AssetException $e) {
                 $io->error(sprintf('Failed to process "%s": %s', $assetPath, $e->getMessage()));

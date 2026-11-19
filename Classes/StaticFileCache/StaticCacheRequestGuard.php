@@ -37,6 +37,49 @@ class StaticCacheRequestGuard
         return $this->matchesConfiguredBase($request);
     }
 
+    /** Pattern of a URL variant key, see {@see self::variantOf()}. */
+    public const string VARIANT_PATTERN = '/^[a-f0-9]{20}$/';
+
+    /**
+     * Cache variant of a page URL: '' for the plain page document, otherwise a hash of
+     * the page type and the route arguments. /news/article-a and /news/article-b
+     * resolve to the same page id but are separate documents; each gets its own static
+     * file and early hints manifest. Query arguments never take part (requests with a
+     * query string are not cached at all).
+     *
+     * @return string|null null without page arguments (nothing can be cached)
+     */
+    public static function variantOf(mixed $pageArguments): ?string
+    {
+        if (!is_object($pageArguments) || !method_exists($pageArguments, 'getPageId')) {
+            return null;
+        }
+
+        $pageType = method_exists($pageArguments, 'getPageType') ? (string) ($pageArguments->getPageType() ?? '') : '';
+        if ($pageType === '0') {
+            $pageType = '';
+        }
+        $routeArguments = method_exists($pageArguments, 'getRouteArguments') ? (array) $pageArguments->getRouteArguments() : [];
+
+        if ($pageType === '' && $routeArguments === []) {
+            return '';
+        }
+
+        self::sortRecursive($routeArguments);
+
+        return substr(sha1((string) json_encode(['type' => $pageType, 'route' => $routeArguments])), 0, 20);
+    }
+
+    private static function sortRecursive(array &$values): void
+    {
+        ksort($values);
+        foreach ($values as &$value) {
+            if (is_array($value)) {
+                self::sortRecursive($value);
+            }
+        }
+    }
+
     private function hasAuthenticatedUser(ServerRequestInterface $request): bool
     {
         $frontendUser = $request->getAttribute('frontend.user');

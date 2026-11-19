@@ -95,6 +95,66 @@ class StaticFileRemovalService implements LoggerAwareInterface
     }
 
     /**
+     * Removes one document of a page: the plain page (variant '') keeps the
+     * directories of its URL variants, a variant only removes its own directory.
+     */
+    public function purgeVariant(int $pageUid, int $languageUid, string $variant): void
+    {
+        try {
+            $directory = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid, $variant);
+            if ($variant !== '') {
+                if (is_dir($directory)) {
+                    GeneralUtility::rmdir($directory, true);
+                }
+
+                return;
+            }
+            $files = [StaticHtmlWriterService::INDEX_FILENAME, StaticHtmlWriterService::INDEX_FILENAME . '.gz',
+                StaticHtmlWriterService::INDEX_FILENAME . '.br', StaticHtmlWriterService::METADATA_FILENAME];
+            foreach ($files as $name) {
+                $file = $directory . $name;
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->logger?->warning(sprintf(
+                'Could not remove static cache variant "%s" of page %d, language %d: %s',
+                $variant,
+                $pageUid,
+                $languageUid,
+                $e->getMessage(),
+            ));
+        }
+    }
+
+    /**
+     * Removes every page directory ({pageUid}_{languageUid}) of the static cache.
+     * Other files in the base directory (e.g. a .htaccess) are kept.
+     *
+     * @return int number of removed page directories
+     */
+    public function purgeAll(): int
+    {
+        $baseDir = $this->cacheDirectory->getAbsoluteBaseDirectory();
+        if (!is_dir($baseDir)) {
+            return 0;
+        }
+
+        $removed = 0;
+        foreach ((array) scandir($baseDir) as $entry) {
+            if (!is_string($entry) || preg_match('/^\d+_\d+$/', $entry) !== 1 || !is_dir($baseDir . $entry)) {
+                continue;
+            }
+            if (GeneralUtility::rmdir($baseDir . $entry, true)) {
+                $removed++;
+            }
+        }
+
+        return $removed;
+    }
+
+    /**
      * Resolve a Site by page UID using the SiteFinder.
      *
      * @throws SiteNotFoundException

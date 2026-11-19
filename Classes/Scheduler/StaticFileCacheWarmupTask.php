@@ -30,6 +30,8 @@ use TYPO3\CMS\Scheduler\Task\AbstractTask;
 final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
+    /** How long processed queue entries (with their HTTP status) are kept. */
+    public const int KEEP_RESULTS_SECONDS = 7 * 86400;
 
     /**
      * @return bool
@@ -53,7 +55,6 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
             $stopProcessingAfter = 240;
             $batchSize = 50;
             $concurrency = 10;
-            $offset = 0;
 
             while ($totalProcessed < 500) {
                 if (time() >= $startTime + $stopProcessingAfter) {
@@ -66,7 +67,9 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
                     break;
                 }
 
-                $entriesBatch = $queueRepository->findOpenBatch($batchSize, $offset);
+                // Always the first open entries: processed ones leave the result set, so an
+                // increasing offset skipped every other batch.
+                $entriesBatch = $queueRepository->findOpenBatch($batchSize, 0);
 
                 if (empty($entriesBatch)) {
                     break;
@@ -85,9 +88,11 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
 
                 $totalProcessed += count($entriesBatch);
 
+                // Every entry of the batch is marked, also one without result, so the next
+                // query cannot return the same entries again.
                 $markResults = [];
-                foreach ($statusResults as $uid => $status) {
-                    $markResults[] = ['uid' => $uid, 'call_result' => $status];
+                foreach (array_keys($urlsByUid) as $uid) {
+                    $markResults[] = ['uid' => $uid, 'call_result' => $statusResults[$uid] ?? 0];
                 }
                 $queueRepository->markProcessed($markResults);
 
@@ -95,7 +100,6 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
                     break;
                 }
 
-                $offset += $batchSize;
             }
 
             $duration = time() - $startTime;
@@ -131,7 +135,8 @@ final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwar
             $totalDeleted = 0;
 
             while (true) {
-                $deleted = $queueRepository->cleanupOld($batchSize);
+                // Results of the last days stay visible for analysis.
+                $deleted = $queueRepository->cleanupOld($batchSize, time() - self::KEEP_RESULTS_SECONDS);
                 $totalDeleted += $deleted;
 
                 if ($deleted < $batchSize) {

@@ -27,12 +27,21 @@ final class ImageMeasurementKeyTest extends TestCase
 
     public function testBuildsKeyFromFileReferenceAndFile(): void
     {
-        $reference = new class () {
-            public function getUid(): int { return 34; }
-            public function getOriginalFile(): object { return new \stdClass(); }
+        $reference = new class {
+            public function getUid(): int
+            {
+                return 34;
+            }
+            public function getOriginalFile(): object
+            {
+                return new \stdClass();
+            }
         };
-        $file = new class () {
-            public function getUid(): int { return 5; }
+        $file = new class {
+            public function getUid(): int
+            {
+                return 5;
+            }
         };
 
         self::assertSame('e12.r34', ImageMeasurementKey::fromImage($reference, 12));

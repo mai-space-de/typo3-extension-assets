@@ -6,17 +6,15 @@ namespace Maispace\MaiAssets\EventListener;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
 /**
- * Must run before the static HTML writer, which requires the manifest to exist
- * for the page/language combination it is about to persist.
+ * Stores the early hints collected while rendering, per page, language and URL
+ * variant; EarlyHintsMiddleware and the static delivery send them as Link headers.
  */
-#[AsEventListener(
-    identifier: 'mai-assets/early-hint-manifest',
-    before: 'mai-assets/static-html-writer',
-)]
+#[AsEventListener(identifier: 'mai-assets/early-hint-manifest')]
 final readonly class EarlyHintManifestListener
 {
     public function __construct(
@@ -34,13 +32,15 @@ final readonly class EarlyHintManifestListener
         $pageArguments = $request->getAttribute('routing');
         $language = $request->getAttribute('language');
 
-        if ($pageArguments === null) {
+        // Keyed by page, language and URL variant: a news detail page gets its own hints.
+        $variant = StaticCacheRequestGuard::variantOf($pageArguments);
+        if ($variant === null) {
             return;
         }
 
         $pageUid = (int) $pageArguments->getPageId();
         $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
-        $this->cacheService->store($pageUid, $languageUid, $this->collector);
+        $this->cacheService->store($pageUid, $languageUid, $this->collector, $variant);
     }
 }

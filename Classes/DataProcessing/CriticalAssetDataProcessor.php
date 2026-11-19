@@ -20,7 +20,16 @@ final readonly class CriticalAssetDataProcessor implements DataProcessorInterfac
         array $processorConfiguration,
         array $processedData,
     ): array {
-        $pageUid = (int) ($processedData['data']['pid'] ?? 0);
+        // Observer data is stored for the page being rendered. A referenced element
+        // (shortcut, sliding content) is stored on another page (pid).
+        try {
+            $routing = $cObj->getRequest()->getAttribute('routing');
+        } catch (\Throwable) {
+            $routing = null;
+        }
+        $pageUid = is_object($routing) && method_exists($routing, 'getPageId')
+            ? (int) $routing->getPageId()
+            : (int) ($processedData['data']['pid'] ?? 0);
         $elementUid = (int) ($processedData['data']['uid'] ?? 0);
 
         $isCritical = $this->criticalDetectionService->isCritical($pageUid, $elementUid);

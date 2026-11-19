@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\Service;
 
 use Maispace\MaiAssets\Exception\AssetException;
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -14,6 +15,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 final class CriticalCssRegressionService
 {
     private const string BASELINE_FILE = 'EXT:mai_assets/Resources/Private/Baselines/critical-css-baseline.json';
+    /** Project baseline, relative to the TYPO3 config directory (versioned with the project). */
+    public const string PROJECT_BASELINE_FILE = 'mai_assets/critical-css-baseline.json';
 
     private ?string $overrideBaselinePath = null;
 
@@ -80,7 +83,7 @@ final class CriticalCssRegressionService
     {
         $baselinePath = $this->getBaselinePath();
 
-        if (!file_exists($baselinePath)) {
+        if ($baselinePath === '' || !file_exists($baselinePath)) {
             return [];
         }
 
@@ -151,7 +154,9 @@ final class CriticalCssRegressionService
      */
     public function setBaselineEntry(string $identifier, int $byteSize): void
     {
-        $baselinePath = $this->getBaselinePath();
+        // Written into the project (config/), never into the extension: under Composer that is
+        // the read-only vendor directory, and an update would be lost with the next install.
+        $baselinePath = $this->getWritableBaselinePath();
         $baseline = $this->getBaseline();
         $baseline[$identifier] = $byteSize;
 
@@ -175,12 +180,32 @@ final class CriticalCssRegressionService
         $this->overrideBaselinePath = $path;
     }
 
+    /**
+     * Project baseline (config/mai_assets/critical-css-baseline.json) when it exists,
+     * otherwise the example shipped with the extension.
+     */
     private function getBaselinePath(): string
     {
         if ($this->overrideBaselinePath !== null) {
             return $this->overrideBaselinePath;
         }
 
-        return GeneralUtility::getFileAbsFileName(self::BASELINE_FILE);
+        $projectBaseline = $this->getWritableBaselinePath();
+
+        if (is_file($projectBaseline)) {
+            return $projectBaseline;
+        }
+
+        try {
+            return GeneralUtility::getFileAbsFileName(self::BASELINE_FILE);
+        } catch (\Throwable) {
+            // Extension paths unavailable (e.g. early CLI bootstrap): no shipped baseline.
+            return '';
+        }
+    }
+
+    private function getWritableBaselinePath(): string
+    {
+        return $this->overrideBaselinePath ?? Environment::getConfigPath() . '/' . self::PROJECT_BASELINE_FILE;
     }
 }

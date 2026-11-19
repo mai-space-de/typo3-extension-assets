@@ -13,10 +13,22 @@ compressionLevel = 6
 # cat=Asset Processing//50; type=boolean; label=Enable Brotli Compression: Write pre-compressed Brotli (.br) variants alongside gzip variants. Requires the PHP brotli extension.
 enableBrotli = 1
 
-# cat=Asset Processing//60; type=string; label=Observer Root Margin: IntersectionObserver rootMargin value used by the above-fold detection script. Increase to mark more elements as critical. Example: 200px.
-observerRootMargin = 200px
+# cat=Above Fold//10; type=string; label=Viewport buckets: name:maximum viewport width, comma separated; a name without width is unlimited. Every bucket must report before a page is cached statically. Default: mobile:768, tablet:1024, desktop
+viewportBuckets = mobile:768, tablet:1024, desktop
 
-# cat=Asset Processing//70; type=int+; label=Processing Cache Lifetime (seconds): How long compiled asset files are kept in the public cache directory. 0 means files are never expired automatically.
+# cat=Above Fold//20; type=string; label=Critical elements per column (fallback without measurements): colPos:number of elements from the top, comma separated. Default: 0:2, 1:0, 3:0
+criticalThresholdByColPos = 0:2, 1:0, 3:0
+
+# cat=Asset Processing//55; type=string; label=Font preload formats: file extensions of fonts from Configuration/Fonts.php that are preloaded, comma separated. Default: woff2
+fontPreloadFormats = woff2
+
+# cat=Asset Processing//60; type=string; label=Observer Root Margin: IntersectionObserver rootMargin of the above-fold detection (px or %, e.g. 0px or 0px 0px 200px 0px). A bottom margin also marks elements just below the fold as critical. Default: 0px.
+observerRootMargin = 0px
+
+# cat=Asset Processing//65; type=int+; label=Critical CSS inline limit (bytes): mai:asset.css with critical="auto" is only inlined up to this size (after compilation/minification); larger stylesheets are linked and cached by the browser. critical="true" always inlines. 0 = no limit. Default: 14336 (first TCP round trip).
+criticalCssMaxInlineBytes = 14336
+
+# cat=Asset Processing//70; type=int+; label=Processing Cache Lifetime (seconds): Default age for "maispace:assets:compiled:prune", which deletes older compiled CSS/JS files and flushes the page caches. 0 means the command needs --older-than.
 processingCacheLifetime = 0
 
 # cat=Static File Cache//10; type=boolean; label=Enable Static File Cache: Write full-page HTML responses to the filesystem under typo3temp/assets/mai_assets_static/ so Apache can serve them without PHP. Requires the static file cache middleware to be active.
@@ -28,7 +40,10 @@ staticFileCacheDir =
 # cat=Static File Cache//30; type=boolean; label=Enable Debug Headers: Emit x-mai-static-ready and x-mai-static-cache response headers for ops and QA inspection. Disable in production.
 debugHeaders = 0
 
-# cat=Dev Server//10; type=options[auto,1,0]; label=Use Dev Server: Enable to load assets from a Vite dev server instead of compiled files. "auto" enables this in Development context only.
+# cat=Video//10; type=string; label=Video script: Script for mai:video (starts YouTube/Vimeo facades on click, loads lazy background videos, falls back to hqdefault posters). Set an own path (EXT:… or URL) to replace it with a theme script, leave empty to load none. Default: EXT:mai_assets/Resources/Public/JavaScript/VideoFacade.js
+videoScript = EXT:mai_assets/Resources/Public/JavaScript/VideoFacade.js
+
+# cat=Dev Server//10; type=options[auto,1,0]; label=Use Dev Server: Load assets from a Vite dev server instead of compiled files. "auto" enables this in every Development context, also without a running Vite server (assets are then missing): set 0 in Development contexts without Vite.
 useDevServer = auto
 
 # cat=Dev Server//20; type=string; label=Dev Server URI: Full URI of the Vite dev server (e.g. http://localhost:5173). Only used when "Use Dev Server" is enabled.

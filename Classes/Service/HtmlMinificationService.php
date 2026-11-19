@@ -93,7 +93,17 @@ final class HtmlMinificationService
      */
     private function restoreBlocks(string $html, array $map): string
     {
-        return strtr($html, $map);
+        // Protected blocks can contain tokens of blocks protected earlier (a <script>
+        // inside <pre>); strtr() replaces each token only once, so restore until none is left.
+        for ($pass = 0; $pass < 10 && str_contains($html, '<!--PROTECTED_'); $pass++) {
+            $restored = strtr($html, $map);
+            if ($restored === $html) {
+                break;
+            }
+            $html = $restored;
+        }
+
+        return $html;
     }
 
     /**

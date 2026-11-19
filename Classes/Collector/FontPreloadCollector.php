@@ -46,13 +46,14 @@ final class FontPreloadCollector extends AbstractAssetCollector implements Singl
             }
 
             $mimeType = $this->getMimeType($ext);
+            // $filePath is the absolute file system path; the browser needs the web path.
+            $publicPath = PathUtility::getAbsoluteWebPath($filePath);
             $links .= sprintf(
                 '<link rel="preload" href="%s" as="font" type="%s" crossorigin="anonymous">',
-                htmlspecialchars($filePath, ENT_QUOTES),
+                htmlspecialchars($publicPath, ENT_QUOTES),
                 $mimeType,
             ) . "\n";
 
-            $publicPath = PathUtility::getAbsoluteWebPath($filePath);
             $this->earlyHintCollector->add(new EarlyHintCandidate(
                 href: $publicPath,
                 rel: 'preload',

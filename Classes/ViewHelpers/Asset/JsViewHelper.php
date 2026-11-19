@@ -13,8 +13,10 @@ use Maispace\MaiAssets\Processing\MinificationProcessor;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\SriHashService;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
+use Maispace\MaiAssets\Utility\AssetPathUtility;
 use Maispace\MaiAssets\Utility\AttributeUtility;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -48,7 +50,7 @@ class JsViewHelper extends AbstractViewHelper
         $this->registerArgument('type', 'string', 'MIME type; set "module" for ES6 modules', false, '');
         $this->registerArgument('nomodule', 'bool', 'Fallback for non-module browsers', false, false);
         $this->registerArgument('nonce', 'string', 'CSP nonce', false, '');
-        $this->registerArgument('integrity', 'string', 'SRI hash; auto-computed for local files', false, '');
+        $this->registerArgument('integrity', 'string', 'SRI hash; empty = computed for local files, "none" = no hash', false, '');
         $this->registerArgument('crossorigin', 'string', 'CORS attribute', false, '');
     }
 
@@ -69,7 +71,8 @@ class JsViewHelper extends AbstractViewHelper
             ? (bool) $this->arguments['minify']
             : $this->extensionConfiguration->isEnableMinification();
 
-        $routing = $GLOBALS['TYPO3_REQUEST']?->getAttribute('routing');
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $routing = $request instanceof ServerRequestInterface ? $request->getAttribute('routing') : null;
         $pageUid = is_object($routing) && method_exists($routing, 'getPageId')
             ? (int) $routing->getPageId()
             : 0;
@@ -105,16 +108,33 @@ class JsViewHelper extends AbstractViewHelper
             $resolvedPath = $cacheFile;
         }
 
+        // A script outside the public directory (e.g. Resources/Private) is copied into the
+        // public cache directory; a link to its file system path would return 404.
+        if (!AssetPathUtility::isPubliclyReachable($resolvedPath)) {
+            $content = (string) file_get_contents($resolvedPath);
+            $cacheDir = GeneralUtility::getFileAbsFileName('typo3temp/assets/mai_assets/compiled/');
+            GeneralUtility::mkdir_deep($cacheDir);
+            $cacheFile = $cacheDir . md5($content) . '.js';
+            if (!is_file($cacheFile)) {
+                file_put_contents($cacheFile, $content);
+            }
+            $resolvedPath = $cacheFile;
+        }
+
         $publicPath = PathUtility::getAbsoluteWebPath($resolvedPath);
 
         // For TYPO3 14+, convert relative paths to absolute URLs to avoid SystemResourceFactory resolution issues
         $typo3Version = new Typo3Version();
-        if ($typo3Version->getMajorVersion() >= 14 && !str_starts_with($publicPath, 'http')) {
-            $siteUrl = (string) $GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams')->getSiteUrl();
+        $normalizedParams = $request instanceof ServerRequestInterface ? $request->getAttribute('normalizedParams') : null;
+        if ($typo3Version->getMajorVersion() >= 14 && !str_starts_with($publicPath, 'http') && is_object($normalizedParams)) {
+            $siteUrl = (string) $normalizedParams->getSiteUrl();
             $publicPath = rtrim($siteUrl, '/') . '/' . ltrim($publicPath, '/');
         }
 
-        if ($integrity === '') {
+        if ($integrity === 'none') {
+            // Same as mai:asset.css: "none" disables Subresource Integrity.
+            $integrity = '';
+        } elseif ($integrity === '') {
             try {
                 $integrity = $this->sriHashService->computeForFile($resolvedPath);
             } catch (\Exception) {
@@ -130,13 +150,15 @@ class JsViewHelper extends AbstractViewHelper
         } else {
             if ($async) {
                 $tagAttributes['async'] = 'async';
-            } elseif ($defer && !$isCritical) {
+            } elseif ($defer) {
                 $tagAttributes['defer'] = 'defer';
             }
             if ($type !== '') {
                 $tagAttributes['type'] = $type;
             }
         }
+        // Critical scripts load early (fetchpriority, preload hint) but stay deferred:
+        // dropping defer made them parser- and render-blocking.
         if ($isCritical) {
             $tagAttributes['fetchpriority'] = 'high';
         }
@@ -197,7 +219,7 @@ class JsViewHelper extends AbstractViewHelper
         } else {
             if ($async) {
                 $tagAttributes['async'] = 'async';
-            } elseif ($defer && !$isCritical) {
+            } elseif ($defer) {
                 $tagAttributes['defer'] = 'defer';
             }
             if ($type !== '') {

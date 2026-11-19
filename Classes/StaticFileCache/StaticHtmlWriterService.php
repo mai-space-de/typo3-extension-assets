@@ -34,6 +34,11 @@ class StaticHtmlWriterService
     public const INDEX_FILENAME = 'index.html';
 
     /**
+     * Response metadata stored next to the HTML file.
+     */
+    public const string METADATA_FILENAME = 'meta.json';
+
+    /**
      * TYPO3 non-cacheable page marker. Pages containing this string are
      * rendered with USER_INT / COA_INT objects and must not be statically cached.
      */
@@ -123,7 +128,7 @@ class StaticHtmlWriterService
      * Returns true when the file was successfully written, false when any
      * guard condition prevented it or the write itself failed.
      */
-    public function writeByPageId(string $html, int $pageUid, int $languageUid): bool
+    public function writeByPageId(string $html, int $pageUid, int $languageUid, string $variant = ''): bool
     {
         if ($html === '' || !self::isCacheableHtmlDocument($html)) {
             return false;
@@ -141,8 +146,14 @@ class StaticHtmlWriterService
             return false;
         }
 
-        $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid);
+        $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid, $variant);
         $this->cacheDirectory->ensureDirectoryExists($pageDir);
+
+        // Metadata of a previous rendering (headers, nonce) must never be combined with new HTML.
+        $metadataFile = rtrim($pageDir, '/') . '/' . self::METADATA_FILENAME;
+        if (is_file($metadataFile)) {
+            unlink($metadataFile);
+        }
 
         $filePath = rtrim($pageDir, '/') . '/' . self::INDEX_FILENAME;
 
@@ -155,6 +166,52 @@ class StaticHtmlWriterService
         }
 
         return true;
+    }
+
+    /**
+     * Response metadata of a static file (headers, cached nonce, expiry) as meta.json.
+     *
+     * @param array{headers: array<string, list<string>>, nonce: string, expires: int} $metadata
+     */
+    public function writeMetadata(int $pageUid, int $languageUid, string $variant, array $metadata): bool
+    {
+        $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid, $variant);
+        if (!is_file(rtrim($pageDir, '/') . '/' . self::INDEX_FILENAME)) {
+            return false;
+        }
+
+        return file_put_contents(
+            rtrim($pageDir, '/') . '/' . self::METADATA_FILENAME,
+            (string) json_encode($metadata, JSON_UNESCAPED_SLASHES),
+        ) !== false;
+    }
+
+    /**
+     * @return array{headers: array<string, list<string>>, nonce: string, expires: int}
+     */
+    public function readMetadata(int $pageUid, int $languageUid, string $variant): array
+    {
+        $empty = ['headers' => [], 'nonce' => '', 'expires' => 0];
+        try {
+            $file = rtrim($this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid, $variant), '/')
+                . '/' . self::METADATA_FILENAME;
+        } catch (\InvalidArgumentException) {
+            return $empty;
+        }
+        if (!is_file($file)) {
+            return $empty;
+        }
+
+        $data = json_decode((string) file_get_contents($file), true);
+        if (!is_array($data)) {
+            return $empty;
+        }
+
+        return [
+            'headers' => is_array($data['headers'] ?? null) ? $data['headers'] : [],
+            'nonce' => is_string($data['nonce'] ?? null) ? $data['nonce'] : '',
+            'expires' => (int) ($data['expires'] ?? 0),
+        ];
     }
 
     /**

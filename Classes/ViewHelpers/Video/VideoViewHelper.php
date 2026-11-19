@@ -4,12 +4,22 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\ViewHelpers\Video;
 
+use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class VideoViewHelper extends AbstractViewHelper
 {
     protected $escapeOutput = false;
+
+    /** AssetCollector identifier of the video script; a theme can use it to replace the script. */
+    public const string SCRIPT_IDENTIFIER = 'mai-video';
+
+    public function __construct(
+        private readonly ?AssetCollector $assetCollector = null,
+        private readonly ?ExtensionConfiguration $extensionConfiguration = null,
+    ) {}
 
     public function initializeArguments(): void
     {
@@ -17,7 +27,7 @@ class VideoViewHelper extends AbstractViewHelper
         $this->registerArgument('youtubeId', 'string', 'YouTube video ID', false, '');
         $this->registerArgument('vimeoId', 'string', 'Vimeo video ID', false, '');
         $this->registerArgument('poster', 'object', 'Poster FAL file reference', false, null);
-        $this->registerArgument('isCritical', 'bool', 'Whether the video is above-fold critical', false, false);
+        $this->registerArgument('isCritical', 'bool', 'Above the fold: autoplay background video eagerly, load facade posters with high priority', false, false);
         $this->registerArgument('type', 'string', 'Display type: "background" or "content"', false, 'content');
         $this->registerArgument('title', 'string', 'Video title for accessibility', false, '');
         $this->registerArgument('class', 'string', 'CSS class', false, '');
@@ -35,18 +45,36 @@ class VideoViewHelper extends AbstractViewHelper
         $class = (string) $this->arguments['class'];
 
         $classAttr = $class !== '' ? ' class="' . htmlspecialchars($class, ENT_QUOTES) . '"' : '';
+        // The facades already have a class attribute; a second one would be ignored by browsers.
+        $extraClass = $class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES) : '';
 
         if ($type === 'background') {
-            return $this->renderBackground($file, $isCritical, $classAttr);
+            $html = $this->renderBackground($file, $isCritical, $classAttr);
+            if (str_contains($html, ' data-lazy')) {
+                $this->includeScript();
+            }
+
+            return $html;
         }
 
-        // Content type
+        // Content type. IDs end up in iframe URLs: only valid ones are accepted.
+        if ($youtubeId !== '' && preg_match('/^[A-Za-z0-9_-]{11}$/', $youtubeId) !== 1) {
+            $youtubeId = '';
+        }
+        if ($vimeoId !== '' && preg_match('/^\d{1,15}$/', $vimeoId) !== 1) {
+            $vimeoId = '';
+        }
+
         if ($youtubeId !== '') {
-            return $this->renderYoutubeFacade($youtubeId, $poster, $title, $classAttr);
+            $this->includeScript();
+
+            return $this->renderYoutubeFacade($youtubeId, $poster, $title, $extraClass, $isCritical);
         }
 
         if ($vimeoId !== '') {
-            return $this->renderVimeoFacade($vimeoId, $poster, $title, $classAttr);
+            $this->includeScript();
+
+            return $this->renderVimeoFacade($vimeoId, $poster, $title, $extraClass, $isCritical);
         }
 
         if ($file !== null) {
@@ -87,46 +115,53 @@ class VideoViewHelper extends AbstractViewHelper
             . '></video>';
     }
 
-    private function renderYoutubeFacade(string $youtubeId, ?object $poster, string $title, string $classAttr): string
+    private function renderYoutubeFacade(string $youtubeId, ?object $poster, string $title, string $extraClass, bool $isCritical): string
     {
         $posterUrl = $poster !== null ? $this->getFileUrl($poster) : '';
+        $fallbackAttr = '';
         if ($posterUrl === '') {
-            $posterUrl = 'https://img.youtube.com/vi/' . htmlspecialchars($youtubeId, ENT_QUOTES) . '/maxresdefault.jpg';
+            // maxresdefault does not exist for every video; the video script then switches to
+            // hqdefault, which always exists.
+            $posterUrl = 'https://img.youtube.com/vi/' . $youtubeId . '/maxresdefault.jpg';
+            $fallbackAttr = ' data-fallback-src="https://img.youtube.com/vi/' . $youtubeId . '/hqdefault.jpg"';
         }
 
         $titleAttr = $title !== '' ? ' title="' . htmlspecialchars($title, ENT_QUOTES) . '"' : '';
         $iframeUrl = 'https://www.youtube-nocookie.com/embed/' . htmlspecialchars($youtubeId, ENT_QUOTES) . '?autoplay=1';
 
-        return '<div class="mai-video-facade mai-video-youtube"' . $classAttr . '>'
+        return '<div class="mai-video-facade mai-video-youtube' . $extraClass . '">'
             . '<img src="' . htmlspecialchars($posterUrl, ENT_QUOTES) . '"'
+            . $fallbackAttr
             . ' alt="' . htmlspecialchars($title, ENT_QUOTES) . '"'
-            . ' loading="lazy" class="mai-video-poster">'
+            . $this->posterLoading($isCritical) . ' class="mai-video-poster">'
             . '<button class="mai-video-play" aria-label="Play video"' . $titleAttr . '>'
             . '<svg aria-hidden="true" focusable="false"><use href="#mai-icon-play"/></svg>'
             . '</button>'
             . '<template><iframe src="' . htmlspecialchars($iframeUrl, ENT_QUOTES) . '"'
+            . ' title="' . htmlspecialchars($title !== '' ? $title : 'YouTube video', ENT_QUOTES) . '"'
             . ' frameborder="0" allowfullscreen'
             . ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"'
             . '></iframe></template>'
             . '</div>';
     }
 
-    private function renderVimeoFacade(string $vimeoId, ?object $poster, string $title, string $classAttr): string
+    private function renderVimeoFacade(string $vimeoId, ?object $poster, string $title, string $extraClass, bool $isCritical): string
     {
         $posterUrl = $poster !== null ? $this->getFileUrl($poster) : '';
         $titleAttr = $title !== '' ? ' title="' . htmlspecialchars($title, ENT_QUOTES) . '"' : '';
         $iframeUrl = 'https://player.vimeo.com/video/' . htmlspecialchars($vimeoId, ENT_QUOTES) . '?autoplay=1';
 
         $posterHtml = $posterUrl !== ''
-            ? '<img src="' . htmlspecialchars($posterUrl, ENT_QUOTES) . '" alt="' . htmlspecialchars($title, ENT_QUOTES) . '" loading="lazy" class="mai-video-poster">'
+            ? '<img src="' . htmlspecialchars($posterUrl, ENT_QUOTES) . '" alt="' . htmlspecialchars($title, ENT_QUOTES) . '"' . $this->posterLoading($isCritical) . ' class="mai-video-poster">'
             : '';
 
-        return '<div class="mai-video-facade mai-video-vimeo"' . $classAttr . '>'
+        return '<div class="mai-video-facade mai-video-vimeo' . $extraClass . '">'
             . $posterHtml
             . '<button class="mai-video-play" aria-label="Play video"' . $titleAttr . '>'
             . '<svg aria-hidden="true" focusable="false"><use href="#mai-icon-play"/></svg>'
             . '</button>'
             . '<template><iframe src="' . htmlspecialchars($iframeUrl, ENT_QUOTES) . '"'
+            . ' title="' . htmlspecialchars($title !== '' ? $title : 'Vimeo video', ENT_QUOTES) . '"'
             . ' frameborder="0" allowfullscreen'
             . ' allow="autoplay; fullscreen; picture-in-picture"'
             . '></iframe></template>'
@@ -185,18 +220,20 @@ class VideoViewHelper extends AbstractViewHelper
 
     private function deriveVariantUrl(string $url, string $codec): string
     {
-        // Convention: variant files are named originalname.av1.mp4 or originalname.hevc.mp4
-        $pathInfo = pathinfo($url);
-        $base = $pathInfo['dirname'] . '/' . $pathInfo['filename'];
-        $variantPath = $base . '.' . $codec . '.mp4';
-
-        // Check if variant file exists on filesystem
-        $absPath = Environment::getPublicPath() . $variantPath;
-        if (file_exists($absPath)) {
-            return $variantPath;
+        // Convention: variant files are named originalname.av1.mp4 or originalname.hevc.mp4.
+        // Only local files can be checked; remote storages (CDN URLs) are skipped.
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if ($path === '' || parse_url($url, PHP_URL_HOST) !== null) {
+            return '';
         }
 
-        return '';
+        $pathInfo = pathinfo($path);
+        $variantPath = $pathInfo['dirname'] . '/' . $pathInfo['filename'] . '.' . $codec . '.mp4';
+
+        // URLs are encoded (spaces as %20), the file system path is not.
+        $absPath = rtrim(Environment::getPublicPath(), '/') . '/' . ltrim(rawurldecode($variantPath), '/');
+
+        return is_file($absPath) ? $variantPath : '';
     }
 
     private function getFileUrl(object $fileReference): string
@@ -208,5 +245,38 @@ class VideoViewHelper extends AbstractViewHelper
             return (string) $fileReference->getOriginalFile()->getPublicUrl();
         }
         return '';
+    }
+
+    /**
+     * Above the fold the poster is often the LCP image: load it eagerly with high priority.
+     */
+    private function posterLoading(bool $isCritical): string
+    {
+        return $isCritical ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"';
+    }
+
+    /**
+     * Registers the video script (facade activation, lazy background videos, poster
+     * fallback) once per page. The extension setting "videoScript" replaces it with a
+     * theme script or disables it (empty).
+     */
+    private function includeScript(): void
+    {
+        if ($this->assetCollector === null || $this->extensionConfiguration === null) {
+            return;
+        }
+
+        $script = $this->extensionConfiguration->getVideoScript();
+        if ($script === '' || $this->assetCollector->hasJavaScript(self::SCRIPT_IDENTIFIER)) {
+            return;
+        }
+
+        // EXT: paths are resolved by the AssetCollector itself; anything else is a URL.
+        $this->assetCollector->addJavaScript(
+            self::SCRIPT_IDENTIFIER,
+            $script,
+            ['defer' => 'defer'],
+            str_starts_with($script, 'EXT:') ? [] : ['external' => true],
+        );
     }
 }

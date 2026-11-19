@@ -70,12 +70,25 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
 
         $variants = $this->imageVariantService->processVariants($image, $breakpoints);
 
-        if ($isCritical && isset($variants['desktop']['avif']) && $variants['desktop']['avif'] !== '') {
-            $avifUrl = $variants['desktop']['avif'];
+        // Responsive preload: the same srcset and sizes as the <source>, so the browser
+        // preloads the candidate it is going to use (a fixed desktop variant was downloaded
+        // on every device in addition to the selected one).
+        $avifSrcsetForHint = $this->buildSrcset($variants, 'avif', false);
+        if ($isCritical && $avifSrcsetForHint !== '') {
+            $firstAvif = '';
+            foreach ($variants as $data) {
+                if (!empty($data['avif'])) {
+                    $firstAvif = (string) $data['avif'];
+                    break;
+                }
+            }
             $this->earlyHintCollector->add(new EarlyHintCandidate(
-                href: $avifUrl,
+                href: $firstAvif,
                 rel: 'preload',
                 as: 'image',
+                type: 'image/avif',
+                imageSrcset: $avifSrcsetForHint,
+                imageSizes: $sizes,
             ));
         }
 
@@ -117,12 +130,13 @@ class ResponsiveImageViewHelper extends AbstractViewHelper
         return $html;
     }
 
-    private function buildSrcset(array $variants, string $format): string
+    private function buildSrcset(array $variants, string $format, bool $escape = true): string
     {
         $parts = [];
         foreach ($variants as $bucket => $data) {
             if (!empty($data[$format]) && !empty($data['width'])) {
-                $parts[] = htmlspecialchars($data[$format], ENT_QUOTES) . ' ' . (int) $data['width'] . 'w';
+                $url = (string) $data[$format];
+                $parts[] = ($escape ? htmlspecialchars($url, ENT_QUOTES) : $url) . ' ' . (int) $data['width'] . 'w';
             }
         }
         return implode(', ', $parts);

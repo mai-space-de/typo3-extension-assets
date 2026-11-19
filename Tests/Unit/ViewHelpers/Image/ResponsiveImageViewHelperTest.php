@@ -160,6 +160,12 @@ final class ResponsiveImageViewHelperTest extends TestCase
         self::assertStringContainsString('fetchpriority="high"', $result);
         self::assertStringContainsString('decoding="sync"', $result);
         self::assertCount(1, $this->earlyHintCollector->getAll());
+
+        // Responsive preload instead of one fixed desktop variant for every device.
+        $hint = array_values($this->earlyHintCollector->getAll())[0];
+        self::assertSame('image/avif', $hint->type);
+        self::assertNotSame('', $hint->imageSizes);
+        self::assertGreaterThan(1, count(explode(', ', $hint->imageSrcset)));
     }
 
     /**

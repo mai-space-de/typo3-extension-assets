@@ -19,6 +19,9 @@ final readonly class AboveFoldObserverScriptBuilder
 
     /**
      * @param string $scriptTemplate Raw JS template (may contain ###PLACEHOLDER### markers)
+     * @param string $nonceAttribute ' nonce="…"' or empty, see HtmlInjectionUtility::nonceAttribute()
+     * @param string $bucketLimitsJson JSON object: bucket name => maximum viewport width
+     * @param string $rootMargin validated IntersectionObserver rootMargin
      */
     public function build(
         string $scriptTemplate,
@@ -26,6 +29,9 @@ final readonly class AboveFoldObserverScriptBuilder
         int $resetTimestamp,
         string $token,
         string $validBucketsJson,
+        string $nonceAttribute = '',
+        string $bucketLimitsJson = '{}',
+        string $rootMargin = '0px',
     ): string {
         if ($this->extensionConfiguration->isEnableMinification()) {
             $minifier = new JS();
@@ -36,11 +42,11 @@ final readonly class AboveFoldObserverScriptBuilder
         }
 
         $script = str_replace(
-            ['###PAGE_UID###', '###SERVER_RESET_TIMESTAMP###', '###REPORT_TOKEN###', '###VALID_BUCKETS###'],
-            [(string) $pageUid, (string) $resetTimestamp, $token, $validBucketsJson],
+            ['###PAGE_UID###', '###SERVER_RESET_TIMESTAMP###', '###REPORT_TOKEN###', '###VALID_BUCKETS###', '###BUCKET_LIMITS###', '###ROOT_MARGIN###'],
+            [(string) $pageUid, (string) $resetTimestamp, $token, $validBucketsJson, $bucketLimitsJson, $rootMargin],
             $scriptTemplate,
         );
 
-        return '<script>' . $script . '</script>';
+        return '<script' . $nonceAttribute . '>' . $script . '</script>';
     }
 }

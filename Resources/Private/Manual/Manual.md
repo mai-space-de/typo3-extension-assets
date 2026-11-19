@@ -13,6 +13,12 @@ Bilder in Inhaltselementen werden responsive ausgeliefert. Ein SVG-Sprite bünde
 
 Subresource Integrity setzt Prüfsummen auf lokale Dateien. Für die Look-Vorschau darf die Prüfsumme mit dem Wert `none` ausgeschaltet werden, sonst bleibt die Vorschau ohne Styles.
 
+## Above-the-fold
+
+Die Extension merkt sich, welche Inhaltselemente beim Laden im sichtbaren Bereich liegen, und lädt deren Bilder mit hoher Priorität. Im Tab **Render as Critical** lässt sich das pro Element überschreiben: **Automatisch (gemessen)** ist der Standard, **Ja** bzw. **Nein** erzwingen die Entscheidung.
+
+Kritisches CSS (`mai:asset.css` mit `critical="auto"`) wird nur bis zur Größe `criticalCssMaxInlineBytes` (Standard 14 KB) direkt ins HTML geschrieben; größere Dateien werden normal eingebunden. Den ViewHelper im `<head>` des Layouts aufrufen, die Ausgabe erscheint an seiner Stelle.
+
 ## Bericht
 
 Administratoren sehen unter **System → Assets Report**, ob Seiten für Optimierung, Early Hints und den statischen Cache bereit sind.
@@ -21,9 +27,29 @@ Administratoren sehen unter **System → Assets Report**, ob Seiten für Optimie
 
 Die Extension misst im Browser, wie breit ein Bild im jeweiligen Inhaltselement wirklich dargestellt wird (Hero, Text/Medien links/rechts, Text/Medien oben usw.). Daraus erzeugt sie `sizes` und `srcset`, sodass jedes Element nur die Bildgröße lädt, die es braucht.
 
-- Optional (Entwickler): Mit `slot="textmedia-left"` am ViewHelper teilen sich alle Elemente mit demselben Namen ein gelerntes Profil. Nur verwenden, wenn das Layout wirklich identisch ist (gleiche Spalte/Container).
+- Optional (Entwickler): Mit `slot="textmedia-left"` am ViewHelper teilen sich alle Elemente mit demselben Namen ein gelerntes Profil. Nur verwenden, wenn das Layout wirklich identisch ist (gleiche Spalte/Container). Ändert sich das Profil, werden alle Seiten neu erzeugt, auf denen der Slot gemessen wurde.
+- `<mai:picture.source>` übernimmt ebenfalls die gemessenen Breiten (die `media`-Bedingung bleibt). Mit `measured="false"` bleiben die angegebenen Werte.
 - Bis genug Messwerte da sind (mindestens 3 Seitenaufrufe pro Viewport-Bereich), gelten die im Template angegebenen Breakpoints.
-- Gelernt wird pro Inhaltselement und Bild. Ändert sich Layout, Typ, Spalte oder Bild eines Elements im Backend, werden dessen Messwerte verworfen und neu gelernt.
+- Gelernt wird pro Inhaltselement und Bild. Bilder ohne `elementUid` und ohne `slot` werden nicht gemessen (ihr Ort ist nicht eindeutig). Ändert sich Layout, Typ, Spalte oder Bild eines Elements im Backend, werden dessen Messwerte verworfen und neu gelernt.
 - Die Bildvarianten entstehen beim ersten Rendern der Seite. Mit `vendor/bin/typo3 maispace:assets:image-measure:warmup` lassen sie sich vorab erzeugen.
-- Messwerte zurücksetzen: `maispace:assets:image-measure:reset --all` oder `... reset 123` (Inhaltselement 123).
+- Messwerte zurücksetzen: `maispace:assets:image-measure:reset --all` oder `... reset 123` (Inhaltselement 123). Die betroffenen Seiten werden dabei neu erzeugt und nutzen bis zum neuen Lernen wieder die Template-Breakpoints.
 - Abschalten: Extension-Konfiguration `enableImageMeasurement`.
+
+## Aufräumen
+
+- Alte kompilierte CSS/JS-Dateien löschen: `vendor/bin/typo3 maispace:assets:compiled:prune --older-than=2592000` (30 Tage; ohne Option gilt `processingCacheLifetime`). Danach werden Seiten-Cache und statische Dateien geleert.
+- Statische HTML-Dateien folgen dem Seiten-Cache: Was den Seiten-Cache leert (Speichern im Backend, „Frontend-Caches leeren“, `cache:flush`, Ablauf durch Start-/Stoppzeit), macht auch die statische Datei ungültig.
+
+## Video
+
+`mai:video` gibt für YouTube/Vimeo eine Vorschau (Poster + Play-Button) aus; das eingebettete Video und seine Cookies werden erst nach dem Klick geladen. Hintergrundvideos (`type="background"`) laden erst, wenn sie in die Nähe des sichtbaren Bereichs kommen. Fehlt das große YouTube-Vorschaubild (`maxresdefault`), wird automatisch `hqdefault` verwendet.
+
+Das dafür nötige Skript liefert die Extension mit. Extension-Einstellung `videoScript`: eigener Pfad (`EXT:…` oder URL) ersetzt es durch ein Theme-Skript, leer lädt keins. Alternativ registriert das Theme ein Skript mit der AssetCollector-Kennung `mai-video`.
+
+## Hinweise für Entwickler
+
+- Dev-Server: `useDevServer = auto` lädt Styles und Skripte in **jedem** Development-Kontext von `devServerUri` (Standard `http://localhost:5173`). Läuft dort kein Vite, fehlen alle Assets – dann `useDevServer = 0` setzen.
+- Above-the-fold: Die Liste der kritischen Elemente einer Seite wächst mit jedem Bericht, in dem ein Element im sichtbaren Bereich lag, und wird bei Positions- oder Layoutänderungen (Sortierung, Spalte, Sichtbarkeit, Bilder, Layout) zurückgesetzt.
+
+- `BeforeAssetInjectionEvent` läuft nur noch dort, wo Inhalt direkt ins HTML eingefügt wird (kritisches CSS inline, minifiziertes JavaScript). Extern eingebundene Stylesheets durchlaufen es nicht mehr.
+- Voraussetzung ist TYPO3 14 (die Listener nutzen `AfterCacheableContentIsGeneratedEvent::getContent()`, der statische Cache `frontend.page.parts`; beides gibt es erst ab 14).

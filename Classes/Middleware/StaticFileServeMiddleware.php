@@ -8,12 +8,17 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
+use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
+use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
+use Maispace\MaiAssets\StaticFileCache\StaticContentSecurityPolicy;
+use Maispace\MaiAssets\StaticFileCache\StaticResponseHeaders;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Http\HtmlResponse;
+use TYPO3\CMS\Core\Http\StreamFactory;
 
 /**
  * Serves a cached static HTML file from disk when available, falling
@@ -61,6 +66,10 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
         private ExtensionConfiguration $extensionConfiguration,
         private EarlyHintCacheService $earlyHintCacheService,
         private StaticCacheRequestGuard $requestGuard,
+        private StaticFileIndex $staticFileIndex,
+        private StaticFileRemovalService $staticFileRemovalService,
+        private StaticHtmlWriterService $staticHtmlWriterService,
+        private StaticContentSecurityPolicy $contentSecurityPolicy,
     ) {}
 
     public function process(
@@ -94,25 +103,29 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
                 return $handler->handle($request);
             }
 
-            // --- Primary lookup: page-ID-based cache key ---
-            // This aligns with the early-hints manifest key
-            // (earlyhints_{pageUid}_{languageUid}) and correctly isolates
-            // cache entries per language even when the same page is served
-            // under different URL paths.
+            // One cache file per page, language and URL variant: /news/article-a and
+            // /news/article-b share the page id but have different route arguments.
             $pageArgs = $request->getAttribute('routing');
-            $language = $request->getAttribute('language');
-            $pageUid = $pageArgs !== null ? (int) $pageArgs->getPageId() : 0;
-            $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
-
-            // One cache file per page id. Sitemap and other typeNums must
-            // render dynamically instead of replacing or replaying that file.
-            if (!$this->isDefaultPageType($pageArgs)) {
+            $variant = StaticCacheRequestGuard::variantOf($pageArgs);
+            if ($variant === null) {
                 return $handler->handle($request);
             }
 
-            $filePath = $this->resolveCacheFilePath($pageUid, $languageUid, $requestUri);
+            $language = $request->getAttribute('language');
+            $pageUid = (int) $pageArgs->getPageId();
+            $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
+
+            $filePath = $this->resolveCacheFilePath($pageUid, $languageUid, $variant);
 
             if ($filePath === null || !is_file($filePath) || !is_readable($filePath)) {
+                return $handler->handle($request);
+            }
+
+            // The file is only valid as long as the page cache entry it was rendered from:
+            // any page cache flush or the end of its lifetime removes the index entry.
+            if (!$this->staticFileIndex->isValid($pageUid, $languageUid, $variant)) {
+                $this->staticFileRemovalService->purgeVariant($pageUid, $languageUid, $variant);
+
                 return $handler->handle($request);
             }
 
@@ -121,22 +134,44 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
                 return $handler->handle($request);
             }
 
-            $headers = ['Content-Type' => 'text/html; charset=utf-8'];
+            // Headers of the rendered page (config.additionalHeaders, Cache-Control, …).
+            $metadata = $this->staticHtmlWriterService->readMetadata($pageUid, $languageUid, $variant);
+            $headers = StaticResponseHeaders::forDelivery($metadata['headers'], $metadata['expires'], time());
+            $headers['Content-Type'] = ['text/html; charset=utf-8'];
+            // The body depends on Accept-Encoding (br/gzip variants): shared caches must key on it.
+            $headers['Vary'] = ['Accept-Encoding'];
 
             // --- Hybrid delivery: add preload Link headers from early hints manifest ---
             // The EarlyHintsMiddleware already sent these as HTTP 103; we repeat them on the
             // 200 response as a fallback for clients / proxies that do not support 103.
-            $this->addEarlyHintLinkHeaders($request, $headers);
-
-            $filePath = $this->resolveContentEncoding($filePath, $request, $headers);
+            $this->addEarlyHintLinkHeaders($pageUid, $languageUid, $variant, $headers);
 
             if ($this->extensionConfiguration->isDebugHeaders()) {
-                $headers['X-Mai-Static-Cache'] = '1';
+                $headers['X-Mai-Static-Cache'] = ['1'];
             }
 
-            $content = file_get_contents($filePath);
+            // Same Content-Security-Policy as a dynamically delivered page; the nonce stored
+            // in the HTML is replaced by the one of this request.
+            $response = $this->contentSecurityPolicy->apply(
+                $request,
+                new HtmlResponse($plainContent, 200, $headers),
+                $metadata['nonce'],
+            );
 
-            return new HtmlResponse((string) $content, 200, $headers);
+            // Pre-compressed variants cannot carry a request specific nonce, and PHP or
+            // TYPO3 output compression would encode them a second time.
+            if (StaticContentSecurityPolicy::hasPolicy($response) || $this->isOutputCompressed()) {
+                return $response;
+            }
+
+            $encoding = $this->negotiateEncoding($filePath, $request);
+            if ($encoding === null) {
+                return $response;
+            }
+
+            return $response
+                ->withHeader('Content-Encoding', $encoding['coding'])
+                ->withBody((new StreamFactory())->createStream((string) file_get_contents($encoding['file'])));
         } catch (\Throwable) {
             // Fail open: any error during static file serving delegates
             // to the normal TYPO3 rendering path.
@@ -154,26 +189,6 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
     }
 
     /**
-     * The static file is the default HTML document of a page.
-     * Missing page type information stays eligible so existing callers keep working.
-     */
-    private function isDefaultPageType(mixed $pageArguments): bool
-    {
-        if (!is_object($pageArguments) || !method_exists($pageArguments, 'getPageType')) {
-            return true;
-        }
-
-        $pageType = $pageArguments->getPageType();
-        if ($pageType === null) {
-            return true;
-        }
-
-        $pageType = (string) $pageType;
-
-        return $pageType === '' || $pageType === '0';
-    }
-
-    /**
      * Detect Hotwired Turbo frame / Mai Turbo context requests.
      *
      * These arrive without a query string when the signed context is sent
@@ -187,47 +202,24 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Resolve the absolute cache file path for the given page/language
-     * combination, falling back to the legacy URL-based path when page
-     * routing information is not available.
-     *
-     * Primary:  {baseDir}/{pageUid}_{languageUid}/index.html
-     * Fallback: {baseDir}/{scheme}_{host}_{port}/{url-path}/index.html
-     *
-     * Returns null when neither path can be resolved or when the resolved
-     * path escapes the cache base directory (path-traversal guard).
+     * Absolute path of {baseDir}/{pageUid}_{languageUid}/index.html, or null when
+     * it cannot be resolved inside the cache base directory.
      */
-    private function resolveCacheFilePath(int $pageUid, int $languageUid, string $requestUri): ?string
+    private function resolveCacheFilePath(int $pageUid, int $languageUid, string $variant): ?string
     {
-        $baseDir = $this->cacheDirectory->getAbsoluteBaseDirectory();
-
-        // Primary: page-ID-based cache key (aligned with early-hints manifest)
-        if ($pageUid > 0) {
-            try {
-                $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid);
-                $filePath = rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
-                if (str_starts_with($filePath, $baseDir)) {
-                    return $filePath;
-                }
-            } catch (\InvalidArgumentException) {
-                // Fall through to URL-based fallback.
-            }
+        if ($pageUid <= 0) {
+            return null;
         }
 
-        // Fallback: legacy URL-based cache key
-        if ($this->cacheDirectory->isValidUri($requestUri)) {
-            try {
-                $pageDir = $this->cacheDirectory->getPageDirectory($requestUri);
-                $filePath = rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
-                if (str_starts_with($filePath, $baseDir)) {
-                    return $filePath;
-                }
-            } catch (\InvalidArgumentException) {
-                // Path resolution failed.
-            }
+        try {
+            $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid, $variant);
+        } catch (\InvalidArgumentException) {
+            return null;
         }
 
-        return null;
+        $filePath = rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
+
+        return str_starts_with($filePath, $this->cacheDirectory->getAbsoluteBaseDirectory()) ? $filePath : null;
     }
 
     /**
@@ -251,22 +243,15 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
      *   (no page resolved).
      * - No early hints manifest exists for the current page+language.
      *
-     * @param array<string, string> $headers  Reference to the response headers array.
+     * @param array<string, list<string>> $headers  Reference to the response headers array.
      */
     private function addEarlyHintLinkHeaders(
-        ServerRequestInterface $request,
+        int $pageUid,
+        int $languageUid,
+        string $variant,
         array &$headers,
     ): void {
-        $pageArguments = $request->getAttribute('routing');
-        if ($pageArguments === null) {
-            return;
-        }
-
-        $language = $request->getAttribute('language');
-        $pageUid = (int) $pageArguments->getPageId();
-        $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
-
-        $candidates = $this->earlyHintCacheService->load($pageUid, $languageUid);
+        $candidates = $this->earlyHintCacheService->load($pageUid, $languageUid, $variant);
         if ($candidates === []) {
             return;
         }
@@ -276,38 +261,58 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
             $linkValues[] = $candidate->toLinkHeaderValue();
         }
 
-        $headers['Link'] = implode(', ', $linkValues);
+        $headers['Link'] = [implode(', ', $linkValues)];
     }
 
     /**
-     * Negotiate the best Content-Encoding variant for the current request.
+     * Best pre-compressed variant the client accepts: brotli before gzip, codings
+     * with q=0 count as refused.
      *
-     * Brotli is preferred over gzip when the client advertises both.
-     * Returns the absolute path to the chosen variant and appends the
-     * ``Content-Encoding`` header to the $headers array.
-     *
-     * @param array<string, string> $headers  Reference to the response headers array.
+     * @return array{coding: string, file: string}|null
      */
-    private function resolveContentEncoding(
-        string $filePath,
-        ServerRequestInterface $request,
-        array &$headers,
-    ): string {
-        foreach ($request->getHeader('accept-encoding') as $acceptEncoding) {
-            if (str_contains($acceptEncoding, 'br')) {
-                if (is_file($filePath . '.br') && is_readable($filePath . '.br')) {
-                    $headers['Content-Encoding'] = 'br';
-                    return $filePath . '.br';
-                }
-            }
-            if (str_contains($acceptEncoding, 'gzip')) {
-                if (is_file($filePath . '.gz') && is_readable($filePath . '.gz')) {
-                    $headers['Content-Encoding'] = 'gzip';
-                    return $filePath . '.gz';
-                }
+    private function negotiateEncoding(string $filePath, ServerRequestInterface $request): ?array
+    {
+        $accepted = self::parseAcceptEncoding($request->getHeaderLine('Accept-Encoding'));
+
+        foreach (['br' => '.br', 'gzip' => '.gz'] as $coding => $suffix) {
+            $quality = $accepted[$coding] ?? $accepted['*'] ?? 0.0;
+            if ($quality > 0.0 && is_file($filePath . $suffix) && is_readable($filePath . $suffix)) {
+                return ['coding' => $coding, 'file' => $filePath . $suffix];
             }
         }
 
-        return $filePath;
+        return null;
+    }
+
+    /**
+     * @return array<string, float> coding => quality
+     */
+    public static function parseAcceptEncoding(string $header): array
+    {
+        $codings = [];
+        foreach (explode(',', strtolower($header)) as $part) {
+            $segments = array_map(trim(...), explode(';', $part));
+            $coding = array_shift($segments);
+            if ($coding === '') {
+                continue;
+            }
+            $quality = 1.0;
+            foreach ($segments as $parameter) {
+                if (preg_match('/^q\s*=\s*([0-9.]+)$/', $parameter, $matches) === 1) {
+                    $quality = (float) $matches[1];
+                }
+            }
+            $codings[$coding] = $quality;
+        }
+
+        return $codings;
+    }
+
+    private function isOutputCompressed(): bool
+    {
+        $zlib = strtolower((string) ini_get('zlib.output_compression'));
+
+        return (int) ($GLOBALS['TYPO3_CONF_VARS']['FE']['compressionLevel'] ?? 0) > 0
+            || ($zlib !== '' && $zlib !== '0' && $zlib !== 'off');
     }
 }

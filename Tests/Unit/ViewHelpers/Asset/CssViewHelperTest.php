@@ -24,8 +24,8 @@ use TYPO3\CMS\Core\Configuration\ExtensionConfiguration as Typo3ExtensionConfigu
 use TYPO3\CMS\Core\Core\ApplicationContext;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Http\NormalizedParams;
+use TYPO3\CMS\Core\Security\ContentSecurityPolicy\ConsumableNonce;
 use TYPO3\CMS\Core\Page\AssetCollector;
-use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Routing\PageArguments;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -159,8 +159,56 @@ final class CssViewHelperTest extends TestCase
         self::assertStringContainsString(self::CSS_CONTENT, $result);
         self::assertStringContainsString('</style>', $result);
 
-        // early hint should have been registered
-        self::assertCount(1, $this->earlyHintCollector->getAll());
+        // Inlined CSS must not be preloaded as well (it would be downloaded for nothing).
+        self::assertCount(0, $this->earlyHintCollector->getAll());
+    }
+
+    public function testInlinedCssGetsAbsoluteUrlReferences(): void
+    {
+        mkdir($this->publicDir . '/img', 0777, true);
+        file_put_contents($this->publicDir . '/img/bg.png', 'png');
+        file_put_contents($this->tempCssFile, '.a{background:url(img/bg.png?v=2)}.b{background:url(#mask)}');
+
+        $result = $this->render(['critical' => 'true']);
+
+        // Resolved from the CSS file location; PathUtility adds the site path prefix ("/") only outside CLI.
+        self::assertMatchesRegularExpression('#url\("/?img/bg\.png\?v=2"\)#', $result);
+        self::assertStringContainsString('url(#mask)', $result);
+    }
+
+    public function testAutoInlinesOnlyUpToTheConfiguredSize(): void
+    {
+        // A large bundle inlined into every page bloats the HTML and defeats browser caching.
+        file_put_contents($this->tempCssFile, str_repeat('.a{color:red}', 2000));
+        $this->injectObserverData(1, [5]);
+        $this->setUpPageRequest(1);
+        $this->assetCollector->expects(self::once())->method('addStyleSheet');
+
+        self::assertSame('', $this->render(['critical' => 'auto', 'integrity' => 'none']));
+    }
+
+    public function testExplicitCriticalInlinesRegardlessOfSize(): void
+    {
+        file_put_contents($this->tempCssFile, str_repeat('.a{color:red}', 2000));
+
+        self::assertStringStartsWith('<style>', $this->render(['critical' => 'true']));
+    }
+
+    public function testInlineStyleGetsTheRequestNonce(): void
+    {
+        $nonce = new ConsumableNonce();
+        $this->setUpPageRequest(0, $nonce);
+
+        self::assertStringStartsWith('<style nonce="' . $nonce->value . '">', $this->render(['critical' => 'true']));
+    }
+
+    public function testRendersWithoutGlobalRequest(): void
+    {
+        unset($GLOBALS['TYPO3_REQUEST']);
+
+        $result = $this->render(['critical' => 'true']);
+
+        self::assertStringContainsString('<style>', $result);
     }
 
     public function testCriticalTrueIncludesNonceAttributeWhenProvided(): void
@@ -279,7 +327,7 @@ final class CssViewHelperTest extends TestCase
         );
     }
 
-    private function setUpPageRequest(int $pageUid): void
+    private function setUpPageRequest(int $pageUid, ?ConsumableNonce $nonce = null): void
     {
         $pageArguments = $this->createMock(PageArguments::class);
         $pageArguments->method('getPageId')->willReturn($pageUid);
@@ -289,10 +337,11 @@ final class CssViewHelperTest extends TestCase
 
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getAttribute')
-            ->willReturnCallback(static function (string $name, mixed $default = null) use ($pageArguments, $normalizedParams): mixed {
+            ->willReturnCallback(static function (string $name, mixed $default = null) use ($pageArguments, $normalizedParams, $nonce): mixed {
                 return match ($name) {
                     'routing' => $pageArguments,
                     'normalizedParams' => $normalizedParams,
+                    'nonce' => $nonce,
                     default => $default,
                 };
             });

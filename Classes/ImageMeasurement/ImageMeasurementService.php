@@ -25,6 +25,12 @@ class ImageMeasurementService
             return null;
         }
 
+        // Without a content element or layout slot there is no defined place: the same file
+        // in header, footer and content would mix its widths into one profile.
+        if ($elementUid <= 0 && trim($slot) === '') {
+            return null;
+        }
+
         $key = ImageMeasurementKey::fromImage($image, $elementUid, $slot);
         if ($key === null) {
             return null;

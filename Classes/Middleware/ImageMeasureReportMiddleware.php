@@ -6,12 +6,12 @@ namespace Maispace\MaiAssets\Middleware;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementKey;
+use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementPageRefresher;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementProfileResolver;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementRepository;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementScale;
 use Maispace\MaiAssets\Security\ImageMeasureTokenService;
 use Maispace\MaiAssets\Service\ImageMeasureScriptBuilder;
-use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -40,7 +40,7 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
         private ImageMeasurementRepository $repository,
         private ImageMeasurementProfileResolver $profileResolver,
         private CacheManager $cacheManager,
-        private StaticFileRemovalService $staticFileRemovalService,
+        private ImageMeasurementPageRefresher $pageRefresher,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -93,8 +93,11 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
 
         $viewportStep = ImageMeasurementScale::viewportStep($viewport);
         $accepted = 0;
-        $changed = false;
         $seen = [];
+        /** @var array<string, true> $changedKeys slots whose profile changed with this report */
+        $changedKeys = [];
+        /** @var array<int, true> $pagesToRefresh */
+        $pagesToRefresh = [];
 
         foreach ($items as $item) {
             if (!is_array($item)) {
@@ -116,15 +119,21 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
                 continue;
             }
             $seen[$key] = true;
+            $accepted++;
 
             $before = $this->profileResolver->signature($key);
-            if (!$this->repository->record($key, $viewportStep, $cssWidth)) {
-                $accepted++;
-                continue;
+            $after = $before;
+            if ($this->repository->record($key, $viewportStep, $cssWidth)) {
+                $after = $this->profileResolver->signature($key);
+                if ($before !== $after) {
+                    $changedKeys[$key] = true;
+                }
             }
-            $accepted++;
-            if ($before !== $this->profileResolver->signature($key)) {
-                $changed = true;
+
+            // The token proves the page really renders this slot. A page seen for the first
+            // time may have been cached before the current profile existed: refresh it once.
+            if ($this->rememberPage($key, $pageUid) && $after !== '') {
+                $pagesToRefresh[$pageUid] = true;
             }
         }
 
@@ -132,23 +141,37 @@ final readonly class ImageMeasureReportMiddleware implements MiddlewareInterface
             return new JsonResponse(['status' => 'forbidden'], 403);
         }
 
-        if ($changed) {
-            // The rendered srcset/sizes of this page are outdated.
-            $this->cacheManager->flushCachesByTag('pageId_' . $pageUid);
-            try {
-                $this->staticFileRemovalService->purgeByPageUid($pageUid);
-            } catch (\Throwable) {
-                // Static file cache is optional.
+        if ($changedKeys !== []) {
+            // The rendered srcset/sizes are outdated on every page that shows one of these
+            // slots: shared layout slots and referenced content elements span several pages.
+            $pagesToRefresh[$pageUid] = true;
+            foreach (array_keys($changedKeys) as $key) {
+                foreach ($this->pageRefresher->pagesOfSlot($key) as $slotPageUid) {
+                    $pagesToRefresh[$slotPageUid] = true;
+                }
             }
         }
 
-        return new JsonResponse(['status' => 'ok', 'changed' => $changed]);
+        $this->pageRefresher->refresh(array_keys($pagesToRefresh));
+
+        return new JsonResponse(['status' => 'ok', 'changed' => $changedKeys !== []]);
+    }
+
+    private function rememberPage(string $key, int $pageUid): bool
+    {
+        try {
+            return $this->repository->rememberPage($key, $pageUid);
+        } catch (\Throwable) {
+            // Missing table (database not yet compared) must not break measuring.
+            return false;
+        }
     }
 
     private function isRateLimited(ServerRequestInterface $request): bool
     {
         try {
-            $cache = $this->cacheManager->getCache('mai_assets_above_fold');
+            // Own cache: can be moved to APCu/Redis without touching the above-fold data.
+            $cache = $this->cacheManager->getCache('mai_assets_rate_limit');
             $ip = (string) ($request->getServerParams()['REMOTE_ADDR'] ?? 'unknown');
             $key = 'imgratelimit_' . md5($ip);
 

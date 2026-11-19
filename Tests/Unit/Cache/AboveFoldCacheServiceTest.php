@@ -66,4 +66,16 @@ final class AboveFoldCacheServiceTest extends TestCase
         self::assertTrue($this->subject->updateCriticalUids(1, 'desktop', [1, 2]));
         self::assertSame(['desktop'], $this->subject->getBucketNames(1));
     }
+
+    public function testReportsOfDifferentViewportHeightsAreMergedAndConverge(): void
+    {
+        // Regression: each report replaced the list, so alternating visitors
+        // (768px vs 1080px high) flushed the page cache on every report.
+        $this->subject->updateCriticalUids(1, 'desktop', [1]);
+        self::assertTrue($this->subject->updateCriticalUids(1, 'desktop', [1, 2]));
+
+        self::assertFalse($this->subject->updateCriticalUids(1, 'desktop', [1]));
+        self::assertFalse($this->subject->updateCriticalUids(1, 'desktop', [1, 2]));
+        self::assertSame([1, 2], $this->subject->getCriticalUids(1, 'desktop'));
+    }
 }

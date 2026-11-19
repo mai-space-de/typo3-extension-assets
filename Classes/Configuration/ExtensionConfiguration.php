@@ -14,6 +14,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 final class ExtensionConfiguration
 {
     private const string EXTENSION_KEY = 'mai_assets';
+    public const string DEFAULT_VIDEO_SCRIPT = 'EXT:mai_assets/Resources/Public/JavaScript/VideoFacade.js';
 
     private bool $enableScssProcessing;
     private bool $enableMinification;
@@ -33,6 +34,8 @@ final class ExtensionConfiguration
     private string $devServerUri;
     private bool $enableImageMeasurement;
     private int $imageMeasureSampleRate;
+    private int $criticalCssMaxInlineBytes;
+    private string $videoScript;
 
     public function __construct(Typo3ExtensionConfiguration $typo3ExtensionConfiguration)
     {
@@ -48,11 +51,12 @@ final class ExtensionConfiguration
         $this->enableCompression = (bool) ($raw['enableCompression'] ?? true);
         $this->compressionLevel = (int) ($raw['compressionLevel'] ?? 6);
         $this->enableBrotli = (bool) ($raw['enableBrotli'] ?? true);
-        $this->criticalThresholdByColPos = (array) ($raw['criticalThresholdByColPos'] ?? [0 => 2, 1 => 0, 3 => 0]);
-        $this->viewportBuckets = (array) ($raw['viewportBuckets'] ?? ['mobile' => 768, 'tablet' => 1024, 'desktop' => PHP_INT_MAX]);
+        // Arrays (settings.php) or the string form of ext_conf_template.txt.
+        $this->criticalThresholdByColPos = self::parseIntMap($raw['criticalThresholdByColPos'] ?? null, [0 => 2, 1 => 0, 3 => 0]);
+        $this->viewportBuckets = self::parseIntMap($raw['viewportBuckets'] ?? null, ['mobile' => 768, 'tablet' => 1024, 'desktop' => PHP_INT_MAX]);
         $this->svgStripAttributes = (array) ($raw['svgStripAttributes'] ?? ['id', 'class', 'style']);
-        $this->fontPreloadFormats = (array) ($raw['fontPreloadFormats'] ?? ['woff2']);
-        $this->observerRootMargin = (string) ($raw['observerRootMargin'] ?? '200px');
+        $this->fontPreloadFormats = self::parseList($raw['fontPreloadFormats'] ?? null, ['woff2']);
+        $this->observerRootMargin = self::sanitizeRootMargin((string) ($raw['observerRootMargin'] ?? '0px'));
         $this->processingCacheLifetime = (int) ($raw['processingCacheLifetime'] ?? 0);
         $this->enableStaticFileCache = (bool) ($raw['enableStaticFileCache'] ?? false);
         $this->staticFileCacheDir = (string) ($raw['staticFileCacheDir'] ?? '');
@@ -61,6 +65,8 @@ final class ExtensionConfiguration
         $this->devServerUri = (string) ($raw['devServerUri'] ?? 'http://localhost:5173');
         $this->enableImageMeasurement = (bool) ($raw['enableImageMeasurement'] ?? true);
         $this->imageMeasureSampleRate = max(1, min(100, (int) ($raw['imageMeasureSampleRate'] ?? 100)));
+        $this->criticalCssMaxInlineBytes = max(0, (int) ($raw['criticalCssMaxInlineBytes'] ?? 14336));
+        $this->videoScript = trim((string) ($raw['videoScript'] ?? self::DEFAULT_VIDEO_SCRIPT));
     }
 
     public static function getInstance(): self
@@ -170,8 +176,80 @@ final class ExtensionConfiguration
     /**
      * Percentage (1-100) of page views that report image measurements.
      */
+    /**
+     * Largest stylesheet (bytes) that critical="auto" inlines; 0 = no limit.
+     */
+    public function getCriticalCssMaxInlineBytes(): int
+    {
+        return $this->criticalCssMaxInlineBytes;
+    }
+
+    /**
+     * Script for mai:video facades and lazy videos (EXT: path or URL); empty = none.
+     */
+    public function getVideoScript(): string
+    {
+        return $this->videoScript;
+    }
+
     public function getImageMeasureSampleRate(): int
     {
         return $this->imageMeasureSampleRate;
+    }
+
+    /**
+     * The value ends up inside a JavaScript string: only 1-4 lengths in px or % are accepted.
+     */
+    private static function sanitizeRootMargin(string $value): string
+    {
+        $value = trim($value);
+
+        return preg_match('/^-?\d+(\.\d+)?(px|%)(\s+-?\d+(\.\d+)?(px|%)){0,3}$/', $value) === 1 ? $value : '0px';
+    }
+
+    /**
+     * "mobile:768, tablet:1024, desktop" (a key without value is unlimited) or an array.
+     *
+     * @param array<int|string, int> $default
+     * @return array<int|string, int>
+     */
+    private static function parseIntMap(mixed $value, array $default): array
+    {
+        if (is_array($value)) {
+            return $value === [] ? [] : array_map(intval(...), $value);
+        }
+        if (!is_string($value) || trim($value) === '') {
+            return $default;
+        }
+
+        $map = [];
+        foreach (explode(',', $value) as $pair) {
+            $parts = array_map(trim(...), explode(':', $pair, 2));
+            if ($parts[0] === '') {
+                continue;
+            }
+            $key = ctype_digit($parts[0]) ? (int) $parts[0] : $parts[0];
+            $map[$key] = isset($parts[1]) && $parts[1] !== '' ? (int) $parts[1] : PHP_INT_MAX;
+        }
+
+        return $map === [] ? $default : $map;
+    }
+
+    /**
+     * "woff2, woff" or an array.
+     *
+     * @param list<string> $default
+     * @return list<string>
+     */
+    private static function parseList(mixed $value, array $default): array
+    {
+        if (is_array($value)) {
+            return array_values(array_map(strval(...), $value));
+        }
+        if (!is_string($value) || trim($value) === '') {
+            return $default;
+        }
+
+        return array_values(array_filter(array_map(trim(...), explode(',', strtolower($value)))));
     }
 }

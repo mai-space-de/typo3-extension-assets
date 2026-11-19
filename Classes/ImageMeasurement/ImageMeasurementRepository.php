@@ -16,6 +16,8 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 class ImageMeasurementRepository
 {
     public const string TABLE = 'tx_maiassets_image_measure';
+    /** Pages an image slot was reported from; needed to refresh every page that renders a slot. */
+    public const string PAGE_TABLE = 'tx_maiassets_image_measure_page';
 
     public function __construct(
         private readonly ConnectionPool $connectionPool,
@@ -52,6 +54,17 @@ class ImageMeasurementRepository
         }
 
         if ($total >= ImageMeasurementScale::MAX_HITS_PER_STEP) {
+            // Converged: no new samples, but the step is still in use and must not be pruned as stale.
+            $touch = $connection->createQueryBuilder();
+            $touch
+                ->update(self::TABLE)
+                ->set('tstamp', time())
+                ->where(
+                    $touch->expr()->eq('slot_key', $touch->createNamedParameter($slotKey)),
+                    $touch->expr()->eq('vp_step', $touch->createNamedParameter($viewportStep, Connection::PARAM_INT)),
+                )
+                ->executeStatement();
+
             return false;
         }
 
@@ -125,7 +138,7 @@ class ImageMeasurementRepository
             ->executeQuery()
             ->fetchFirstColumn();
 
-        return array_values(array_map(strval(...), $keys));
+        return array_map(strval(...), $keys);
     }
 
     /**
@@ -163,6 +176,22 @@ class ImageMeasurementRepository
             ->executeStatement();
     }
 
+    /**
+     * @return list<string> slots that have rows not updated since the timestamp
+     */
+    public function getSlotKeysOlderThan(int $timestamp): array
+    {
+        $queryBuilder = $this->connectionPool->getConnectionForTable(self::TABLE)->createQueryBuilder();
+
+        return array_map(strval(...), $queryBuilder
+            ->select('slot_key')
+            ->distinct()
+            ->from(self::TABLE)
+            ->where($queryBuilder->expr()->lt('tstamp', $queryBuilder->createNamedParameter($timestamp, Connection::PARAM_INT)))
+            ->executeQuery()
+            ->fetchFirstColumn());
+    }
+
     public function deleteOlderThan(int $timestamp): int
     {
         $queryBuilder = $this->connectionPool->getConnectionForTable(self::TABLE)->createQueryBuilder();
@@ -170,6 +199,105 @@ class ImageMeasurementRepository
         return (int) $queryBuilder
             ->delete(self::TABLE)
             ->where($queryBuilder->expr()->lt('tstamp', $queryBuilder->createNamedParameter($timestamp, Connection::PARAM_INT)))
+            ->executeStatement();
+    }
+
+    /**
+     * Remembers that a slot is rendered on a page. Returns true when the page was not known yet.
+     *
+     * The number of pages per slot is capped by {@see ImageMeasurementScale::MAX_PAGES_PER_SLOT}.
+     */
+    public function rememberPage(string $slotKey, int $pageUid): bool
+    {
+        if ($pageUid <= 0) {
+            return false;
+        }
+
+        $connection = $this->connectionPool->getConnectionForTable(self::PAGE_TABLE);
+        $queryBuilder = $connection->createQueryBuilder();
+        $pageUids = array_map(intval(...), $queryBuilder
+            ->select('page_uid')
+            ->from(self::PAGE_TABLE)
+            ->where($queryBuilder->expr()->eq('slot_key', $queryBuilder->createNamedParameter($slotKey)))
+            ->executeQuery()
+            ->fetchFirstColumn());
+
+        if (in_array($pageUid, $pageUids, true) || count($pageUids) >= ImageMeasurementScale::MAX_PAGES_PER_SLOT) {
+            return false;
+        }
+
+        try {
+            $connection->insert(self::PAGE_TABLE, [
+                'slot_key' => $slotKey,
+                'page_uid' => $pageUid,
+                'tstamp' => time(),
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // A parallel request registered the page first.
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @return list<int> pages the slot was reported from
+     */
+    public function getPageUids(string $slotKey): array
+    {
+        $queryBuilder = $this->connectionPool->getConnectionForTable(self::PAGE_TABLE)->createQueryBuilder();
+
+        return array_map(intval(...), $queryBuilder
+            ->select('page_uid')
+            ->from(self::PAGE_TABLE)
+            ->where($queryBuilder->expr()->eq('slot_key', $queryBuilder->createNamedParameter($slotKey)))
+            ->executeQuery()
+            ->fetchFirstColumn());
+    }
+
+    /**
+     * @return list<int> pages any slot of the content element (prefix "e123.") was reported from
+     */
+    public function getPageUidsForElement(int $elementUid): array
+    {
+        $queryBuilder = $this->connectionPool->getConnectionForTable(self::PAGE_TABLE)->createQueryBuilder();
+
+        return array_values(array_unique(array_map(intval(...), $queryBuilder
+            ->select('page_uid')
+            ->from(self::PAGE_TABLE)
+            ->where($queryBuilder->expr()->like(
+                'slot_key',
+                $queryBuilder->createNamedParameter($queryBuilder->escapeLikeWildcards('e' . $elementUid . '.') . '%'),
+            ))
+            ->executeQuery()
+            ->fetchFirstColumn())));
+    }
+
+    /**
+     * @return list<int> every page any slot was reported from
+     */
+    public function getAllPageUids(): array
+    {
+        return array_map(intval(...), $this->connectionPool
+            ->getConnectionForTable(self::PAGE_TABLE)
+            ->createQueryBuilder()
+            ->select('page_uid')
+            ->distinct()
+            ->from(self::PAGE_TABLE)
+            ->executeQuery()
+            ->fetchFirstColumn());
+    }
+
+    /**
+     * Forgets the pages of a slot that no longer exists (e.g. its file was deleted).
+     */
+    public function deletePagesForSlot(string $slotKey): int
+    {
+        $queryBuilder = $this->connectionPool->getConnectionForTable(self::PAGE_TABLE)->createQueryBuilder();
+
+        return (int) $queryBuilder
+            ->delete(self::PAGE_TABLE)
+            ->where($queryBuilder->expr()->eq('slot_key', $queryBuilder->createNamedParameter($slotKey)))
             ->executeStatement();
     }
 

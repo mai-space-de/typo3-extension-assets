@@ -10,6 +10,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Frontend\Page\PageParts;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -17,6 +18,9 @@ use TYPO3\CMS\Core\Http\Stream;
 
 final class HtmlMinificationMiddlewareTest extends TestCase
 {
+    /** @var array<string, mixed> further request attributes for createRequestWithSettings() */
+    private array $extraAttributes = [];
+
     private HtmlMinificationService $minifier;
     private StreamFactoryInterface&MockObject $streamFactory;
     private RequestHandlerInterface&MockObject $handler;
@@ -108,6 +112,35 @@ final class HtmlMinificationMiddlewareTest extends TestCase
         $this->middleware()->process($request, $this->handler);
     }
 
+    public function testCachedPageContentIsNotMinifiedASecondTime(): void
+    {
+        // HtmlMinificationListener minified the cacheable content already.
+        $pageParts = new PageParts();
+        $pageParts->setPageContentWasLoadedFromCache();
+        $this->extraAttributes = ['frontend.page.parts' => $pageParts];
+
+        $response = $this->createResponse("<html>\n<body>  x  </body>\n</html>", 'text/html');
+        $response->expects(self::never())->method('withBody');
+        $this->handler->method('handle')->willReturn($response);
+
+        $this->middleware()->process($this->createRequestWithSettings(['enable' => '1']), $this->handler);
+    }
+
+    public function testPagesWithNonCachedPartsAreMinifiedAfterRendering(): void
+    {
+        $pageParts = new PageParts();
+        $pageParts->setPageContentWasLoadedFromCache();
+        $pageParts->addNotCachedContentElement(['substKey' => 'INT_SCRIPT.a', 'target' => 'x', 'permanent' => false]);
+        $this->extraAttributes = ['frontend.page.parts' => $pageParts];
+
+        $response = $this->createResponse("<html>\n<body>  x  </body>\n</html>", 'text/html');
+        $response->method('hasHeader')->willReturn(false);
+        $response->expects(self::once())->method('withBody')->willReturnSelf();
+        $this->handler->method('handle')->willReturn($response);
+
+        $this->middleware()->process($this->createRequestWithSettings(['enable' => '1']), $this->handler);
+    }
+
     public function testMinifiesFinalHtmlIncludingLateInjectedTags(): void
     {
         $html = "<!DOCTYPE html>\n<html>\n<head>\n"
@@ -186,7 +219,12 @@ final class HtmlMinificationMiddlewareTest extends TestCase
         };
 
         $request = $this->createMock(ServerRequestInterface::class);
-        $request->method('getAttribute')->with('frontend.typoscript')->willReturn($typoScript);
+        $request->method('getAttribute')->willReturnCallback(
+            fn(string $name): mixed => match ($name) {
+                'frontend.typoscript' => $typoScript,
+                default => $this->extraAttributes[$name] ?? null,
+            },
+        );
 
         return $request;
     }

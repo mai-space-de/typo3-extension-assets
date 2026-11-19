@@ -109,6 +109,6 @@ class ImageMeasurementProfileResolver
         }
         sort($widths);
 
-        return new ImageMeasurementProfile(implode(', ', $sizesParts), array_values($widths));
+        return new ImageMeasurementProfile(implode(', ', $sizesParts), $widths);
     }
 }

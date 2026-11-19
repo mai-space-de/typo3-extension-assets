@@ -4,16 +4,12 @@ declare(strict_types=1);
 
 namespace Maispace\MaiAssets\Configuration;
 
-use TYPO3\CMS\Core\Site\SiteFinder;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final readonly class ExtensionConfigurationDiscovery
 {
-    public function __construct(
-        private SiteFinder $siteFinder,
-    ) {}
-
     /**
      * Discover sprite icons from all loaded extensions' Configuration/SpriteIcons.php.
      *
@@ -160,16 +156,15 @@ final readonly class ExtensionConfigurationDiscovery
         return in_array($currentSiteIdentifier, $sites, true);
     }
 
+    /**
+     * Identifier of the site of the current request; empty without a request
+     * (CLI), in which case only configurations for all sites ("*") apply.
+     */
     private function getCurrentSiteIdentifier(): string
     {
-        try {
-            $sites = $this->siteFinder->getAllSites();
-            if ($sites !== []) {
-                return array_key_first($sites);
-            }
-        } catch (\Exception) {
-            // No site found — treat as wildcard match
-        }
-        return '';
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $site = $request instanceof ServerRequestInterface ? $request->getAttribute('site') : null;
+
+        return is_object($site) && method_exists($site, 'getIdentifier') ? (string) $site->getIdentifier() : '';
     }
 }
