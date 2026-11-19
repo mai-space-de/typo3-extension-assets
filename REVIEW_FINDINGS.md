@@ -5,6 +5,29 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
 `[x]` erledigt (mit Commit/Test-Hinweis). Stand: K1–N27 erledigt, Abschnitte
 „Weitere Befunde“ und „Restrisiken“ offen.
 
+## Abgleich mit dem ursprünglichen Review-Bericht
+
+Jeder Punkt des Berichts ist hier erfasst (Bericht-Nr. → Eintrag):
+
+| Bericht | Eintrag | Bericht | Eintrag |
+|---|---|---|---|
+| 1 Save-Hook Content-UID | K1 | 12 Inline-CSS + Preload / ganzes Stylesheet inline | M12, W33 |
+| 2 Kein Leeren bei Änderungen | K2 | 13 Relative `url()` | M13, W34 |
+| 3 Route-Enhancer teilen Datei | K3 | 14 Event doppelt | M14 |
+| 4 SCSS-Partials + Minify | K4 | 15 `Vary` / CSP- und Cache-Header / doppelte Kodierung | M15, W28, W29 |
+| 5 DataProcessor läuft nie | H5 | 16 Seiten ohne Manifest | M16 |
+| 6 Above-fold flattert | H6 | 17 Inline-Skripte ohne Nonce | M17 |
+| 7 Font-Preload Dateipfad | H7 | 18 `str_ireplace` | M18 |
+| 8 Multi-Site erste Site | H8 | 19 `preg_replace` / ID-Kollisionen / USER_INT-Icons | M19, W40, W41 |
+| 9 Warmup-Paginierung | H9 | 20 Positions-Heuristik | M20 |
+| 10 Bild-Preloads | H10 | 21 Icon-Provider | M21 |
+| 11 JS verliert `defer` | H11 | Niedrig: Video `class` / Poster lazy / JS fehlt | N22, W47, W48 |
+| Niedrig: 103 | N24 | Niedrig: CssViewHelper ohne Request | N23 |
+| Niedrig: tote Einstellungen, Warmup-Meldung | N25, N27 | Niedrig: Viewport-Grenzen im JS | N26 |
+| Niedrig: `compiled/` wächst | N27 | Niedrig: Baseline im Vendor-Ordner | W53 |
+
+W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
+
 ## Kritisch – falsche oder veraltete Inhalte für Besucher
 
 - [x] **K1 Save-Hook übergibt Content-UID als Page-UID**
