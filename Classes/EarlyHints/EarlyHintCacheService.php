@@ -66,6 +66,9 @@ final readonly class EarlyHintCacheService implements SingletonInterface
                 'as'          => $candidate->as,
                 'type'        => $candidate->type,
                 'crossorigin' => $candidate->crossorigin,
+                'imagesrcset' => $candidate->imageSrcset,
+                'imagesizes'  => $candidate->imageSizes,
+                'media'       => $candidate->media,
             ];
         }
         return $rows;
@@ -91,6 +94,9 @@ final readonly class EarlyHintCacheService implements SingletonInterface
                 as: (string) ($row['as'] ?? ''),
                 type: (string) ($row['type'] ?? ''),
                 crossorigin: (string) ($row['crossorigin'] ?? ''),
+                imageSrcset: (string) ($row['imagesrcset'] ?? ''),
+                imageSizes: (string) ($row['imagesizes'] ?? ''),
+                media: (string) ($row['media'] ?? ''),
             );
         }
         return $candidates;

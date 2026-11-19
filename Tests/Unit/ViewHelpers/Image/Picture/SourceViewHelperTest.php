@@ -302,8 +302,12 @@ final class SourceViewHelperTest extends TestCase
         self::assertStringContainsString('/f/test-avif-640.img 640w', $result);
         self::assertStringNotContainsString('1600w', $result);
         self::assertStringNotContainsString('100vw', $result);
-        // A preload for one candidate could differ from what the browser picks.
-        self::assertCount(0, $earlyHintCollector->getAll());
+        // The preload carries the measured srcset/sizes, so it matches the browser's choice.
+        $hints = array_values($earlyHintCollector->getAll());
+        self::assertCount(1, $hints);
+        self::assertSame('(max-width: 960px) 480px, 640px', $hints[0]->imageSizes);
+        self::assertStringContainsString('/f/test-avif-1280.img 1280w', $hints[0]->imageSrcset);
+        self::assertSame('(min-width: 768px)', $hints[0]->media);
     }
 
     public function testMeasuredProfileIsIgnoredWhenOptedOut(): void

@@ -66,8 +66,6 @@ class SourceViewHelper extends AbstractViewHelper
         if ($profile instanceof ImageMeasurementProfile && (bool) $this->arguments['measured']) {
             $widths = $profile->widths;
             $sizes = $profile->sizes;
-            // No preload hint: a hint for a single candidate could differ from what the browser selects.
-            $earlyHintCollector = null;
         }
 
         $registeredEarlyHint = false;

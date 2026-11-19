@@ -95,6 +95,24 @@ final class PictureSourceRendererTest extends TestCase
         self::assertNotEmpty($collector->getAll());
     }
 
+    public function testCriticalDefaultSourcesPreloadEveryMediaGroupResponsively(): void
+    {
+        // Regression: only the mobile 400w AVIF was preloaded, desktops downloaded it for nothing.
+        $collector = new EarlyHintCandidateCollector();
+        $subject = $this->createRenderer($this->stubVariantService());
+
+        $subject->renderDefaultSources(new \stdClass(), '100vw', 1600, true, $collector);
+
+        $hints = array_values($collector->getAll());
+        self::assertCount(2, $hints);
+        self::assertSame(['(max-width: 767px)', '(min-width: 768px)'], array_column(array_map(get_object_vars(...), $hints), 'media'));
+        foreach ($hints as $hint) {
+            self::assertSame('image/avif', $hint->type);
+            self::assertSame('100vw', $hint->imageSizes);
+            self::assertStringContainsString('w, ', $hint->imageSrcset);
+        }
+    }
+
     private function createRenderer(?ImageVariantService $variantService = null): PictureSourceRenderer
     {
         return new PictureSourceRenderer($variantService ?? $this->stubVariantService());

@@ -1,8 +1,9 @@
 config.namespaces.mai = Maispace\MaiAssets\ViewHelpers
 
-tt_content.stdWrap.dataProcessing {
-    100 = Maispace\MaiAssets\DataProcessing\CriticalAssetDataProcessor
-}
+# Provides {isCritical}, {loadingStrategy}, {fetchPriority}, {decodingStrategy} and
+# {cssStrategy} to every content element template (fluid_styled_content and all
+# elements based on lib.contentElement). stdWrap has no dataProcessing property.
+lib.contentElement.dataProcessing.1763 = Maispace\MaiAssets\DataProcessing\CriticalAssetDataProcessor
 
 plugin.tx_maispace_assets {
     settings {

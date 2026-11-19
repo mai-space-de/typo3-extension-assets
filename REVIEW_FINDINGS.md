@@ -31,21 +31,26 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
 
 ## Hoch
 
-- [ ] **H5 `CriticalAssetDataProcessor` läuft nie**
+- [x] **H5 `CriticalAssetDataProcessor` läuft nie**
   `tt_content.stdWrap.dataProcessing` existiert nicht; `{isCritical}` usw. sind in
   Templates nie gesetzt.
-- [ ] **H6 Above-fold-Daten flattern**
+  → Erledigt: `lib.contentElement.dataProcessing.1763` (mit dem TYPO3-Parser geprüft);
+  der Processor nutzt die gerenderte Seite statt `pid` (Referenzen).
+- [x] **H6 Above-fold-Daten flattern**
   Jeder Report ersetzt die UID-Liste eines Buckets; unterschiedliche Viewport-Höhen
   im selben Bucket leeren Page-Cache und statische Datei bei jedem Wechsel.
+  → Erledigt: Reports werden pro Bucket vereinigt (konvergiert); Inhaltsänderungen setzen zurück.
 - [x] **H7 Font-Preload zeigt auf den Dateisystempfad**
   `FontPreloadCollector` schreibt den absoluten Serverpfad in `href`.
 - [x] **H8 Multi-Site: Discovery nutzt die erste Site statt der aktuellen**
   `ExtensionConfigurationDiscovery::getCurrentSiteIdentifier()`.
-- [ ] **H9 Warmup-Task überspringt jeden zweiten Block**
+- [x] **H9 Warmup-Task überspringt jeden zweiten Block**
   `StaticFileCacheWarmupTask`: Offset wandert über eine schrumpfende Ergebnismenge.
-- [ ] **H10 Bild-Preloads ohne `imagesrcset` laden doppelt**
+- [x] **H10 Bild-Preloads ohne `imagesrcset` laden doppelt**
   `ResponsiveImageViewHelper` preloadet überall die Desktop-AVIF,
   `PictureSourceRenderer` die erste (Mobile-)Variante.
+  → Erledigt: Preloads mit `imagesrcset`/`imagesizes`/`media`/`type`, eines pro Media-Gruppe.
+  In Chromium geprüft: vorher 2 Downloads auf dem Handy, jetzt 1.
 - [x] **H11 „Kritisches“ JS verliert `defer`**
   `JsViewHelper` macht bei vorhandenen Observer-Daten alle `critical="auto"`-Skripte
   blockierend.

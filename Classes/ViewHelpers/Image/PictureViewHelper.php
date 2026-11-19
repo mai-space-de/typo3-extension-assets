@@ -94,7 +94,7 @@ class PictureViewHelper extends AbstractViewHelper
 
         if ($sources === '' && $measurement?->profile !== null) {
             // Learned layout widths: one source per format, the browser picks via the measured sizes.
-            // No preload hint: a hint for a single candidate could differ from what the browser selects.
+            // The preload carries the same srcset/sizes, so it matches the browser's choice.
             $registeredEarlyHint = false;
             $sources = $this->pictureSourceRenderer->renderSourcesForMedia(
                 $image,
@@ -103,7 +103,7 @@ class PictureViewHelper extends AbstractViewHelper
                 $measurement->profile->sizes,
                 ['avif', 'webp'],
                 $isCritical,
-                null,
+                $this->earlyHintCollector,
                 $registeredEarlyHint,
             );
         }

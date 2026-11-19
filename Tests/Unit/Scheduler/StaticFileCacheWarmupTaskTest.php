@@ -89,4 +89,39 @@ final class StaticFileCacheWarmupTaskTest extends TestCase
 
         self::assertFalse($this->task->execute());
     }
+
+    public function testFollowUpBatchesStartAtTheFirstOpenEntry(): void
+    {
+        // Regression: the offset grew by 50 while processed entries left the result set,
+        // so entries 51-100 were skipped.
+        $batch = static fn(int $first): array => array_map(
+            static fn(int $uid): array => ['uid' => $uid, 'cache_url' => 'https://example.test/' . $uid],
+            range($first, $first + 49),
+        );
+
+        $queueRepository = $this->createMock(WarmupQueueRepository::class);
+        $queueRepository->method('countOpen')->willReturn(60);
+        $queueRepository->expects(self::exactly(2))->method('findOpenBatch')
+            ->with(50, 0)
+            ->willReturnOnConsecutiveCalls($batch(1), [['uid' => 51, 'cache_url' => 'https://example.test/51']]);
+        $marked = [];
+        $queueRepository->method('markProcessed')->willReturnCallback(static function (array $results) use (&$marked): void {
+            foreach ($results as $result) {
+                $marked[$result['uid']] = $result['call_result'];
+            }
+        });
+
+        $httpClientService = $this->createMock(WarmupHttpClientService::class);
+        // The client returns no result for uid 7: it must be marked anyway.
+        $httpClientService->method('runBatch')->willReturnCallback(
+            static fn(array $urls): array => array_diff_key(array_fill_keys(array_keys($urls), 200), [7 => true]),
+        );
+
+        GeneralUtility::addInstance(WarmupQueueRepository::class, $queueRepository);
+        GeneralUtility::addInstance(WarmupHttpClientService::class, $httpClientService);
+
+        self::assertTrue($this->task->execute());
+        self::assertCount(51, $marked);
+        self::assertSame(0, $marked[7]);
+    }
 }

@@ -81,6 +81,8 @@ class PictureSourceRenderer
         }
 
         $output = '';
+        // First format with a srcset (the preferred one) gets the preload.
+        $preloaded = false;
 
         foreach ($formats as $format) {
             $srcsetParts = [];
@@ -101,14 +103,21 @@ class PictureSourceRenderer
                 continue;
             }
 
-            if ($isCritical && !$registeredEarlyHint && $format === 'avif'
-                && $firstUrl !== '' && $earlyHintCollector instanceof EarlyHintCandidateCollector) {
+            // One responsive preload per media group (art direction): the browser preloads
+            // exactly the candidate it will pick from this srcset and these sizes.
+            if ($isCritical && !$preloaded && $firstUrl !== ''
+                && $earlyHintCollector instanceof EarlyHintCandidateCollector) {
                 $earlyHintCollector->add(new EarlyHintCandidate(
                     href: $firstUrl,
                     rel: 'preload',
                     as: 'image',
+                    type: $this->getMimeType((string) $format),
+                    imageSrcset: html_entity_decode(implode(', ', $srcsetParts), ENT_QUOTES),
+                    imageSizes: $sizes,
+                    media: $media,
                 ));
                 $registeredEarlyHint = true;
+                $preloaded = true;
             }
 
             $mimeType = $this->getMimeType((string) $format);
