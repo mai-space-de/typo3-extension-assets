@@ -8,6 +8,7 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Http\StreamFactory;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Frontend\Middleware\ContentSecurityPolicyHeaders;
 
 /**
@@ -29,10 +30,8 @@ class StaticContentSecurityPolicy
 
     public function apply(ServerRequestInterface $request, ResponseInterface $response, string $storedNonce): ResponseInterface
     {
-        if (!class_exists(ContentSecurityPolicyHeaders::class)
-            || !method_exists(ContentSecurityPolicyHeaders::class, 'applyToResponse')
-            || !$this->container->has(ContentSecurityPolicyHeaders::class)
-        ) {
+        // applyToResponse() exists since TYPO3 14.
+        if ((new Typo3Version())->getMajorVersion() < 14 || !$this->container->has(ContentSecurityPolicyHeaders::class)) {
             return $response;
         }
 

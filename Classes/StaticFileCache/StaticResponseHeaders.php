@@ -30,10 +30,11 @@ final class StaticResponseHeaders
     {
         $kept = [];
         foreach ($headers as $name => $values) {
-            if (!is_string($name) || in_array(strtolower($name), self::DROPPED, true)) {
+            $name = (string) $name;
+            if (in_array(strtolower($name), self::DROPPED, true)) {
                 continue;
             }
-            $kept[$name] = array_values(array_map(strval(...), (array) $values));
+            $kept[$name] = array_map(strval(...), $values);
         }
 
         return $kept;

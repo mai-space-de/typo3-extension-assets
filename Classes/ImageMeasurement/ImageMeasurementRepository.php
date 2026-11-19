@@ -138,7 +138,7 @@ class ImageMeasurementRepository
             ->executeQuery()
             ->fetchFirstColumn();
 
-        return array_values(array_map(strval(...), $keys));
+        return array_map(strval(...), $keys);
     }
 
     /**
@@ -183,13 +183,13 @@ class ImageMeasurementRepository
     {
         $queryBuilder = $this->connectionPool->getConnectionForTable(self::TABLE)->createQueryBuilder();
 
-        return array_values(array_map(strval(...), $queryBuilder
+        return array_map(strval(...), $queryBuilder
             ->select('slot_key')
             ->distinct()
             ->from(self::TABLE)
             ->where($queryBuilder->expr()->lt('tstamp', $queryBuilder->createNamedParameter($timestamp, Connection::PARAM_INT)))
             ->executeQuery()
-            ->fetchFirstColumn()));
+            ->fetchFirstColumn());
     }
 
     public function deleteOlderThan(int $timestamp): int
@@ -247,12 +247,12 @@ class ImageMeasurementRepository
     {
         $queryBuilder = $this->connectionPool->getConnectionForTable(self::PAGE_TABLE)->createQueryBuilder();
 
-        return array_values(array_map(intval(...), $queryBuilder
+        return array_map(intval(...), $queryBuilder
             ->select('page_uid')
             ->from(self::PAGE_TABLE)
             ->where($queryBuilder->expr()->eq('slot_key', $queryBuilder->createNamedParameter($slotKey)))
             ->executeQuery()
-            ->fetchFirstColumn()));
+            ->fetchFirstColumn());
     }
 
     /**
@@ -278,14 +278,14 @@ class ImageMeasurementRepository
      */
     public function getAllPageUids(): array
     {
-        return array_values(array_map(intval(...), $this->connectionPool
+        return array_map(intval(...), $this->connectionPool
             ->getConnectionForTable(self::PAGE_TABLE)
             ->createQueryBuilder()
             ->select('page_uid')
             ->distinct()
             ->from(self::PAGE_TABLE)
             ->executeQuery()
-            ->fetchFirstColumn()));
+            ->fetchFirstColumn());
     }
 
     /**

@@ -67,7 +67,7 @@ final class SvgSpriteCollectorTest extends TestCase
     {
         // Regression: mai:svg.sprite built the sprite early and the listener added a second one.
         $collector = $this->collector(['home']);
-        $html = '<html><body>' . (new SpriteViewHelper($collector))->render() . '<p>x</p>' . SvgSpriteCollector::PLACEHOLDER . '</body></html>';
+        $html = '<html><body>' . (new SpriteViewHelper())->render() . '<p>x</p>' . SvgSpriteCollector::PLACEHOLDER . '</body></html>';
         $collector->register('user', $this->dir . '/user.svg');
 
         $listener = new SvgSpriteInjectionListener(

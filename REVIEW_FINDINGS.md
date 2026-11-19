@@ -133,6 +133,10 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   erst nach `AfterCacheableContentIsGeneratedEvent`.
   → Behoben mit W31: Registrierung aus der fertigen Antwort mit den vollständigen Tags.
 
+- [x] Die Integration-Tests (`Tests/Integration`) parsten lokal nicht (PHP-8.4-Syntax) und passten
+  nicht mehr zum Code: `StaticFileServeMiddleware` wurde mit 3 statt der (schon vorher) 4
+  Argumente erzeugt. → Angepasst; alle 26 laufen.
+
 ## Weitere Befunde aus dem Review (bisher nicht in der Liste)
 
 ### Statischer Cache und Auslieferung
@@ -266,7 +270,11 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 - [ ] **R5 H10: Browser ohne AVIF bekommen keinen Bild-Preload.**
 - [ ] **R6 M14: Extern eingebundenes CSS durchläuft `BeforeAssetInjectionEvent` nicht mehr**
   (bestehende Listener prüfen).
-- [ ] **R7 PHPStan und PHP-CS-Fixer liefen lokal nicht** (nur in der CI).
+- [x] **R7 PHPStan und PHP-CS-Fixer liefen lokal nicht** (nur in der CI).
+  → Erledigt: Beide als PHAR lokal ausgeführt. CS-Fixer: keine Abweichung mehr. PHPStan (Level 5):
+  meine neuen Meldungen und zwei vorhandene (`array_values` auf Listen) behoben; übrig sind nur
+  umgebungsbedingte (`array_all` erst ab PHP 8.4 – lokal 8.3; `ModifyLanguagePacksEvent` aus
+  `typo3/cms-install`, das nicht installiert ist).
 - [ ] **R8 CSP für statische Antworten nur per Unit-Test geprüft**: Nonce-Austausch und
   Header-Logik getestet, der Aufruf von `applyToResponse()` mit echter Site-CSP-Konfiguration
   nicht (braucht einen Functional-Test mit TYPO3). In TYPO3 12/13 fehlt die Methode; dort

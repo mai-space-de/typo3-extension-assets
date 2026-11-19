@@ -12,7 +12,10 @@ use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
 use Maispace\MaiAssets\Middleware\EarlyHintsMiddleware;
 use Maispace\MaiAssets\Middleware\StaticFileServeMiddleware;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
+use Maispace\MaiAssets\StaticFileCache\StaticContentSecurityPolicy;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
+use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
 use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use PHPUnit\Framework\TestCase;
@@ -49,6 +52,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
     private EarlyHintCacheService $earlyHintCacheService;
     private StaticFileCacheDirectory $cacheDirectory;
     private ExtensionConfiguration $extensionConfiguration;
+    private StaticFileIndex $staticFileIndex;
 
     protected function setUp(): void
     {
@@ -90,6 +94,12 @@ final class StaticFileCacheIntegrationTest extends TestCase
             enableBrotli: true,
         );
         $this->cacheDirectory = new StaticFileCacheDirectory($this->extensionConfiguration);
+
+        $indexCacheManager = $this->createMock(CacheManager::class);
+        $indexCacheManager->method('getCache')->willReturn(
+            new VariableFrontend(StaticFileIndex::CACHE_IDENTIFIER, new TransientMemoryBackend([])),
+        );
+        $this->staticFileIndex = new StaticFileIndex($indexCacheManager);
     }
 
     protected function tearDown(): void
@@ -168,11 +178,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
 
         $this->writeStaticHtml(42, 0, '<html><body>Cached</body></html>');
 
-        $middleware = new StaticFileServeMiddleware(
-            $this->cacheDirectory,
-            $this->extensionConfiguration,
-            $this->earlyHintCacheService,
-        );
+        $middleware = $this->createServeMiddleware();
 
         $request = $this->makeGetRequest(
             'https://example.com/de/',
@@ -202,11 +208,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
         $this->writeStaticHtml(42, 0, '<html><body>DE</body></html>');
         $this->writeStaticHtml(42, 1, '<html><body>EN</body></html>');
 
-        $middleware = new StaticFileServeMiddleware(
-            $this->cacheDirectory,
-            $this->extensionConfiguration,
-            $this->earlyHintCacheService,
-        );
+        $middleware = $this->createServeMiddleware();
         $handler = $this->createStub(RequestHandlerInterface::class);
 
         $deResult = $middleware->process(
@@ -235,6 +237,8 @@ final class StaticFileCacheIntegrationTest extends TestCase
         $handler = $this->createMock(RequestHandlerInterface::class);
         $response = $this->createMock(ResponseInterface::class);
         $handler->expects(self::once())->method('handle')->willReturn($response);
+        // The hints are attached to the final response as Link headers.
+        $response->expects(self::once())->method('withHeader')->with('Link', '</assets/hint.woff2>; rel=preload; as=font')->willReturnSelf();
 
         $middleware = new EarlyHintsMiddleware($this->earlyHintCacheService);
         $request = $this->makeGetRequest(
@@ -255,6 +259,7 @@ final class StaticFileCacheIntegrationTest extends TestCase
         $handler = $this->createMock(RequestHandlerInterface::class);
         $response = $this->createMock(ResponseInterface::class);
         $handler->expects(self::once())->method('handle')->willReturn($response);
+        $response->expects(self::never())->method('withHeader');
 
         $middleware = new EarlyHintsMiddleware($this->earlyHintCacheService);
         $request = $this->makeGetRequest(
@@ -417,17 +422,17 @@ final class StaticFileCacheIntegrationTest extends TestCase
         $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
 
-        new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache'))
             ->setValue($config, $enableStaticFileCache);
-        new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir'))
             ->setValue($config, '');
-        new \ReflectionProperty(ExtensionConfiguration::class, 'enableCompression')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableCompression'))
             ->setValue($config, $enableCompression);
-        new \ReflectionProperty(ExtensionConfiguration::class, 'compressionLevel')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'compressionLevel'))
             ->setValue($config, 6);
-        new \ReflectionProperty(ExtensionConfiguration::class, 'enableBrotli')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableBrotli'))
             ->setValue($config, $enableBrotli);
-        new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders'))
             ->setValue($config, false);
 
         return $config;
@@ -458,6 +463,28 @@ final class StaticFileCacheIntegrationTest extends TestCase
             $this->createExtensionConfiguration(enableStaticFileCache: true),
         );
         self::assertTrue($writer->writeByPageId($html, $pageUid, $languageUid));
+        // A written file is valid as long as its page cache entry (see StaticFileIndex).
+        $this->staticFileIndex->register($pageUid, $languageUid, [], 3600);
+    }
+
+    private function createServeMiddleware(): StaticFileServeMiddleware
+    {
+        $guard = $this->createMock(StaticCacheRequestGuard::class);
+        $guard->method('isShareable')->willReturn(true);
+        $contentSecurityPolicy = $this->createMock(StaticContentSecurityPolicy::class);
+        $contentSecurityPolicy->method('apply')->willReturnArgument(1);
+        $removal = new StaticFileRemovalService($this->cacheDirectory, (new \ReflectionClass(SiteFinder::class))->newInstanceWithoutConstructor());
+
+        return new StaticFileServeMiddleware(
+            $this->cacheDirectory,
+            $this->extensionConfiguration,
+            $this->earlyHintCacheService,
+            $guard,
+            $this->staticFileIndex,
+            $removal,
+            new StaticHtmlWriterService($this->cacheDirectory, $this->extensionConfiguration),
+            $contentSecurityPolicy,
+        );
     }
 
     private function indexPath(int $pageUid, int $languageUid): string

@@ -46,7 +46,7 @@ class StaticFileIndex
         $tags[] = 'pageId_' . $pageUid;
         $tags = array_values(array_unique(array_filter(
             $tags,
-            static fn(mixed $tag): bool => is_string($tag) && preg_match(self::TAG_PATTERN, $tag) === 1,
+            static fn(string $tag): bool => preg_match(self::TAG_PATTERN, $tag) === 1,
         )));
 
         $this->cache()->set(
@@ -90,7 +90,7 @@ class StaticFileIndex
 
         $found = [];
         foreach ($tags as $tag) {
-            if (!is_string($tag) || preg_match(self::TAG_PATTERN, $tag) !== 1) {
+            if (preg_match(self::TAG_PATTERN, $tag) !== 1) {
                 continue;
             }
             foreach ($backend->findIdentifiersByTag($tag) as $identifier) {

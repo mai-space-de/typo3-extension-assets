@@ -18,10 +18,6 @@ class SpriteViewHelper extends AbstractViewHelper
 {
     protected $escapeOutput = false;
 
-    public function __construct(
-        private readonly SvgSpriteCollector $svgSpriteCollector,
-    ) {}
-
     /**
      * Marks the position of the sprite. It is filled in after rendering, when all icons
      * of the page are known (building it here missed icons rendered further down, and the

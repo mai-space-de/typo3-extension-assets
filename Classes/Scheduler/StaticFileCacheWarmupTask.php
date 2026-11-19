@@ -29,10 +29,9 @@ use TYPO3\CMS\Scheduler\Task\AbstractTask;
  */
 final class StaticFileCacheWarmupTask extends AbstractTask implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
     /** How long processed queue entries (with their HTTP status) are kept. */
     public const int KEEP_RESULTS_SECONDS = 7 * 86400;
-
-    use LoggerAwareTrait;
 
     /**
      * @return bool
