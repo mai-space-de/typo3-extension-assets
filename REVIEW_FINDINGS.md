@@ -2,7 +2,7 @@
 
 Ergebnis einer vollständigen Durchsicht aller Klassen unter `Classes/`, der
 TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
-`[x]` erledigt (mit Commit/Test-Hinweis).
+`[x]` erledigt (mit Commit/Test-Hinweis). Stand: alle Punkte erledigt.
 
 ## Kritisch – falsche oder veraltete Inhalte für Besucher
 
@@ -78,17 +78,25 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
 
 ## Niedrig
 
-- [ ] **N22 Video-Facade: doppeltes `class`-Attribut**
+- [x] **N22 Video-Facade: doppeltes `class`-Attribut**
 - [x] **N23 `CssViewHelper` ohne Null-Prüfung auf `$GLOBALS['TYPO3_REQUEST']`**
-- [ ] **N24 103 Early Hints** – `header(..., 103)` sendet unter PHP-FPM kein echtes 103
-  (nur prüfen/dokumentieren)
-- [ ] **N25 Tote Einstellungen** (`observerRootMargin`, `processingCacheLifetime`,
+- [x] **N24 103 Early Hints** – `header(..., 103)` sendet unter PHP-FPM kein echtes 103
+  → Erledigt: echtes 103 nur mit `headers_send()` (z. B. FrankenPHP), sonst immer
+  `Link`-Header an der finalen Antwort (Proxies/CDNs leiten 103 daraus ab).
+- [x] **N25 Tote Einstellungen** (`observerRootMargin`, `processingCacheLifetime`,
   ungenutzte TypoScript-Settings)
-- [ ] **N26 Viewport-Grenzen im JS fest eingetragen** (ignoriert `viewportBuckets`)
-- [ ] **N27 `typo3temp/assets/mai_assets/compiled/` wird nie aufgeräumt**
+  → Erledigt: `observerRootMargin` wirkt (validiert, Standard jetzt `0px` = bisheriges Verhalten),
+  `processingCacheLifetime` ist Standard für `maispace:assets:compiled:prune`, ungenutzte
+  TypoScript-Settings entfernt. `config.namespaces.mai` schrieb ein falsches `xmlns:mai` ins
+  `<html>`-Tag; ersetzt durch einen globalen Fluid-Namespace.
+- [x] **N26 Viewport-Grenzen im JS fest eingetragen** (ignoriert `viewportBuckets`)
+- [x] **N27 `typo3temp/assets/mai_assets/compiled/` wird nie aufgeräumt**
+  → Erledigt: `maispace:assets:compiled:prune` (löscht alte Dateien, leert danach Page-Cache und
+  statische Dateien). Der Warmup-Befehl wärmt jetzt genau die Datei, die `mai:asset.css` ausliefert.
 
 ## Nebenbefunde beim Abarbeiten
 
 - [x] `Tests/Unit/ViewHelpers/Asset/CssViewHelperTest.php` hatte ein doppeltes `use`
   (Fatal Error, die Testsuite brach dort ab).
-- [ ] `GeneralUtility::resolveBackPath()` in `StaticFileCacheDirectory` ist ab TYPO3 v15 entfernt.
+- [x] `GeneralUtility::resolveBackPath()` in `StaticFileCacheDirectory` ist ab TYPO3 v15 entfernt.
+  → Ersetzt durch `Symfony\Component\Filesystem\Path::canonicalize()`.

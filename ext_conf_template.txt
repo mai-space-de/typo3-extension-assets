@@ -13,10 +13,10 @@ compressionLevel = 6
 # cat=Asset Processing//50; type=boolean; label=Enable Brotli Compression: Write pre-compressed Brotli (.br) variants alongside gzip variants. Requires the PHP brotli extension.
 enableBrotli = 1
 
-# cat=Asset Processing//60; type=string; label=Observer Root Margin: IntersectionObserver rootMargin value used by the above-fold detection script. Increase to mark more elements as critical. Example: 200px.
-observerRootMargin = 200px
+# cat=Asset Processing//60; type=string; label=Observer Root Margin: IntersectionObserver rootMargin of the above-fold detection (px or %, e.g. 0px or 0px 0px 200px 0px). A bottom margin also marks elements just below the fold as critical. Default: 0px.
+observerRootMargin = 0px
 
-# cat=Asset Processing//70; type=int+; label=Processing Cache Lifetime (seconds): How long compiled asset files are kept in the public cache directory. 0 means files are never expired automatically.
+# cat=Asset Processing//70; type=int+; label=Processing Cache Lifetime (seconds): Default age for "maispace:assets:compiled:prune", which deletes older compiled CSS/JS files and flushes the page caches. 0 means the command needs --older-than.
 processingCacheLifetime = 0
 
 # cat=Static File Cache//10; type=boolean; label=Enable Static File Cache: Write full-page HTML responses to the filesystem under typo3temp/assets/mai_assets_static/ so Apache can serve them without PHP. Requires the static file cache middleware to be active.

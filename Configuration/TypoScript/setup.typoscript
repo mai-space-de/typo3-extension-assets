@@ -1,5 +1,3 @@
-config.namespaces.mai = Maispace\MaiAssets\ViewHelpers
-
 # Provides {isCritical}, {loadingStrategy}, {fetchPriority}, {decodingStrategy} and
 # {cssStrategy} to every content element template (fluid_styled_content and all
 # elements based on lib.contentElement). stdWrap has no dataProcessing property.
@@ -7,52 +5,6 @@ lib.contentElement.dataProcessing.1763 = Maispace\MaiAssets\DataProcessing\Criti
 
 plugin.tx_maispace_assets {
     settings {
-        # Asset processing
-        css {
-            minify = 1
-            outputDir = typo3temp/assets/mai_assets/compiled/
-        }
-        js {
-            minify = 1
-            defer = 1
-        }
-        scss {
-            minify = 1
-            defaultImportPaths =
-        }
-
-        # Warmup: EXT: paths to pre-warm at deploy time
-        warmup {
-            assets {
-                # Example: assign EXT paths such as mai_theme public SCSS here
-            }
-        }
-
-        # SVG sprite
-        svgSprite {
-            symbolIdPrefix = icon-
-        }
-
-        # Fonts
-        fonts {
-            preloadFormats = woff2
-        }
-
-        # Image variants
-        image {
-            lazyloading = 1
-            lazyloadClass = lazyload
-            forceFormat =
-            alternativeFormats = avif,webp
-        }
-
-        # Compression (gzip/brotli of compiled files)
-        compression {
-            enable = 1
-            brotli = 1
-            gzip = 1
-        }
-
         # HTML output minification (opt-in, disabled by default)
         htmlMinification {
             enable = 0

@@ -7,8 +7,7 @@ namespace Maispace\MaiAssets\Command;
 use Maispace\MaiAssets\Collector\SvgSpriteCollector;
 use Maispace\MaiAssets\Configuration\ExtensionConfigurationDiscovery;
 use Maispace\MaiAssets\Exception\AssetException;
-use Maispace\MaiAssets\Processing\MinificationProcessor;
-use Maispace\MaiAssets\Processing\ScssProcessor;
+use Maispace\MaiAssets\Service\CompiledAssetPublisher;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -25,8 +24,7 @@ final class WarmupCommand extends Command
     public function __construct(
         private readonly ExtensionConfigurationDiscovery $extensionConfigurationDiscovery,
         private readonly SvgSpriteCollector $svgSpriteCollector,
-        private readonly ScssProcessor $scssProcessor,
-        private readonly MinificationProcessor $minificationProcessor,
+        private readonly CompiledAssetPublisher $compiledAssetPublisher,
     ) {
         parent::__construct();
     }
@@ -58,12 +56,12 @@ final class WarmupCommand extends Command
             $errors++;
         }
 
-        // 2. Warm up SCSS/CSS assets from TypoScript warmup.assets setting
+        // 2. Warm up CSS/SCSS assets exactly as mai:asset.css publishes them
         $io->section('CSS/SCSS assets');
         $warmupAssets = $this->resolveWarmupAssets();
 
         if ($warmupAssets === []) {
-            $io->text('No warmup assets configured in plugin.tx_maispace_assets.settings.warmup.assets.');
+            $io->text('No warmup assets configured in $GLOBALS[\'TYPO3_CONF_VARS\'][\'EXTCONF\'][\'mai_assets\'][\'warmup\'][\'assets\'].');
         }
 
         foreach ($warmupAssets as $assetPath) {
@@ -74,17 +72,10 @@ final class WarmupCommand extends Command
                 continue;
             }
 
-            $ext = strtolower(pathinfo($resolved, PATHINFO_EXTENSION));
-            $content = (string) file_get_contents($resolved);
-
             try {
-                if ($ext === 'scss') {
-                    $content = $this->scssProcessor->process($content, $resolved);
-                    $io->text(sprintf('[SCSS] Compiled: %s', $assetPath));
-                } else {
-                    $content = $this->minificationProcessor->process($content, $resolved);
-                    $io->text(sprintf('[CSS]  Minified: %s', $assetPath));
-                }
+                // Same publisher and cache file as mai:asset.css, so the first request is a hit.
+                $published = $this->compiledAssetPublisher->publishStylesheet($resolved);
+                $io->text(sprintf('Published: %s -> %s', $assetPath, basename($published)));
                 $processed++;
             } catch (AssetException $e) {
                 $io->error(sprintf('Failed to process "%s": %s', $assetPath, $e->getMessage()));

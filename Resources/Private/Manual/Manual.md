@@ -32,3 +32,8 @@ Die Extension misst im Browser, wie breit ein Bild im jeweiligen Inhaltselement 
 - Die Bildvarianten entstehen beim ersten Rendern der Seite. Mit `vendor/bin/typo3 maispace:assets:image-measure:warmup` lassen sie sich vorab erzeugen.
 - Messwerte zurücksetzen: `maispace:assets:image-measure:reset --all` oder `... reset 123` (Inhaltselement 123). Die betroffenen Seiten werden dabei neu erzeugt und nutzen bis zum neuen Lernen wieder die Template-Breakpoints.
 - Abschalten: Extension-Konfiguration `enableImageMeasurement`.
+
+## Aufräumen
+
+- Alte kompilierte CSS/JS-Dateien löschen: `vendor/bin/typo3 maispace:assets:compiled:prune --older-than=2592000` (30 Tage; ohne Option gilt `processingCacheLifetime`). Danach werden Seiten-Cache und statische Dateien geleert.
+- Statische HTML-Dateien folgen dem Seiten-Cache: Was den Seiten-Cache leert (Speichern im Backend, „Frontend-Caches leeren“, `cache:flush`, Ablauf durch Start-/Stoppzeit), macht auch die statische Datei ungültig.

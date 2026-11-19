@@ -52,7 +52,7 @@ final class ExtensionConfiguration
         $this->viewportBuckets = (array) ($raw['viewportBuckets'] ?? ['mobile' => 768, 'tablet' => 1024, 'desktop' => PHP_INT_MAX]);
         $this->svgStripAttributes = (array) ($raw['svgStripAttributes'] ?? ['id', 'class', 'style']);
         $this->fontPreloadFormats = (array) ($raw['fontPreloadFormats'] ?? ['woff2']);
-        $this->observerRootMargin = (string) ($raw['observerRootMargin'] ?? '200px');
+        $this->observerRootMargin = self::sanitizeRootMargin((string) ($raw['observerRootMargin'] ?? '0px'));
         $this->processingCacheLifetime = (int) ($raw['processingCacheLifetime'] ?? 0);
         $this->enableStaticFileCache = (bool) ($raw['enableStaticFileCache'] ?? false);
         $this->staticFileCacheDir = (string) ($raw['staticFileCacheDir'] ?? '');
@@ -173,5 +173,15 @@ final class ExtensionConfiguration
     public function getImageMeasureSampleRate(): int
     {
         return $this->imageMeasureSampleRate;
+    }
+
+    /**
+     * The value ends up inside a JavaScript string: only 1-4 lengths in px or % are accepted.
+     */
+    private static function sanitizeRootMargin(string $value): string
+    {
+        $value = trim($value);
+
+        return preg_match('/^-?\d+(\.\d+)?(px|%)(\s+-?\d+(\.\d+)?(px|%)){0,3}$/', $value) === 1 ? $value : '0px';
     }
 }

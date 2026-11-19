@@ -5,16 +5,23 @@
     var SERVER_RESET_TIMESTAMP = ###SERVER_RESET_TIMESTAMP###;
     var REPORT_TOKEN = '###REPORT_TOKEN###';
     var VALID_BUCKETS = ###VALID_BUCKETS###;
+    // Configured viewport buckets: name => maximum viewport width (extension configuration)
+    var BUCKET_LIMITS = ###BUCKET_LIMITS###;
+    var ROOT_MARGIN = '###ROOT_MARGIN###';
     var ENDPOINT = '/api/mai-assets/above-fold-report';
     var SEND_DELAY = 2000;
     var IDLE_TIMEOUT = 5000;
 
-    // Determine viewport bucket
+    // Determine viewport bucket: the smallest configured bucket the viewport fits into
     function getViewportBucket() {
         var width = window.innerWidth || document.documentElement.clientWidth;
-        if (width <= 768) return 'mobile';
-        if (width <= 1024) return 'tablet';
-        return 'desktop';
+        var names = Object.keys(BUCKET_LIMITS).sort(function (a, b) {
+            return BUCKET_LIMITS[a] - BUCKET_LIMITS[b];
+        });
+        for (var i = 0; i < names.length; i++) {
+            if (width <= BUCKET_LIMITS[names[i]]) return names[i];
+        }
+        return names.length ? names[names.length - 1] : 'desktop';
     }
 
     var bucket = (function () {
@@ -65,7 +72,7 @@
             });
         }, {
             root: null,
-            rootMargin: '0px',
+            rootMargin: ROOT_MARGIN,
             threshold: 0
         });
 

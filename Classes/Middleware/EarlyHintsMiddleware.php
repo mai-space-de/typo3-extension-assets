@@ -37,12 +37,13 @@ final readonly class EarlyHintsMiddleware implements MiddlewareInterface
 
             $candidates = $this->earlyHintCacheService->load($pageUid, $languageUid);
 
-            // HTTP 103 informational responses break Hetzner managed-hosting TLS
-            // front-ends (body delivered without status line → curl HTTP/0.9).
-            // Send 103 only when safe; otherwise attach Link on the final 200.
+            // A real HTTP 103 needs SAPI support (headers_send(), e.g. FrankenPHP). Under
+            // PHP-FPM header('Link: …', false, 103) sent no informational response; it only
+            // left raw Link headers that showed up on the final response a second time.
+            // Proxies and CDNs (Cloudflare, Apache H2EarlyHints) derive 103 from the Link
+            // headers of the final response instead.
             if ($candidates !== [] && $this->shouldSendHttp103()) {
                 $this->sendEarlyHints($candidates);
-                $candidates = [];
             }
         }
 
@@ -68,12 +69,20 @@ final readonly class EarlyHintsMiddleware implements MiddlewareInterface
      */
     private function shouldSendHttp103(): bool
     {
+        if (!function_exists('headers_send')) {
+            return false;
+        }
+
         $context = (string) Environment::getContext();
 
         return !str_contains($context, 'Hetzner');
     }
 
     /**
+     * Sends a real 103 Early Hints response (SAPIs with headers_send()). The raw
+     * headers are removed again afterwards: the final response carries the same
+     * Link headers through the PSR-7 response.
+     *
      * @param array<int, EarlyHintCandidate> $candidates
      */
     private function sendEarlyHints(array $candidates): void
@@ -83,14 +92,17 @@ final readonly class EarlyHintsMiddleware implements MiddlewareInterface
         }
 
         foreach ($candidates as $candidate) {
-            header('Link: ' . $candidate->toLinkHeaderValue(), false, 103);
+            header('Link: ' . $candidate->toLinkHeaderValue(), false);
         }
+        // Not part of PHP core (FrankenPHP and similar SAPIs), hence the dynamic call.
+        \call_user_func('headers_send', 103);
+        header_remove('Link');
     }
 
     /**
      * Attach preload hints as Link response headers on the final (200) response.
      *
-     * Used when HTTP 103 is unsafe for the current hosting/proxy stack.
+     * Always used: clients, proxies and CDNs read the hints from the final response.
      *
      * @param array<int, EarlyHintCandidate> $candidates
      */

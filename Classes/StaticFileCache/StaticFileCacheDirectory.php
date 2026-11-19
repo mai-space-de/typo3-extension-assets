@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\StaticFileCache;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
+use Symfony\Component\Filesystem\Path;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -43,9 +44,7 @@ class StaticFileCacheDirectory
             ? rtrim($configured, '/') . '/'
             : self::DEFAULT_RELATIVE_DIR;
 
-        return GeneralUtility::resolveBackPath(
-            Environment::getPublicPath() . '/' . $relativeDir,
-        );
+        return self::normalizeDirectory(Environment::getPublicPath() . '/' . $relativeDir);
     }
 
     /**
@@ -70,7 +69,7 @@ class StaticFileCacheDirectory
 
         $baseDir = $this->getAbsoluteBaseDirectory();
         $relative = $this->buildRelativePagePath($requestUri);
-        $resultPath = GeneralUtility::resolveBackPath($baseDir . $relative);
+        $resultPath = self::normalizeDirectory($baseDir . $relative);
 
         // Security guard: the resolved path must stay within the cache base directory.
         if (!str_starts_with($resultPath, $baseDir)) {
@@ -194,7 +193,7 @@ class StaticFileCacheDirectory
 
         $baseDir = $this->getAbsoluteBaseDirectory();
         $relative = $this->buildRelativePagePathById($pageUid, $languageUid);
-        $resultPath = GeneralUtility::resolveBackPath($baseDir . $relative);
+        $resultPath = self::normalizeDirectory($baseDir . $relative);
 
         // Security guard: the resolved path must stay within the cache base directory.
         if (!str_starts_with($resultPath, $baseDir)) {
@@ -232,5 +231,14 @@ class StaticFileCacheDirectory
         }
 
         return $pageUid . '_' . $languageUid . '/';
+    }
+
+    /**
+     * Resolves "." and ".." segments and keeps one trailing slash
+     * (replacement for GeneralUtility::resolveBackPath(), removed in TYPO3 v15).
+     */
+    private static function normalizeDirectory(string $path): string
+    {
+        return rtrim(Path::canonicalize($path), '/') . '/';
     }
 }

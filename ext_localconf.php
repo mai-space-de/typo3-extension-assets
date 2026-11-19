@@ -47,6 +47,12 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets
     'groups'   => ['pages'],
 ];
 
+// Global Fluid namespace "mai" (templates may still declare it themselves)
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['fluid']['namespaces']['mai'] ??= [];
+if (!in_array('Maispace\\MaiAssets\\ViewHelpers', $GLOBALS['TYPO3_CONF_VARS']['SYS']['fluid']['namespaces']['mai'], true)) {
+    $GLOBALS['TYPO3_CONF_VARS']['SYS']['fluid']['namespaces']['mai'][] = 'Maispace\\MaiAssets\\ViewHelpers';
+}
+
 // Register DataHandler hook
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
     = ContentElementSaveHook::class;

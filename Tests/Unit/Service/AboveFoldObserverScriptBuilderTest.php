@@ -51,6 +51,15 @@ final class AboveFoldObserverScriptBuilderTest extends TestCase
         self::assertStringContainsString('var PAGE_UID = 10;', $result);
     }
 
+    public function testBucketLimitsAndRootMarginAreFilledIn(): void
+    {
+        $builder = new AboveFoldObserverScriptBuilder($this->makeConfig(enableMinification: false));
+
+        $result = $builder->build("var L = ###BUCKET_LIMITS###; var M = '###ROOT_MARGIN###';", 1, 1, 'tok', '[]', '', '{"small":600}', '0px 0px 200px 0px');
+
+        self::assertSame("<script>var L = {\"small\":600}; var M = '0px 0px 200px 0px';</script>", $result);
+    }
+
     public function testScriptCarriesTheCspNonce(): void
     {
         $builder = new AboveFoldObserverScriptBuilder($this->makeConfig(enableMinification: false));

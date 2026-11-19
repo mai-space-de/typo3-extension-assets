@@ -35,6 +35,8 @@ class VideoViewHelper extends AbstractViewHelper
         $class = (string) $this->arguments['class'];
 
         $classAttr = $class !== '' ? ' class="' . htmlspecialchars($class, ENT_QUOTES) . '"' : '';
+        // The facades already have a class attribute; a second one would be ignored by browsers.
+        $extraClass = $class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES) : '';
 
         if ($type === 'background') {
             return $this->renderBackground($file, $isCritical, $classAttr);
@@ -42,11 +44,11 @@ class VideoViewHelper extends AbstractViewHelper
 
         // Content type
         if ($youtubeId !== '') {
-            return $this->renderYoutubeFacade($youtubeId, $poster, $title, $classAttr);
+            return $this->renderYoutubeFacade($youtubeId, $poster, $title, $extraClass);
         }
 
         if ($vimeoId !== '') {
-            return $this->renderVimeoFacade($vimeoId, $poster, $title, $classAttr);
+            return $this->renderVimeoFacade($vimeoId, $poster, $title, $extraClass);
         }
 
         if ($file !== null) {
@@ -87,7 +89,7 @@ class VideoViewHelper extends AbstractViewHelper
             . '></video>';
     }
 
-    private function renderYoutubeFacade(string $youtubeId, ?object $poster, string $title, string $classAttr): string
+    private function renderYoutubeFacade(string $youtubeId, ?object $poster, string $title, string $extraClass): string
     {
         $posterUrl = $poster !== null ? $this->getFileUrl($poster) : '';
         if ($posterUrl === '') {
@@ -97,7 +99,7 @@ class VideoViewHelper extends AbstractViewHelper
         $titleAttr = $title !== '' ? ' title="' . htmlspecialchars($title, ENT_QUOTES) . '"' : '';
         $iframeUrl = 'https://www.youtube-nocookie.com/embed/' . htmlspecialchars($youtubeId, ENT_QUOTES) . '?autoplay=1';
 
-        return '<div class="mai-video-facade mai-video-youtube"' . $classAttr . '>'
+        return '<div class="mai-video-facade mai-video-youtube' . $extraClass . '">'
             . '<img src="' . htmlspecialchars($posterUrl, ENT_QUOTES) . '"'
             . ' alt="' . htmlspecialchars($title, ENT_QUOTES) . '"'
             . ' loading="lazy" class="mai-video-poster">'
@@ -111,7 +113,7 @@ class VideoViewHelper extends AbstractViewHelper
             . '</div>';
     }
 
-    private function renderVimeoFacade(string $vimeoId, ?object $poster, string $title, string $classAttr): string
+    private function renderVimeoFacade(string $vimeoId, ?object $poster, string $title, string $extraClass): string
     {
         $posterUrl = $poster !== null ? $this->getFileUrl($poster) : '';
         $titleAttr = $title !== '' ? ' title="' . htmlspecialchars($title, ENT_QUOTES) . '"' : '';
@@ -121,7 +123,7 @@ class VideoViewHelper extends AbstractViewHelper
             ? '<img src="' . htmlspecialchars($posterUrl, ENT_QUOTES) . '" alt="' . htmlspecialchars($title, ENT_QUOTES) . '" loading="lazy" class="mai-video-poster">'
             : '';
 
-        return '<div class="mai-video-facade mai-video-vimeo"' . $classAttr . '>'
+        return '<div class="mai-video-facade mai-video-vimeo' . $extraClass . '">'
             . $posterHtml
             . '<button class="mai-video-play" aria-label="Play video"' . $titleAttr . '>'
             . '<svg aria-hidden="true" focusable="false"><use href="#mai-icon-play"/></svg>'

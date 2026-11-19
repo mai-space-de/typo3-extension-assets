@@ -181,6 +181,8 @@ final class EarlyHintsMiddlewareTest extends TestCase
         ]);
 
         $this->handler->expects(self::once())->method('handle')->willReturn($this->response);
+        // The hints are attached to the final response.
+        $this->response->method('withHeader')->willReturnSelf();
 
         $request = $this->makeGetRequest(
             pageArguments: $this->makePageArguments(10),
@@ -247,6 +249,35 @@ final class EarlyHintsMiddlewareTest extends TestCase
         $result = (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
 
         self::assertSame($responseWithLink, $result);
+    }
+
+    public function testProcessAttachesLinkHeadersInEveryProductionContext(): void
+    {
+        // Without headers_send() (PHP-FPM) no real 103 is possible; the final response
+        // carries the hints (previously only Production/Hetzner did).
+        Environment::initialize(
+            new ApplicationContext('Production'),
+            true,
+            true,
+            '/project',
+            '/project/public',
+            '/project/var',
+            '/project/config',
+            '/project/public/index.php',
+            'UNIX',
+        );
+
+        $this->cacheFrontend->method('get')->willReturn([
+            ['href' => '/assets/style.css', 'rel' => 'preload', 'as' => 'style', 'type' => '', 'crossorigin' => ''],
+        ]);
+        $responseWithLink = $this->createMock(ResponseInterface::class);
+        $this->response->expects(self::once())->method('withHeader')
+            ->with('Link', '</assets/style.css>; rel=preload; as=style')
+            ->willReturn($responseWithLink);
+
+        $request = $this->makeGetRequest(pageArguments: $this->makePageArguments(1), language: $this->makeLanguage(0));
+
+        self::assertSame($responseWithLink, (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler));
     }
 
     public function testProcessDoesNotAttachLinkHeadersOnHetznerWhenCacheEmpty(): void

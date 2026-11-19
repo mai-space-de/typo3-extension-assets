@@ -53,7 +53,12 @@ final readonly class AboveFoldObserverListener
         }
         $token = $this->tokenService->generate($pageUid, $resetTimestamp);
 
-        $validBuckets = (string) json_encode(array_keys($this->extensionConfiguration->getViewportBuckets()));
+        $viewportBuckets = $this->extensionConfiguration->getViewportBuckets();
+        $validBuckets = (string) json_encode(array_keys($viewportBuckets));
+        $bucketLimits = (string) json_encode(
+            array_map(static fn(mixed $limit): int => min((int) $limit, 1000000), $viewportBuckets),
+            JSON_FORCE_OBJECT,
+        );
 
         $observerScriptPath = GeneralUtility::getFileAbsFileName(
             'EXT:mai_assets/Resources/Public/JavaScript/AboveFoldObserver.js',
@@ -71,6 +76,8 @@ final readonly class AboveFoldObserverListener
             $token,
             $validBuckets,
             HtmlInjectionUtility::nonceAttribute($request->getAttribute('nonce')),
+            $bucketLimits,
+            $this->extensionConfiguration->getObserverRootMargin(),
         );
 
         $innerEvent = new BeforeObserverScriptInjectedEvent($script);
