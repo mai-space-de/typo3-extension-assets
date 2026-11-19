@@ -8,6 +8,9 @@ use Maispace\MaiAssets\Exception\AssetFileNotFoundException;
 
 final class SriHashService
 {
+    /** @var array<string, string> path|mtime|size => hash */
+    private static array $fileHashes = [];
+
     /**
      * Compute a sha384 SRI hash for a local file.
      * Returns a string ready for use as the `integrity` attribute value, e.g. "sha384-{base64}".
@@ -23,8 +26,10 @@ final class SriHashService
             );
         }
 
-        $content = (string) file_get_contents($absolutePath);
-        return $this->computeForContent($content);
+        // Hash each file version once per process (several ViewHelpers may include it).
+        clearstatcache(true, $absolutePath);
+        $key = $absolutePath . '|' . (int) filemtime($absolutePath) . '|' . (int) filesize($absolutePath);
+        return self::$fileHashes[$key] ??= $this->computeForContent((string) file_get_contents($absolutePath));
     }
 
     /**

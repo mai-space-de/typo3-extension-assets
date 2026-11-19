@@ -178,10 +178,15 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   JS/CSS aus `Resources/Private` (ohne Minify/SCSS) wird mit einem nicht erreichbaren
   Pfad eingebunden (404).
   → Erledigt: Nicht öffentlich erreichbare CSS-/JS-Quellen werden nach `typo3temp/assets/mai_assets/compiled/` kopiert (`AssetPathUtility::isPubliclyReachable()`).
-- [ ] **W38 SRI-Hash wird bei jedem Rendern neu berechnet** (kein Cache; Performance)
+- [x] **W38 SRI-Hash wird bei jedem Rendern neu berechnet** (kein Cache; Performance)
+  → Erledigt: Hash pro Dateiversion (Pfad, Änderungszeit, Größe) nur einmal pro Prozess berechnet; gecachte Seiten rendern ohnehin nicht neu.
 - [ ] **W39 Dev-Server standardmäßig im Development-Kontext aktiv**
   `useDevServer = auto` lädt in jedem Development-Kontext von `localhost:5173`, auch ohne
   laufenden Vite-Server (alle Assets fehlen).
+  → **Offen, Rückfrage nötig:** Eine Erreichbarkeitsprüfung aus PHP würde in Container-Setups
+  falsch liegen (Vite auf dem Host: Browser erreicht ihn, PHP im Container nicht). Optionen:
+  a) Standard auf `0` ändern (Dev-Server nur bewusst einschalten), b) Prüfung per TCP mit
+  Abschaltung bei Nichterreichbarkeit, c) so lassen und dokumentieren.
 
 ### SVG und Icons
 

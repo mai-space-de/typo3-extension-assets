@@ -72,4 +72,22 @@ final class SriHashServiceTest extends TestCase
         $result = $this->subject->computeForContent('');
         self::assertStringStartsWith('sha384-', $result);
     }
+
+    public function testChangedFileGetsANewHash(): void
+    {
+        $file = sys_get_temp_dir() . '/mai_sri_' . uniqid('', true) . '.css';
+        $service = new SriHashService();
+
+        try {
+            file_put_contents($file, 'a{}');
+            $first = $service->computeForFile($file);
+            self::assertSame($first, $service->computeForFile($file));
+
+            file_put_contents($file, 'b{color:red}');
+            touch($file, time() + 5);
+            self::assertSame($service->computeForContent('b{color:red}'), $service->computeForFile($file));
+        } finally {
+            unlink($file);
+        }
+    }
 }
