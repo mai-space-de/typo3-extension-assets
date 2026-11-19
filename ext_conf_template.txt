@@ -16,6 +16,9 @@ enableBrotli = 1
 # cat=Asset Processing//60; type=string; label=Observer Root Margin: IntersectionObserver rootMargin of the above-fold detection (px or %, e.g. 0px or 0px 0px 200px 0px). A bottom margin also marks elements just below the fold as critical. Default: 0px.
 observerRootMargin = 0px
 
+# cat=Asset Processing//65; type=int+; label=Critical CSS inline limit (bytes): mai:asset.css with critical="auto" is only inlined up to this size (after compilation/minification); larger stylesheets are linked and cached by the browser. critical="true" always inlines. 0 = no limit. Default: 14336 (first TCP round trip).
+criticalCssMaxInlineBytes = 14336
+
 # cat=Asset Processing//70; type=int+; label=Processing Cache Lifetime (seconds): Default age for "maispace:assets:compiled:prune", which deletes older compiled CSS/JS files and flushes the page caches. 0 means the command needs --older-than.
 processingCacheLifetime = 0
 

@@ -14,6 +14,7 @@ use Maispace\MaiAssets\Service\CompiledAssetPublisher;
 use Maispace\MaiAssets\Service\SriHashService;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
 use Maispace\MaiAssets\Utility\AttributeUtility;
+use Maispace\MaiAssets\Utility\HtmlInjectionUtility;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Page\AssetCollector;
@@ -86,12 +87,25 @@ class CssViewHelper extends AbstractViewHelper
             // resolve against the page URL once inlined).
             $content = $this->compiledAssetPublisher->getInlineStylesheet($resolvedPath, $minify);
 
+            // critical="auto" inlines small stylesheets only: a large bundle inlined into every
+            // page bloats the HTML and can no longer be cached by the browser across pages.
+            $limit = $this->extensionConfiguration->getCriticalCssMaxInlineBytes();
+            if ($critical !== 'true' && $limit > 0 && strlen($content) > $limit) {
+                $isCritical = false;
+            }
+        }
+
+        if ($isCritical) {
             $event = new BeforeAssetInjectionEvent($content, 'css', $resolvedPath);
             $this->eventDispatcher->dispatch($event);
             $content = $event->getContent();
 
             // No preload hint: the stylesheet is inlined, a preload would download it for nothing.
-            $nonceAttr = $nonce !== '' ? ' nonce="' . htmlspecialchars($nonce, ENT_QUOTES) . '"' : '';
+            // Without an explicit nonce the CSP nonce of the request is used (TYPO3 replaces it
+            // in cached pages), otherwise a strict style-src blocks the inline styles.
+            $nonceAttr = $nonce !== ''
+                ? ' nonce="' . htmlspecialchars($nonce, ENT_QUOTES) . '"'
+                : HtmlInjectionUtility::nonceAttribute($request instanceof ServerRequestInterface ? $request->getAttribute('nonce') : null);
             return '<style' . $nonceAttr . '>' . $content . '</style>';
         }
 

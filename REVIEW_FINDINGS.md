@@ -160,9 +160,10 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 
 ### Assets (CSS/JS)
 
-- [ ] **W33 Kritisches CSS: ganzes Stylesheet inline an der ViewHelper-Position**
+- [x] **W33 Kritisches CSS: ganzes Stylesheet inline an der ViewHelper-Position**
   Bei `critical="auto"` reicht irgendein Observer-Eintrag der Seite, und jede Datei wird
   vollständig als `<style>` dort eingefügt, wo der ViewHelper steht (ggf. im `<body>`).
+  → Erledigt: `critical="auto"` inlined nur bis `criticalCssMaxInlineBytes` (Standard 14 KB, 0 = unbegrenzt); größere Dateien werden verlinkt und vom Browser gecacht (Baseline: `mai-theme-bundle` 79.917 Bytes lag bisher in jeder Seite). `critical="true"` inlined weiterhin immer. Inline-`<style>` bekommt ohne eigenes `nonce`-Argument den CSP-Nonce des Requests. Die Ausgabe bleibt an der Stelle des ViewHelpers (bewusst, Templates rufen ihn im `<head>` auf; ein Verschieben über den AssetCollector würde bestehende Layouts ändern).
 - [ ] **W34 Relative `url()` ohne existierendes Ziel bleiben relativ**
   Im kompilierten CSS unter `typo3temp/…/compiled/` zeigen sie danach ins Leere.
 - [ ] **W35 `getPublicWebPath()` mit projektspezifischem Sonderfall**

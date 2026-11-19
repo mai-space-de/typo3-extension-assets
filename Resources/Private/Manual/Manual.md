@@ -17,6 +17,8 @@ Subresource Integrity setzt Prüfsummen auf lokale Dateien. Für die Look-Vorsch
 
 Die Extension merkt sich, welche Inhaltselemente beim Laden im sichtbaren Bereich liegen, und lädt deren Bilder mit hoher Priorität. Im Tab **Render as Critical** lässt sich das pro Element überschreiben: **Automatisch (gemessen)** ist der Standard, **Ja** bzw. **Nein** erzwingen die Entscheidung.
 
+Kritisches CSS (`mai:asset.css` mit `critical="auto"`) wird nur bis zur Größe `criticalCssMaxInlineBytes` (Standard 14 KB) direkt ins HTML geschrieben; größere Dateien werden normal eingebunden. Den ViewHelper im `<head>` des Layouts aufrufen, die Ausgabe erscheint an seiner Stelle.
+
 ## Bericht
 
 Administratoren sehen unter **System → Assets Report**, ob Seiten für Optimierung, Early Hints und den statischen Cache bereit sind.

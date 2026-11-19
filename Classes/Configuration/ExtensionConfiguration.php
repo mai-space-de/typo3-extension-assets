@@ -33,6 +33,7 @@ final class ExtensionConfiguration
     private string $devServerUri;
     private bool $enableImageMeasurement;
     private int $imageMeasureSampleRate;
+    private int $criticalCssMaxInlineBytes;
 
     public function __construct(Typo3ExtensionConfiguration $typo3ExtensionConfiguration)
     {
@@ -61,6 +62,7 @@ final class ExtensionConfiguration
         $this->devServerUri = (string) ($raw['devServerUri'] ?? 'http://localhost:5173');
         $this->enableImageMeasurement = (bool) ($raw['enableImageMeasurement'] ?? true);
         $this->imageMeasureSampleRate = max(1, min(100, (int) ($raw['imageMeasureSampleRate'] ?? 100)));
+        $this->criticalCssMaxInlineBytes = max(0, (int) ($raw['criticalCssMaxInlineBytes'] ?? 14336));
     }
 
     public static function getInstance(): self
@@ -170,6 +172,14 @@ final class ExtensionConfiguration
     /**
      * Percentage (1-100) of page views that report image measurements.
      */
+    /**
+     * Largest stylesheet (bytes) that critical="auto" inlines; 0 = no limit.
+     */
+    public function getCriticalCssMaxInlineBytes(): int
+    {
+        return $this->criticalCssMaxInlineBytes;
+    }
+
     public function getImageMeasureSampleRate(): int
     {
         return $this->imageMeasureSampleRate;
