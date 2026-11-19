@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\ViewHelpers\Svg;
 
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
+use Maispace\MaiAssets\Utility\SvgIdScoper;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
@@ -42,7 +43,7 @@ class InlineViewHelper extends AbstractViewHelper
         try {
             $cache = $this->cacheManager->getCache('mai_assets');
             if ($cache->has($cacheKey)) {
-                return (string) $cache->get($cacheKey);
+                return self::scopeIds((string) $cache->get($cacheKey));
             }
         } catch (\Exception) {
             $cache = null;
@@ -95,6 +96,32 @@ class InlineViewHelper extends AbstractViewHelper
             $cache->set($cacheKey, $result);
         }
 
-        return $result;
+        return self::scopeIds($result);
+    }
+
+    /**
+     * Each embedding gets its own id prefix: the same SVG twice on a page would
+     * otherwise share gradient/clip-path ids (the second one references the first).
+     */
+    private static function scopeIds(string $svg): string
+    {
+        if (!str_contains($svg, 'id=')) {
+            return $svg;
+        }
+
+        $prefix = 'svg' . bin2hex(random_bytes(4));
+        $scoped = SvgIdScoper::scope($svg, $prefix);
+
+        // The root element's own id is addressed from outside (CSS, JS, anchors): keep it.
+        if (preg_match('/^\s*<svg\b[^>]*\bid\s*=\s*(["\'])([^"\']+)\1/', $svg, $root) === 1) {
+            $scoped = (string) preg_replace(
+                '/^(\s*<svg\b[^>]*\bid\s*=\s*["\'])' . preg_quote($prefix . '-' . $root[2], '/') . '(["\'])/',
+                '${1}' . $root[2] . '${2}',
+                $scoped,
+                1,
+            );
+        }
+
+        return $scoped;
     }
 }

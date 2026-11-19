@@ -190,14 +190,18 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 
 ### SVG und Icons
 
-- [ ] **W40 ID-Kollisionen im Sprite** – interne IDs (Gradients, Clip-Paths, Masks) mehrerer
+- [x] **W40 ID-Kollisionen im Sprite** – interne IDs (Gradients, Clip-Paths, Masks) mehrerer
   Symbole kollidieren; gleiches Problem bei mehrfach eingebetteten Inline-SVGs.
-- [ ] **W41 Icons aus USER_INT-Bereichen fehlen im Sprite** (Sprite entsteht vor dem
+  → Erledigt: `SvgIdScoper` präfixt interne IDs (inkl. `url(#…)`, `href`, `aria-labelledby`) pro Sprite-Symbol bzw. pro Inline-Einbettung; die `id` des Inline-Root-Elements bleibt erhalten.
+- [x] **W41 Icons aus USER_INT-Bereichen fehlen im Sprite** (Sprite entsteht vor dem
   Rendern der ungecachten Teile).
-- [ ] **W42 Sprite kann doppelt im Dokument landen** (`mai:svg.sprite` plus automatisches
+  → Erledigt: Icons, die nach dem Sprite (USER_INT) oder bei einem Page-Cache-Treffer gerendert werden, liefern ihr `<symbol>` einmal pro Request mit.
+- [x] **W42 Sprite kann doppelt im Dokument landen** (`mai:svg.sprite` plus automatisches
   Einfügen durch den Listener → doppelte IDs).
-- [ ] **W43 Kinder in anderen XML-Namespaces fallen aus dem Sprite**
+  → Erledigt: `mai:svg.sprite` setzt nur einen Platzhalter; der Listener füllt ihn mit dem vollständigen Sprite, sonst Einfügen nach `<body>`.
+- [x] **W43 Kinder in anderen XML-Namespaces fallen aus dem Sprite**
   `SimpleXMLElement::children()` liefert nur den Default-Namespace.
+  → Erledigt: Symbole werden per DOM aus allen Kindknoten gebaut. Nebenbei: `svgStripAttributes` wirkte nie (das Root-Element wird nicht ausgegeben); die ungenutzte Abhängigkeit ist entfernt.
 
 ### HTML-Minifizierung
 

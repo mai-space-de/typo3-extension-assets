@@ -28,8 +28,13 @@ final readonly class SvgSpriteInjectionListener
         $content = $event->getContent();
 
         // Inject SVG sprite immediately after <body> opening tag
+        // At the position of mai:svg.sprite if used, otherwise right after <body>.
         $sprite = $this->svgSpriteCollector->build();
-        if ($sprite !== '') {
+        $position = strpos($content, SvgSpriteCollector::PLACEHOLDER);
+        if ($position !== false) {
+            $content = substr_replace($content, $sprite, $position, strlen(SvgSpriteCollector::PLACEHOLDER));
+            $content = str_replace(SvgSpriteCollector::PLACEHOLDER, '', $content);
+        } elseif ($sprite !== '') {
             $content = HtmlInjectionUtility::afterBodyStart($content, $sprite);
         }
 
