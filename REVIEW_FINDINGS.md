@@ -183,6 +183,9 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
 - [ ] **W55 Rate-Limit der Report-Endpunkte schreibt bei jedem Request in den DB-Cache.**
 - [ ] **W56 Warmup-Queue löscht jeden Lauf alle verarbeiteten Einträge** (keine Historie
   für Fehleranalyse).
+- [ ] **W58 Einstellungen ohne Eintrag in `ext_conf_template.txt`**
+  `viewportBuckets`, `criticalThresholdByColPos`, `svgStripAttributes`, `fontPreloadFormats`
+  sind nur über `settings.php` setzbar und im Backend nicht sichtbar.
 - [ ] **W57 Backend-Bericht ignoriert Seitenrechte** (nur relevant, falls das Modul nicht
   mehr auf Admins beschränkt ist).
 
