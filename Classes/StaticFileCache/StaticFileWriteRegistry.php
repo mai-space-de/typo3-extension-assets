@@ -9,7 +9,7 @@ use TYPO3\CMS\Core\SingletonInterface;
 /**
  * Remembers, within one request, which static file was written, so the response
  * headers of that request can be stored next to it
- * ({@see \Maispace\MaiAssets\Middleware\StaticFileHeaderRecorderMiddleware}).
+ * ({@see \Maispace\MaiAssets\Middleware\StaticFileWriterMiddleware}).
  */
 final class StaticFileWriteRegistry implements SingletonInterface
 {

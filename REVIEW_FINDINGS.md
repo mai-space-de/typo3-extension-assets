@@ -128,6 +128,10 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   (Fatal Error, die Testsuite brach dort ab).
 - [x] `GeneralUtility::resolveBackPath()` in `StaticFileCacheDirectory` ist ab TYPO3 v15 entfernt.
   → Ersetzt durch `Symfony\Component\Filesystem\Path::canonicalize()`.
+- [x] Index-Einträge (K2) bekamen nicht alle Tags: TYPO3 14 setzt `pageId_*` (auch Übersetzung,
+  Inhalte aus anderer Seite), die `cache_tags` der Seite und die Lebensdauer aus Start-/Stoppzeit
+  erst nach `AfterCacheableContentIsGeneratedEvent`.
+  → Behoben mit W31: Registrierung aus der fertigen Antwort mit den vollständigen Tags.
 
 ## Weitere Befunde aus dem Review (bisher nicht in der Liste)
 
@@ -144,9 +148,10 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 - [x] **W30 `Accept-Encoding` ignoriert `q=0`**
   `br;q=0` wird als Brotli-Unterstützung gelesen.
   → Erledigt: `Accept-Encoding` wird mit q-Werten ausgewertet (`q=0` = abgelehnt, `*` berücksichtigt).
-- [ ] **W31 Statische Datei entsteht nur beim Erzeugen des Page-Caches**
+- [x] **W31 Statische Datei entsteht nur beim Erzeugen des Page-Caches**
   Ist der Page-Cache warm, schreibt weder ein Besucher noch der Warmup-Request die Datei;
   sie entsteht erst nach dem nächsten Ablauf/Leeren des Page-Caches.
+  → Erledigt: `StaticFileWriterMiddleware` schreibt die Datei aus der fertigen Antwort, nach frischem Rendern und nach einem Page-Cache-Treffer (füllt fehlende/ungültige Dateien, gültige bleiben). Der Event-Listener ist nur noch Fallback für TYPO3 ohne `frontend.page.parts`.
 - [ ] **W32 Jede Inhaltsänderung setzt die Above-fold-Daten zurück**
   `InvalidationService` löscht bei jedem Speichern (auch reiner Textänderung) die
   Bucket-Daten; die Seite verliert damit ihre Bereitschaft und den statischen Cache, bis

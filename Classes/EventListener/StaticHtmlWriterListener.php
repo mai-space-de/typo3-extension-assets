@@ -19,6 +19,10 @@ use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
  * Persists fully rendered, cacheable frontend HTML to the static file cache
  * after all content transformers (SVG sprite, minification, early hints) have run.
  *
+ * Fallback for TYPO3 versions without the "frontend.page.parts" request attribute;
+ * otherwise {@see \Maispace\MaiAssets\Middleware\StaticFileWriterMiddleware} writes
+ * the file with the complete page cache tags and lifetime.
+ *
  * Writes are skipped when:
  * - static file cache is disabled in extension configuration;
  * - TYPO3 marks the response as non-cacheable (INT / no_cache);
@@ -57,6 +61,13 @@ final readonly class StaticHtmlWriterListener
         }
 
         $request = $event->getRequest();
+
+        // TYPO3 with "frontend.page.parts": StaticFileWriterMiddleware writes the file from the
+        // finished response, where the page cache tags and lifetime are complete.
+        if (is_object($request->getAttribute('frontend.page.parts'))) {
+            return;
+        }
+
         if ($request->getMethod() !== 'GET' || !$this->requestGuard->isShareable($request)) {
             return;
         }

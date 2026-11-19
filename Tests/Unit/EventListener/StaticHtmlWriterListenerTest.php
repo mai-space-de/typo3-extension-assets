@@ -23,6 +23,7 @@ use TYPO3\CMS\Core\Cache\CacheTag;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\ConsumableNonce;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
+use TYPO3\CMS\Frontend\Page\PageParts;
 
 /**
  * @covers \Maispace\MaiAssets\EventListener\StaticHtmlWriterListener
@@ -269,7 +270,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
         );
     }
 
-    public function testWrittenFileIsHandedToTheHeaderRecorderWithItsNonce(): void
+    public function testWrittenFileIsHandedToTheWriterMiddlewareWithItsNonce(): void
     {
         $this->stubReadyPageWithManifest(42, 0);
         $writer = $this->createMock(StaticHtmlWriterService::class);
@@ -283,6 +284,15 @@ final class StaticHtmlWriterListenerTest extends TestCase
         self::assertNotNull($pending);
         self::assertSame([42, 0, '', $nonce->value], [$pending['page'], $pending['language'], $pending['variant'], $pending['nonce']]);
         self::assertGreaterThanOrEqual($before + StaticFileIndex::DEFAULT_LIFETIME, $pending['expires']);
+    }
+
+    public function testListenerLeavesWritingToTheMiddlewareOnCurrentTypo3(): void
+    {
+        $this->stubReadyPageWithManifest(42, 0);
+        $writer = $this->createMock(StaticHtmlWriterService::class);
+        $writer->expects(self::never())->method('writeByPageId');
+
+        $this->makeListener($writer)($this->makeEvent('<html>ready</html>', 42, 0, pageParts: new PageParts()));
     }
 
     public function testFailedWriteIsNotRegistered(): void
@@ -381,9 +391,10 @@ final class StaticHtmlWriterListenerTest extends TestCase
         array $routeArguments = [],
         ?CacheDataCollector $cacheCollector = null,
         ?ConsumableNonce $nonce = null,
+        ?PageParts $pageParts = null,
     ): AfterCacheableContentIsGeneratedEvent {
         return new AfterCacheableContentIsGeneratedEvent(
-            $this->createRequest($pageUid, $languageUid, pageType: $pageType, routeArguments: $routeArguments, cacheCollector: $cacheCollector, nonce: $nonce),
+            $this->createRequest($pageUid, $languageUid, pageType: $pageType, routeArguments: $routeArguments, cacheCollector: $cacheCollector, nonce: $nonce, pageParts: $pageParts),
             $content,
             'cache-id',
             true,
@@ -402,6 +413,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
         array $routeArguments = [],
         ?CacheDataCollector $cacheCollector = null,
         ?ConsumableNonce $nonce = null,
+        ?PageParts $pageParts = null,
     ): ServerRequestInterface {
         $routing = $this->routing($pageUid, $pageType, $routeArguments);
 
@@ -416,7 +428,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
             }
         };
 
-        return $this->requestFor($method, $uri, $routing, $language, $cacheCollector, $nonce);
+        return $this->requestFor($method, $uri, $routing, $language, $cacheCollector, $nonce, $pageParts);
     }
 
     private function routing(int $pageUid, string $pageType = '0', array $routeArguments = []): object
@@ -445,7 +457,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
         };
     }
 
-    private function requestFor(string $method, string $uri, object $routing, object $language, ?CacheDataCollector $cacheCollector, ?ConsumableNonce $nonce = null): ServerRequestInterface
+    private function requestFor(string $method, string $uri, object $routing, object $language, ?CacheDataCollector $cacheCollector, ?ConsumableNonce $nonce = null, ?PageParts $pageParts = null): ServerRequestInterface
     {
         $uriObject = $this->createMock(UriInterface::class);
         $uriObject->method('__toString')->willReturn($uri);
@@ -460,6 +472,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
                 'language' => $language,
                 'frontend.cache.collector' => $cacheCollector,
                 'nonce' => $nonce,
+                'frontend.page.parts' => $pageParts,
                 default => null,
             });
 
