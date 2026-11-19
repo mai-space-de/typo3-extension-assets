@@ -8,6 +8,7 @@ use Symfony\Component\Filesystem\Path;
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Processing\MinificationProcessor;
 use Maispace\MaiAssets\Processing\ScssProcessor;
+use Maispace\MaiAssets\Utility\AssetPathUtility;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -44,7 +45,9 @@ final readonly class CompiledAssetPublisher
         $compileScss = $ext === 'scss' && $this->extensionConfiguration->isEnableScssProcessing();
         $shouldMinify = $minify ?? $this->extensionConfiguration->isEnableMinification();
 
-        if (!$compileScss && !$shouldMinify) {
+        // Plain CSS the web server can deliver is linked directly. A file outside the public
+        // directory (e.g. Resources/Private) is copied into the public cache directory.
+        if (!$compileScss && !$shouldMinify && AssetPathUtility::isPubliclyReachable($absoluteSourcePath)) {
             return $absoluteSourcePath;
         }
 
@@ -119,8 +122,10 @@ final readonly class CompiledAssetPublisher
                     }
                 }
 
-                // Check if file exists
-                if (!file_exists($absolutePath)) {
+                // Rewrite targets the browser can reach. A missing file in a public location is
+                // rewritten as well: left relative it would resolve against the compiled file in
+                // typo3temp (or the page URL when inlined) and certainly break.
+                if (!file_exists($absolutePath) && !AssetPathUtility::isPubliclyReachable($absolutePath)) {
                     return $matches[0];
                 }
 
@@ -138,35 +143,46 @@ final readonly class CompiledAssetPublisher
      */
     private function getPublicWebPath(string $absolutePath): string
     {
-        // Don't use realpath() here because it resolves symlinks, which breaks the hash calculation
-        // Check if file is within project path and contains Resources/Public
+        // No realpath(): resolving symlinks would change the _assets hash.
         if (Environment::isComposerMode()
             && str_contains($absolutePath, 'Resources/Public')
-            && str_starts_with($absolutePath, Environment::getProjectPath())) {
-
+            && str_starts_with($absolutePath, Environment::getProjectPath())
+        ) {
             $relativePath = substr($absolutePath, strlen(Environment::getProjectPath()));
+            [$relativePrefix, $relativeAssetPath] = explode('Resources/Public', $relativePath, 2);
 
-            // Check if the path is in the vendor directory (even if it's a symlink)
-            if (str_contains($relativePath, '/vendor/')) {
-                [$relativePrefix, $relativeAssetPath] = explode('Resources/Public', $relativePath, 2);
-                return '/_assets/' . md5($relativePrefix) . $relativeAssetPath;
+            // A package from a local path repository (e.g. packages/my-ext/) is published by
+            // Composer through its vendor/<name>/ symlink; the _assets hash uses that path.
+            if (!str_contains($relativePrefix, '/vendor/')) {
+                $relativePrefix = $this->vendorPrefixOfPackage(Environment::getProjectPath() . $relativePrefix) ?? $relativePrefix;
             }
 
-            // If the path is in the packages directory, convert it to the vendor path
-            if (str_contains($relativePath, '/packages/')) {
-                // Extract the package name from the path
-                if (preg_match('#/packages/typo3-extension-([^/]+)/#', $relativePath, $matches)) {
-                    $packageName = $matches[1];
-                    // Convert packages/typo3-extension-xxx to vendor/maispace/xxx
-                    $vendorPath = '/vendor/maispace/' . $packageName . '/';
-                    $assetPath = substr($relativePath, strpos($relativePath, 'Resources/Public') + strlen('Resources/Public'));
-                    return '/_assets/' . md5($vendorPath) . $assetPath;
-                }
-            }
+            // Through PathUtility so the site path prefix (sub directory installs) is respected.
+            return PathUtility::getAbsoluteWebPath(
+                Environment::getPublicPath() . '/_assets/' . md5($relativePrefix) . $relativeAssetPath,
+            );
         }
 
-        // Fallback to standard PathUtility for non-extension files
         return PathUtility::getAbsoluteWebPath($absolutePath);
+    }
+
+    /**
+     * "/vendor/<composer name>/" when the package in $packageDirectory is installed into vendor/.
+     */
+    private function vendorPrefixOfPackage(string $packageDirectory): ?string
+    {
+        $composerFile = rtrim($packageDirectory, '/') . '/composer.json';
+        if (!is_file($composerFile)) {
+            return null;
+        }
+        $name = json_decode((string) file_get_contents($composerFile), true)['name'] ?? null;
+        if (!is_string($name) || preg_match('#^[a-z0-9_.-]+/[a-z0-9_.-]+$#', $name) !== 1
+            || !is_dir(Environment::getProjectPath() . '/vendor/' . $name)
+        ) {
+            return null;
+        }
+
+        return '/vendor/' . $name . '/';
     }
 
     private function getCachePath(string $sourcePath, bool $compileScss, bool $minify): string

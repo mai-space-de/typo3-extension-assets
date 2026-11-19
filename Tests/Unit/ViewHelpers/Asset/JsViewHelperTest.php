@@ -96,7 +96,42 @@ final class JsViewHelperTest extends TestCase
         self::assertCount(0, $this->earlyHints->getAll());
     }
 
-    private function render(string $critical): void
+    public function testScriptOutsideThePublicDirectoryIsPublished(): void
+    {
+        $private = $this->root . '/vendor/acme/theme/Resources/Private/JavaScript/app.js';
+        mkdir(\dirname($private), 0777, true);
+        file_put_contents($private, 'console.log(2);');
+        $this->jsFile = $private;
+
+        $source = null;
+        $this->assetCollector->method('addJavaScript')
+            ->willReturnCallback(function (string $identifier, string $src) use (&$source): AssetCollector {
+                $source = $src;
+
+                return $this->assetCollector;
+            });
+
+        $this->render(critical: 'false');
+
+        self::assertStringContainsString('typo3temp/assets/mai_assets/compiled/' . md5('console.log(2);') . '.js', (string) $source);
+    }
+
+    public function testIntegrityNoneDisablesSri(): void
+    {
+        $attributes = null;
+        $this->assetCollector->method('addJavaScript')
+            ->willReturnCallback(function (string $identifier, string $source, array $tagAttributes) use (&$attributes): AssetCollector {
+                $attributes = $tagAttributes;
+
+                return $this->assetCollector;
+            });
+
+        $this->render(critical: 'false', integrity: 'none');
+
+        self::assertArrayNotHasKey('integrity', $attributes);
+    }
+
+    private function render(string $critical, string $integrity = ''): void
     {
         $extensionConfiguration = new ExtensionConfiguration(
             (new \ReflectionClass(Typo3ExtensionConfiguration::class))->newInstanceWithoutConstructor(),
@@ -129,7 +164,7 @@ final class JsViewHelperTest extends TestCase
             'type' => '',
             'nomodule' => false,
             'nonce' => '',
-            'integrity' => '',
+            'integrity' => $integrity,
             'crossorigin' => '',
         ]);
         $viewHelper->render();

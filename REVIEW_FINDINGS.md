@@ -164,16 +164,20 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   Bei `critical="auto"` reicht irgendein Observer-Eintrag der Seite, und jede Datei wird
   vollständig als `<style>` dort eingefügt, wo der ViewHelper steht (ggf. im `<body>`).
   → Erledigt: `critical="auto"` inlined nur bis `criticalCssMaxInlineBytes` (Standard 14 KB, 0 = unbegrenzt); größere Dateien werden verlinkt und vom Browser gecacht (Baseline: `mai-theme-bundle` 79.917 Bytes lag bisher in jeder Seite). `critical="true"` inlined weiterhin immer. Inline-`<style>` bekommt ohne eigenes `nonce`-Argument den CSP-Nonce des Requests. Die Ausgabe bleibt an der Stelle des ViewHelpers (bewusst, Templates rufen ihn im `<head>` auf; ein Verschieben über den AssetCollector würde bestehende Layouts ändern).
-- [ ] **W34 Relative `url()` ohne existierendes Ziel bleiben relativ**
+- [x] **W34 Relative `url()` ohne existierendes Ziel bleiben relativ**
   Im kompilierten CSS unter `typo3temp/…/compiled/` zeigen sie danach ins Leere.
-- [ ] **W35 `getPublicWebPath()` mit projektspezifischem Sonderfall**
+  → Erledigt: Ziele an öffentlichen Orten werden auch dann absolut gemacht, wenn die Datei (noch) fehlt; nur nicht öffentlich erreichbare Ziele bleiben unverändert.
+- [x] **W35 `getPublicWebPath()` mit projektspezifischem Sonderfall**
   Hart codiertes `packages/typo3-extension-*` → `vendor/maispace/*`; absoluter Pfad mit
   führendem `/` bricht Installationen in Unterverzeichnissen.
-- [ ] **W36 `JsViewHelper` kennt `integrity="none"` nicht**
+  → Erledigt: Sonderfall entfernt. Pakete aus einem Path-Repository werden über den `name` ihrer `composer.json` auf `vendor/<name>/` abgebildet (nur wenn das Verzeichnis existiert, sonst Standard von TYPO3); die URL entsteht über `PathUtility` und bekommt so das Site-Präfix (Unterverzeichnis-Installationen).
+- [x] **W36 `JsViewHelper` kennt `integrity="none"` nicht**
   Der CSS-ViewHelper schaltet SRI damit ab, der JS-ViewHelper gibt `integrity="none"` aus.
-- [ ] **W37 Nicht öffentliche Quellen werden nicht veröffentlicht**
+  → Erledigt: `integrity="none"` schaltet SRI auch im JS-ViewHelper ab.
+- [x] **W37 Nicht öffentliche Quellen werden nicht veröffentlicht**
   JS/CSS aus `Resources/Private` (ohne Minify/SCSS) wird mit einem nicht erreichbaren
   Pfad eingebunden (404).
+  → Erledigt: Nicht öffentlich erreichbare CSS-/JS-Quellen werden nach `typo3temp/assets/mai_assets/compiled/` kopiert (`AssetPathUtility::isPubliclyReachable()`).
 - [ ] **W38 SRI-Hash wird bei jedem Rendern neu berechnet** (kein Cache; Performance)
 - [ ] **W39 Dev-Server standardmäßig im Development-Kontext aktiv**
   `useDevServer = auto` lädt in jedem Development-Kontext von `localhost:5173`, auch ohne

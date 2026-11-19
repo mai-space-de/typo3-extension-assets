@@ -13,6 +13,7 @@ use Maispace\MaiAssets\Processing\MinificationProcessor;
 use Maispace\MaiAssets\Service\AssetCriticalityResolver;
 use Maispace\MaiAssets\Service\SriHashService;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
+use Maispace\MaiAssets\Utility\AssetPathUtility;
 use Maispace\MaiAssets\Utility\AttributeUtility;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -49,7 +50,7 @@ class JsViewHelper extends AbstractViewHelper
         $this->registerArgument('type', 'string', 'MIME type; set "module" for ES6 modules', false, '');
         $this->registerArgument('nomodule', 'bool', 'Fallback for non-module browsers', false, false);
         $this->registerArgument('nonce', 'string', 'CSP nonce', false, '');
-        $this->registerArgument('integrity', 'string', 'SRI hash; auto-computed for local files', false, '');
+        $this->registerArgument('integrity', 'string', 'SRI hash; empty = computed for local files, "none" = no hash', false, '');
         $this->registerArgument('crossorigin', 'string', 'CORS attribute', false, '');
     }
 
@@ -107,6 +108,19 @@ class JsViewHelper extends AbstractViewHelper
             $resolvedPath = $cacheFile;
         }
 
+        // A script outside the public directory (e.g. Resources/Private) is copied into the
+        // public cache directory; a link to its file system path would return 404.
+        if (!AssetPathUtility::isPubliclyReachable($resolvedPath)) {
+            $content = (string) file_get_contents($resolvedPath);
+            $cacheDir = GeneralUtility::getFileAbsFileName('typo3temp/assets/mai_assets/compiled/');
+            GeneralUtility::mkdir_deep($cacheDir);
+            $cacheFile = $cacheDir . md5($content) . '.js';
+            if (!is_file($cacheFile)) {
+                file_put_contents($cacheFile, $content);
+            }
+            $resolvedPath = $cacheFile;
+        }
+
         $publicPath = PathUtility::getAbsoluteWebPath($resolvedPath);
 
         // For TYPO3 14+, convert relative paths to absolute URLs to avoid SystemResourceFactory resolution issues
@@ -117,7 +131,10 @@ class JsViewHelper extends AbstractViewHelper
             $publicPath = rtrim($siteUrl, '/') . '/' . ltrim($publicPath, '/');
         }
 
-        if ($integrity === '') {
+        if ($integrity === 'none') {
+            // Same as mai:asset.css: "none" disables Subresource Integrity.
+            $integrity = '';
+        } elseif ($integrity === '') {
             try {
                 $integrity = $this->sriHashService->computeForFile($resolvedPath);
             } catch (\Exception) {
