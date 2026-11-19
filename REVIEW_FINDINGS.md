@@ -205,10 +205,12 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 
 ### HTML-Minifizierung
 
-- [ ] **W44 Verschachtelte geschützte Blöcke gehen verloren**
+- [x] **W44 Verschachtelte geschützte Blöcke gehen verloren**
   Ein `<script>`/`<style>`/`<textarea>` innerhalb von `<pre>`/`<code>` bleibt als
   `<!--PROTECTED_n-->` stehen (`strtr()` ersetzt nur einmal).
-- [ ] **W45 Ungecachte Seiten werden zweimal minifiziert** (Listener und Middleware).
+  → Erledigt: Geschützte Blöcke werden wiederholt zurückgesetzt, bis kein Token mehr übrig ist.
+- [x] **W45 Ungecachte Seiten werden zweimal minifiziert** (Listener und Middleware).
+  → Erledigt: Die Middleware minifiziert nur noch, wenn die Seite ungecachte Teile hat oder ohne Page-Cache gerendert wurde; sonst hat der Listener das bereits erledigt.
 
 ### Bilder und Video
 
