@@ -66,9 +66,6 @@ services:
     Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector:
         shared: true
 
-    Maispace\MaiAssets\StaticFileCache\StaticFileWriteRegistry:
-        shared: true
-
     Maispace\MaiAssets\EarlyHints\EarlyHintCacheService:
         shared: true
 
@@ -78,13 +75,6 @@ services:
               identifier: 'mai-assets/early-hint-manifest'
               event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
               after: 'mai-assets/svg-sprite-injection'
-
-    Maispace\MaiAssets\EventListener\StaticHtmlWriterListener:
-        tags:
-            - name: event.listener
-              identifier: 'mai-assets/static-html-writer'
-              event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
-              after: 'mai-assets/html-minification'
 
     Maispace\MaiAssets\EventListener\StaticFileCacheFlushListener:
         tags:

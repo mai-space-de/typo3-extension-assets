@@ -39,3 +39,8 @@ Die Extension misst im Browser, wie breit ein Bild im jeweiligen Inhaltselement 
 
 - Alte kompilierte CSS/JS-Dateien löschen: `vendor/bin/typo3 maispace:assets:compiled:prune --older-than=2592000` (30 Tage; ohne Option gilt `processingCacheLifetime`). Danach werden Seiten-Cache und statische Dateien geleert.
 - Statische HTML-Dateien folgen dem Seiten-Cache: Was den Seiten-Cache leert (Speichern im Backend, „Frontend-Caches leeren“, `cache:flush`, Ablauf durch Start-/Stoppzeit), macht auch die statische Datei ungültig.
+
+## Hinweise für Entwickler
+
+- `BeforeAssetInjectionEvent` läuft nur noch dort, wo Inhalt direkt ins HTML eingefügt wird (kritisches CSS inline, minifiziertes JavaScript). Extern eingebundene Stylesheets durchlaufen es nicht mehr.
+- Voraussetzung ist TYPO3 14 (die Listener nutzen `AfterCacheableContentIsGeneratedEvent::getContent()`, der statische Cache `frontend.page.parts`; beides gibt es erst ab 14).

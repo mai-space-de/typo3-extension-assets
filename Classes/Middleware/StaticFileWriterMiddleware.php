@@ -8,7 +8,6 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
-use Maispace\MaiAssets\StaticFileCache\StaticFileWriteRegistry;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use Maispace\MaiAssets\StaticFileCache\StaticResponseHeaders;
 use Psr\Http\Message\ResponseInterface;
@@ -18,8 +17,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\ConsumableNonce;
 
 /**
- * Writes the static HTML file from the finished response (TYPO3 with
- * "frontend.page.parts", i.e. 13+/14).
+ * Writes the static HTML file from the finished response.
  *
  * Only here the page cache metadata is complete: TYPO3 adds the pageId tags,
  * the page's cache_tags and the lifetime (starttime/endtime) after
@@ -29,16 +27,12 @@ use TYPO3\CMS\Core\Security\ContentSecurityPolicy\ConsumableNonce;
  *
  * Runs inside TYPO3's CSP middleware: the stored headers are those of the page,
  * the CSP is regenerated per delivery (the nonce in the body is replaced).
- *
- * With older TYPO3 versions the file is written by StaticHtmlWriterListener; this
- * middleware then only stores the response headers next to it.
  */
 final readonly class StaticFileWriterMiddleware implements MiddlewareInterface
 {
     private const string PAGE_CACHE_ENTRY = 'tsfe-page-cache';
 
     public function __construct(
-        private StaticFileWriteRegistry $registry,
         private StaticHtmlWriterService $writer,
         private ExtensionConfiguration $extensionConfiguration,
         private StaticCacheRequestGuard $requestGuard,
@@ -51,20 +45,6 @@ final readonly class StaticFileWriterMiddleware implements MiddlewareInterface
         $response = $handler->handle($request);
 
         try {
-            $written = $this->registry->take();
-            if ($written !== null) {
-                // Older TYPO3: the listener wrote the file, only the headers are missing.
-                if ($response->getStatusCode() === 200) {
-                    $this->writer->writeMetadata($written['page'], $written['language'], $written['variant'], [
-                        'headers' => StaticResponseHeaders::filterForStorage($response->getHeaders()),
-                        'nonce' => $written['nonce'],
-                        'expires' => $written['expires'],
-                    ]);
-                }
-
-                return $response;
-            }
-
             $this->writeFromResponse($request, $response);
         } catch (\Throwable) {
             // The static file cache must never break the delivered page.

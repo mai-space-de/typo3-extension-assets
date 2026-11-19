@@ -11,7 +11,6 @@ use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
 use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
-use Maispace\MaiAssets\StaticFileCache\StaticFileWriteRegistry;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
@@ -151,22 +150,6 @@ final class StaticFileWriterMiddlewareTest extends TestCase
         self::assertNull($this->storedHtml(5, 0));
     }
 
-    public function testFallbackOnlyStoresTheHeadersOfAFileWrittenByTheListener(): void
-    {
-        $variant = str_repeat('c', 20);
-        $this->writer->writeByPageId(self::HTML, 5, 1, $variant);
-        $registry = new StaticFileWriteRegistry();
-        $registry->remember(5, 1, $variant, 'NONCEnonceNONCE', 2000000000);
-
-        $this->process(new ServerRequest('https://example.test/'), new HtmlResponse('x', 200, ['X-Frame-Options' => 'DENY', 'Set-Cookie' => 'a=b']), $registry);
-
-        self::assertSame(
-            ['headers' => ['X-Frame-Options' => ['DENY']], 'nonce' => 'NONCEnonceNONCE', 'expires' => 2000000000],
-            $this->writer->readMetadata(5, 1, $variant),
-        );
-        self::assertNull($registry->take());
-    }
-
     public function testRewritingTheHtmlDropsOutdatedMetadata(): void
     {
         // A new rendering has a new nonce; old metadata must never be combined with it.
@@ -178,7 +161,7 @@ final class StaticFileWriterMiddlewareTest extends TestCase
         self::assertSame('', $this->writer->readMetadata(5, 0, '')['nonce']);
     }
 
-    private function process(ServerRequestInterface $request, HtmlResponse $response, ?StaticFileWriteRegistry $registry = null): void
+    private function process(ServerRequestInterface $request, HtmlResponse $response): void
     {
         $handler = $this->createMock(RequestHandlerInterface::class);
         $handler->method('handle')->willReturn($response);
@@ -192,7 +175,6 @@ final class StaticFileWriterMiddlewareTest extends TestCase
         (new \ReflectionProperty(AboveFoldCacheService::class, 'cache'))->setValue($aboveFold, $cache);
 
         (new StaticFileWriterMiddleware(
-            $registry ?? new StaticFileWriteRegistry(),
             $this->writer,
             $this->configuration,
             $guard,

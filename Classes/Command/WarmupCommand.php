@@ -17,7 +17,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 #[AsCommand(
     name: 'maispace:assets:warmup',
-    description: 'Pre-warms asset caches (SVG sprites, SCSS compilation) at deploy time.',
+    description: 'Checks the SVG sprite icons and pre-publishes CSS/SCSS assets at deploy time.',
 )]
 final class WarmupCommand extends Command
 {
@@ -38,21 +38,28 @@ final class WarmupCommand extends Command
         $cacheHits = 0;
         $errors = 0;
 
-        // 1. Prime SVG sprite cache by triggering build()
+        // 1. Validate the sprite icons. The sprite itself is built per page (and per site:
+        //    in CLI only icons configured for all sites are known), nothing is cached here.
         $io->section('SVG sprite icons');
         try {
             $icons = $this->extensionConfigurationDiscovery->discoverSpriteIcons();
-            $io->text(sprintf('Discovered %d icon(s).', count($icons)));
+            $io->text(sprintf('Discovered %d icon(s) for all sites.', count($icons)));
 
-            $sprite = $this->svgSpriteCollector->build();
-            if ($sprite !== '') {
-                $io->text('SVG sprite built successfully.');
+            $this->svgSpriteCollector->build();
+            $invalid = array_keys(array_filter(
+                $icons,
+                fn(string $path, string $identifier): bool => !$this->svgSpriteCollector->isDelivered($identifier),
+                ARRAY_FILTER_USE_BOTH,
+            ));
+            if ($invalid !== []) {
+                $io->error(sprintf('Icons that are no valid SVG and are missing in the sprite: %s', implode(', ', $invalid)));
+                $errors += count($invalid);
+            } elseif ($icons !== []) {
+                $io->text('All icons are valid SVG.');
                 $processed++;
-            } else {
-                $io->text('No icons registered — sprite is empty.');
             }
         } catch (AssetException $e) {
-            $io->error('SVG sprite warmup failed: ' . $e->getMessage());
+            $io->error('SVG sprite check failed: ' . $e->getMessage());
             $errors++;
         }
 

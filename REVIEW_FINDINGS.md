@@ -260,16 +260,28 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 
 ## Restrisiken der erledigten Punkte
 
-- [ ] **R1 TYPO3 v12 ungetestet** – Tag/Lebensdauer-Übernahme für den statischen Index über
+- [x] **R1 TYPO3 v12 ungetestet** – Tag/Lebensdauer-Übernahme für den statischen Index über
   `$GLOBALS['TSFE']`, `CacheFlushEvent`, `ConsumableNonce`.
-- [ ] **R2 Echtes 103 nur theoretisch geprüft** (FrankenPHP `headers_send()`).
+  → Erledigt mit einem wichtigeren Ergebnis: PHPStan gegen TYPO3 12.4 und 13.4 zeigt, dass die
+  Extension (schon vor diesem Review) nur auf TYPO3 14 läuft: `AfterCacheableContentIsGeneratedEvent`
+  hat erst in 14 `getContent()`/`setContent()` (12/13: `getController()`), alle Listener würden mit
+  einem Fatal Error abbrechen. `composer.json`/`ext_emconf.php` versprachen 12.4–14.
+  Korrigiert auf `^14.0`; der Fallback-Listener für TYPO3 ohne `frontend.page.parts` und der
+  Union-Typ mit dem alten Install-Event sind als toter Code entfernt. Die Suite läuft unter PHP 8.5
+  (FrankenPHP) grün.
+- [x] **R2 Echtes 103 nur theoretisch geprüft** (FrankenPHP `headers_send()`).
+  → Geprüft mit FrankenPHP 1.13 (PHP 8.5) und dem echten `EarlyHintsMiddleware`: `curl -v` zeigt `103 Early Hints` mit `Link`, danach `200` mit genau einem `Link`-Header.
 - [ ] **R3 H6: Liste kritischer Elemente wächst** bis zur nächsten Inhaltsänderung
   (seltene sehr hohe Viewports markieren dauerhaft mehr Elemente).
-- [ ] **R4 H8: Im CLI gelten nur Konfigurationen mit `sites => ['*']`**
+  → **Offen, Rückfrage nötig:** a) so lassen (Liste wächst, Positions-/Layoutänderungen setzen zurück), b) Mehrheitslogik: eine UID zählt erst, wenn sie in einem Mindestanteil der Reports eines Buckets vorkommt (braucht Zähler pro UID).
+- [x] **R4 H8: Im CLI gelten nur Konfigurationen mit `sites => ['*']`**
   (z. B. Sprite im Warmup-Befehl ohne site-spezifische Icons).
-- [ ] **R5 H10: Browser ohne AVIF bekommen keinen Bild-Preload.**
-- [ ] **R6 M14: Extern eingebundenes CSS durchläuft `BeforeAssetInjectionEvent` nicht mehr**
+  → Erledigt: Der Warmup-Befehl baut das Sprite nicht mehr scheinbar „vor“ (nichts wurde gespeichert), sondern prüft die für alle Sites konfigurierten Icons auf gültiges SVG und meldet fehlerhafte. Site-spezifische Icons kennt das CLI weiterhin nicht – ohne Wirkung, da das Sprite pro Seite entsteht.
+- [x] **R5 H10: Browser ohne AVIF bekommen keinen Bild-Preload.**
+  → Akzeptiert: AVIF unterstützen alle aktuellen Browser (Chrome/Edge 85+, Firefox 93+, Safari 16.4+). Ein zusätzlicher WebP-Preload würde in diesen Browsern doppelt laden.
+- [x] **R6 M14: Extern eingebundenes CSS durchläuft `BeforeAssetInjectionEvent` nicht mehr**
   (bestehende Listener prüfen).
+  → Erledigt: im Handbuch dokumentiert (Abschnitt „Hinweise für Entwickler“).
 - [x] **R7 PHPStan und PHP-CS-Fixer liefen lokal nicht** (nur in der CI).
   → Erledigt: Beide als PHAR lokal ausgeführt. CS-Fixer: keine Abweichung mehr. PHPStan (Level 5):
   meine neuen Meldungen und zwei vorhandene (`array_values` auf Listen) behoben; übrig sind nur
@@ -277,5 +289,6 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
   `typo3/cms-install`, das nicht installiert ist).
 - [ ] **R8 CSP für statische Antworten nur per Unit-Test geprüft**: Nonce-Austausch und
   Header-Logik getestet, der Aufruf von `applyToResponse()` mit echter Site-CSP-Konfiguration
-  nicht (braucht einen Functional-Test mit TYPO3). In TYPO3 12/13 fehlt die Methode; dort
-  bleibt die statische Antwort ohne CSP.
+  nicht. → **Offen:** braucht einen Functional-Test mit `typo3/testing-framework` und Datenbank
+  (`PolicyProvider` hängt an Registry, Mutation-Repository mit DB usw.); in dieser Umgebung
+  nicht aufzubauen. Empfehlung: einmal auf Staging mit aktiver Frontend-CSP prüfen.
