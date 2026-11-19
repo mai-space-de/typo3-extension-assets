@@ -236,9 +236,11 @@ W-Einträge ohne Bericht-Nummer stammen aus den Arbeitsnotizen des Reviews.
 
 ### Sonstiges
 
-- [ ] **W53 Regressionsbefehl schreibt die Baseline in den Extension-Ordner**
+- [x] **W53 Regressionsbefehl schreibt die Baseline in den Extension-Ordner**
   (`EXT:mai_assets/Resources/Private/Baselines/`, bei Composer im read-only `vendor/`).
-- [ ] **W54 Je Bild zwei DB-Abfragen in `CriticalDetectionService`** (keine Zwischenspeicherung).
+  → Erledigt: Die Baseline wird nach `config/mai_assets/critical-css-baseline.json` geschrieben (mit dem Projekt versioniert) und von dort gelesen; die mitgelieferte Datei dient nur noch als Vorlage.
+- [x] **W54 Je Bild zwei DB-Abfragen in `CriticalDetectionService`** (keine Zwischenspeicherung).
+  → Erledigt: Entscheidung pro Seite und Element im TYPO3-`runtime`-Cache (pro Request, auch in Worker-Setups korrekt).
 - [ ] **W55 Rate-Limit der Report-Endpunkte schreibt bei jedem Request in den DB-Cache.**
 - [ ] **W56 Warmup-Queue löscht jeden Lauf alle verarbeiteten Einträge** (keine Historie
   für Fehleranalyse).

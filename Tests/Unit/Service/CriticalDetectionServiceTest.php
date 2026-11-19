@@ -91,6 +91,24 @@ final class CriticalDetectionServiceTest extends TestCase
         self::assertContains(['t3ver_wsid', ':dcValue1'], $this->comparisons);
     }
 
+    public function testDecisionIsQueriedOncePerRequest(): void
+    {
+        $runtime = new \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend('runtime', new \TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend());
+        $cacheManager = $this->createMock(\TYPO3\CMS\Core\Cache\CacheManager::class);
+        $cacheManager->method('getCache')->with('runtime')->willReturn($runtime);
+        $subject = $this->createSubject(
+            record: ['uid' => 7, 'pid' => 1, 'colPos' => 0, 'sorting' => 512, 'tx_maiassets_is_critical' => 0, 'tx_maiassets_force_critical' => 0],
+            observedUids: [7],
+            cacheManager: $cacheManager,
+        );
+
+        self::assertTrue($subject->isCritical(1, 7));
+        self::assertTrue($subject->isCritical(1, 7));
+        self::assertSame(1, $this->recordQueries);
+    }
+
+    private int $recordQueries = 0;
+
     /** @var list<array{0: string, 1: mixed}> */
     private array $comparisons = [];
 
@@ -99,10 +117,14 @@ final class CriticalDetectionServiceTest extends TestCase
      * @param list<int>            $observedUids critical UIDs reported for the "desktop" bucket
      * @param array<int, int>      $thresholds   criticalThresholdByColPos
      */
-    private function createSubject(array $record, array $observedUids, array $thresholds = [], int $elementsAbove = 0): CriticalDetectionService
+    private function createSubject(array $record, array $observedUids, array $thresholds = [], int $elementsAbove = 0, ?\TYPO3\CMS\Core\Cache\CacheManager $cacheManager = null): CriticalDetectionService
     {
         $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')->willReturn($record);
+        $result->method('fetchAssociative')->willReturnCallback(function () use ($record): array {
+            $this->recordQueries++;
+
+            return $record;
+        });
         $result->method('fetchOne')->willReturn($elementsAbove);
 
         $queryBuilder = $this->createMock(QueryBuilder::class);
@@ -141,6 +163,6 @@ final class CriticalDetectionServiceTest extends TestCase
         $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $eventDispatcher->method('dispatch')->willReturnArgument(0);
 
-        return new CriticalDetectionService($aboveFoldCacheService, $extensionConfiguration, $eventDispatcher, $connectionPool);
+        return new CriticalDetectionService($aboveFoldCacheService, $extensionConfiguration, $eventDispatcher, $connectionPool, $cacheManager);
     }
 }

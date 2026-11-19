@@ -9,6 +9,8 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\Event\ModifyCriticalThresholdEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
@@ -19,6 +21,7 @@ final readonly class CriticalDetectionService
         private ExtensionConfiguration $extensionConfiguration,
         private EventDispatcherInterface $eventDispatcher,
         private ConnectionPool $connectionPool,
+        private ?CacheManager $cacheManager = null,
     ) {}
 
     /** tx_maiassets_is_critical: decide from observer data and position heuristic. */
@@ -28,7 +31,25 @@ final readonly class CriticalDetectionService
     /** tx_maiassets_is_critical: editor marked the element as not critical. */
     public const int OVERRIDE_NOT_CRITICAL = 2;
 
+    /**
+     * Memoized per request (TYPO3 runtime cache): a page with many images asks for every
+     * image, which cost two database queries each.
+     */
     public function isCritical(int $pageUid, int $elementUid): bool
+    {
+        $runtimeCache = $this->runtimeCache();
+        $key = 'mai_assets_critical_' . $pageUid . '_' . $elementUid;
+        if ($runtimeCache !== null && $runtimeCache->has($key)) {
+            return (bool) $runtimeCache->get($key);
+        }
+
+        $isCritical = $this->detect($pageUid, $elementUid);
+        $runtimeCache?->set($key, $isCritical);
+
+        return $isCritical;
+    }
+
+    private function detect(int $pageUid, int $elementUid): bool
     {
         $record = $this->getContentRecord($elementUid);
         if ($record === null) {
@@ -79,6 +100,15 @@ final readonly class CriticalDetectionService
             self::OVERRIDE_NOT_CRITICAL => false,
             default => null,
         };
+    }
+
+    private function runtimeCache(): ?FrontendInterface
+    {
+        try {
+            return $this->cacheManager?->getCache('runtime');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function getThresholdForColPos(int $colPos): int
