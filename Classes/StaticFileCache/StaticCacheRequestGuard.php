@@ -37,6 +37,32 @@ class StaticCacheRequestGuard
         return $this->matchesConfiguredBase($request);
     }
 
+    /**
+     * The static file is keyed by page and language only. It may therefore only
+     * represent the plain HTML document of a page: default page type (sitemaps and
+     * other typeNums share the page id) and no route arguments (extbase/news detail
+     * URLs like /news/article-a resolve to the same page id as /news/article-b).
+     */
+    public static function isPlainPageDocument(mixed $pageArguments): bool
+    {
+        if (!is_object($pageArguments)) {
+            return false;
+        }
+
+        if (method_exists($pageArguments, 'getPageType')) {
+            $pageType = (string) ($pageArguments->getPageType() ?? '');
+            if ($pageType !== '' && $pageType !== '0') {
+                return false;
+            }
+        }
+
+        if (method_exists($pageArguments, 'getRouteArguments') && $pageArguments->getRouteArguments() !== []) {
+            return false;
+        }
+
+        return true;
+    }
+
     private function hasAuthenticatedUser(ServerRequestInterface $request): bool
     {
         $frontendUser = $request->getAttribute('frontend.user');

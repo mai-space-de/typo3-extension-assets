@@ -10,6 +10,8 @@ use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\Middleware\StaticFileServeMiddleware;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
+use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
+use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -32,6 +34,8 @@ final class StaticFileServeMiddlewareTest extends TestCase
     private ResponseInterface&MockObject $fallbackResponse;
     private FrontendInterface&MockObject $cacheFrontend;
     private EarlyHintCacheService $earlyHintCacheService;
+    /** @var list<array{0: int, 1: int}> */
+    private array $purged = [];
 
     protected function setUp(): void
     {
@@ -295,33 +299,58 @@ final class StaticFileServeMiddlewareTest extends TestCase
     }
 
     // -----------------------------------------------------------------
-    // URL-based fallback: when page args are unavailable
+    // Only the plain page document is served from the static file
     // -----------------------------------------------------------------
 
-    public function testFallsBackToUrlBasedCacheWhenNoPageArguments(): void
+    public function testFallsThroughWithoutPageArguments(): void
     {
-        $this->writeStaticFileByUri('https://example.com/de/', '<html><body>URL cache</body></html>');
+        $this->writeStaticFileById(1, 0, '<html><body>ID</body></html>');
+        $this->handler->expects(self::once())->method('handle')->willReturn($this->fallbackResponse);
 
-        $middleware = $this->makeMiddleware();
-        $request = $this->makeGetRequest('https://example.com/de/');
-        $result = $middleware->process($request, $this->handler);
+        $result = $this->makeMiddleware()->process($this->makeGetRequest('https://example.com/de/'), $this->handler);
 
-        self::assertInstanceOf(HtmlResponse::class, $result);
-        self::assertSame('<html><body>URL cache</body></html>', (string) $result->getBody());
+        self::assertSame($this->fallbackResponse, $result);
     }
 
-    public function testPrefersPageIdCacheWhenBothExist(): void
+    public function testFallsThroughForUrlsWithRouteArguments(): void
     {
-        // Write both URL-based and page-ID-based files. The page-ID-based
-        // lookup should be tried first and found.
-        $this->writeStaticFileByUri('https://example.com/de/', '<html><body>URL</body></html>');
+        // /news/article-b resolves to the same page as the cached /news/article-a.
+        $this->writeStaticFileById(1, 0, '<html><body>Article A</body></html>');
+        $this->handler->expects(self::once())->method('handle')->willReturn($this->fallbackResponse);
+
+        $request = $this->makeGetRequest(
+            'https://example.com/news/article-b',
+            pageArguments: $this->makePageArguments(1, routeArguments: ['tx_news_pi1' => ['news' => 7]]),
+        );
+
+        self::assertSame($this->fallbackResponse, $this->makeMiddleware()->process($request, $this->handler));
+    }
+
+    public function testStaleFileIsRemovedAndNotServed(): void
+    {
+        // The page cache entry was flushed or expired: the index entry is gone.
+        $this->writeStaticFileById(1, 0, '<html><body>Old</body></html>');
+        $this->handler->expects(self::once())->method('handle')->willReturn($this->fallbackResponse);
+
+        $result = $this->makeMiddleware(indexValid: false)->process(
+            $this->makeGetRequest('https://example.com/', pageArguments: $this->makePageArguments(1)),
+            $this->handler,
+        );
+
+        self::assertSame($this->fallbackResponse, $result);
+        self::assertSame([[1, 0]], $this->purged);
+    }
+
+    public function testServedFileVariesOnAcceptEncoding(): void
+    {
         $this->writeStaticFileById(1, 0, '<html><body>ID</body></html>');
 
-        $middleware = $this->makeMiddleware();
-        $request = $this->makeGetRequest('https://example.com/de/', pageArguments: $this->makePageArguments(1));
-        $result = $middleware->process($request, $this->handler);
+        $result = $this->makeMiddleware()->process(
+            $this->makeGetRequest('https://example.com/', pageArguments: $this->makePageArguments(1)),
+            $this->handler,
+        );
 
-        self::assertSame('<html><body>ID</body></html>', (string) $result->getBody());
+        self::assertSame('Accept-Encoding', $result->getHeaderLine('Vary'));
     }
 
     // -----------------------------------------------------------------
@@ -468,21 +497,6 @@ final class StaticFileServeMiddlewareTest extends TestCase
         self::assertSame('', $result->getHeaderLine('Link'));
     }
 
-    public function testDoesNotAddLinkHeadersWhenRoutingAttributeIsNull(): void
-    {
-        $this->writeStaticFileByUri('https://example.com/de/', '<html><body>Hello</body></html>');
-        $this->cacheFrontend->method('get')->willReturn([
-            ['href' => '/assets/style.css', 'rel' => 'preload', 'as' => 'style', 'type' => '', 'crossorigin' => ''],
-        ]);
-
-        $middleware = $this->makeMiddleware();
-        $request = $this->makeGetRequest('https://example.com/de/');
-        $result = $middleware->process($request, $this->handler);
-
-        self::assertInstanceOf(HtmlResponse::class, $result);
-        self::assertSame('', $result->getHeaderLine('Link'));
-    }
-
     public function testUsesCorrectCacheKeyForPageAndLanguage(): void
     {
         $this->writeStaticFileById(42, 3, '<html><body>Hello</body></html>');
@@ -538,25 +552,40 @@ final class StaticFileServeMiddlewareTest extends TestCase
     private function makeMiddleware(
         bool $enableStaticFileCache = true,
         bool $debugHeaders = false,
+        bool $indexValid = true,
     ): StaticFileServeMiddleware {
         $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
 
-        new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableStaticFileCache'))
             ->setValue($config, $enableStaticFileCache);
-        new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir'))
             ->setValue($config, '');
-        new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders'))
             ->setValue($config, $debugHeaders);
 
-        return new StaticFileServeMiddleware($this->cacheDirectory, $config, $this->earlyHintCacheService, $this->shareableGuard());
+        $index = $this->createMock(StaticFileIndex::class);
+        $index->method('isValid')->willReturn($indexValid);
+        $removal = $this->createMock(StaticFileRemovalService::class);
+        $removal->method('purgeForLanguage')->willReturnCallback(function (int $pageUid, int $languageUid): void {
+            $this->purged[] = [$pageUid, $languageUid];
+        });
+
+        return new StaticFileServeMiddleware(
+            $this->cacheDirectory,
+            $config,
+            $this->earlyHintCacheService,
+            $this->shareableGuard(),
+            $index,
+            $removal,
+        );
     }
 
     private function makeCacheDirectory(): StaticFileCacheDirectory
     {
         $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
-        new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'staticFileCacheDir'))
             ->setValue($config, '');
 
         return new StaticFileCacheDirectory($config);
@@ -598,26 +627,6 @@ final class StaticFileServeMiddlewareTest extends TestCase
      * Resolve the absolute filesystem path for a URL-based cache entry
      * (legacy fallback).
      */
-    private function filePathForUri(string $requestUri): string
-    {
-        $pageDir = $this->cacheDirectory->getPageDirectory($requestUri);
-
-        return rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
-    }
-
-    /**
-     * Write a static file using the legacy URL-based path scheme.
-     */
-    private function writeStaticFileByUri(string $requestUri, string $content): void
-    {
-        $filePath = $this->filePathForUri($requestUri);
-        $dir = \dirname($filePath);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
-        }
-        file_put_contents($filePath, $content);
-    }
-
     private function makeGetRequest(
         string $uri,
         array $extraHeaders = [],
@@ -669,10 +678,11 @@ final class StaticFileServeMiddlewareTest extends TestCase
         return $request;
     }
 
-    private function makePageArguments(int $pageId, ?string $pageType = null): PageArguments
+    private function makePageArguments(int $pageId, ?string $pageType = null, array $routeArguments = []): PageArguments
     {
         $pageArguments = $this->createMock(PageArguments::class);
         $pageArguments->method('getPageId')->willReturn($pageId);
+        $pageArguments->method('getRouteArguments')->willReturn($routeArguments);
         if ($pageType !== null) {
             $pageArguments->method('getPageType')->willReturn($pageType);
         }

@@ -25,7 +25,6 @@ use TYPO3\CMS\Core\Core\ApplicationContext;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Page\AssetCollector;
-use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Routing\PageArguments;
 use Psr\Http\Message\ServerRequestInterface;
 

@@ -95,6 +95,32 @@ class StaticFileRemovalService implements LoggerAwareInterface
     }
 
     /**
+     * Removes every page directory ({pageUid}_{languageUid}) of the static cache.
+     * Other files in the base directory (e.g. a .htaccess) are kept.
+     *
+     * @return int number of removed page directories
+     */
+    public function purgeAll(): int
+    {
+        $baseDir = $this->cacheDirectory->getAbsoluteBaseDirectory();
+        if (!is_dir($baseDir)) {
+            return 0;
+        }
+
+        $removed = 0;
+        foreach ((array) scandir($baseDir) as $entry) {
+            if (!is_string($entry) || preg_match('/^\d+_\d+$/', $entry) !== 1 || !is_dir($baseDir . $entry)) {
+                continue;
+            }
+            if (GeneralUtility::rmdir($baseDir . $entry, true)) {
+                $removed++;
+            }
+        }
+
+        return $removed;
+    }
+
+    /**
      * Resolve a Site by page UID using the SiteFinder.
      *
      * @throws SiteNotFoundException

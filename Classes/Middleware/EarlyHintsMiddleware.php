@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\Middleware;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidate;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -27,7 +28,10 @@ final readonly class EarlyHintsMiddleware implements MiddlewareInterface
         // Skip Early Hints entirely in Development: Apache mod_proxy_fcgi auto-promotes
         // Link: headers to HTTP 103 responses before mod_headers can suppress them,
         // causing downstream proxies (e.g. Traefik) to fail with 500.
-        if ($pageArguments !== null && $this->isCacheableGetRequest($request) && !Environment::getContext()->isDevelopment()) {
+        if (StaticCacheRequestGuard::isPlainPageDocument($pageArguments)
+            && $this->isCacheableGetRequest($request)
+            && !Environment::getContext()->isDevelopment()
+        ) {
             $pageUid = (int) $pageArguments->getPageId();
             $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 

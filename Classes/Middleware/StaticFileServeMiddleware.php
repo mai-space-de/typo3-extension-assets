@@ -8,6 +8,8 @@ use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use Maispace\MaiAssets\StaticFileCache\StaticFileCacheDirectory;
+use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
+use Maispace\MaiAssets\StaticFileCache\StaticFileRemovalService;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -61,6 +63,8 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
         private ExtensionConfiguration $extensionConfiguration,
         private EarlyHintCacheService $earlyHintCacheService,
         private StaticCacheRequestGuard $requestGuard,
+        private StaticFileIndex $staticFileIndex,
+        private StaticFileRemovalService $staticFileRemovalService,
     ) {}
 
     public function process(
@@ -94,25 +98,29 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
                 return $handler->handle($request);
             }
 
-            // --- Primary lookup: page-ID-based cache key ---
-            // This aligns with the early-hints manifest key
-            // (earlyhints_{pageUid}_{languageUid}) and correctly isolates
-            // cache entries per language even when the same page is served
-            // under different URL paths.
+            // One cache file per page id and language. Sitemaps (typeNum) and URLs with
+            // route arguments (e.g. news detail pages) share the page id and must render
+            // dynamically instead of replaying that file.
             $pageArgs = $request->getAttribute('routing');
-            $language = $request->getAttribute('language');
-            $pageUid = $pageArgs !== null ? (int) $pageArgs->getPageId() : 0;
-            $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
-
-            // One cache file per page id. Sitemap and other typeNums must
-            // render dynamically instead of replacing or replaying that file.
-            if (!$this->isDefaultPageType($pageArgs)) {
+            if (!StaticCacheRequestGuard::isPlainPageDocument($pageArgs)) {
                 return $handler->handle($request);
             }
 
-            $filePath = $this->resolveCacheFilePath($pageUid, $languageUid, $requestUri);
+            $language = $request->getAttribute('language');
+            $pageUid = (int) $pageArgs->getPageId();
+            $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
+
+            $filePath = $this->resolveCacheFilePath($pageUid, $languageUid);
 
             if ($filePath === null || !is_file($filePath) || !is_readable($filePath)) {
+                return $handler->handle($request);
+            }
+
+            // The file is only valid as long as the page cache entry it was rendered from:
+            // any page cache flush or the end of its lifetime removes the index entry.
+            if (!$this->staticFileIndex->isValid($pageUid, $languageUid)) {
+                $this->staticFileRemovalService->purgeForLanguage($pageUid, $languageUid);
+
                 return $handler->handle($request);
             }
 
@@ -121,7 +129,8 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
                 return $handler->handle($request);
             }
 
-            $headers = ['Content-Type' => 'text/html; charset=utf-8'];
+            // The body depends on Accept-Encoding (br/gzip variants): shared caches must key on it.
+            $headers = ['Content-Type' => 'text/html; charset=utf-8', 'Vary' => 'Accept-Encoding'];
 
             // --- Hybrid delivery: add preload Link headers from early hints manifest ---
             // The EarlyHintsMiddleware already sent these as HTTP 103; we repeat them on the
@@ -154,26 +163,6 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
     }
 
     /**
-     * The static file is the default HTML document of a page.
-     * Missing page type information stays eligible so existing callers keep working.
-     */
-    private function isDefaultPageType(mixed $pageArguments): bool
-    {
-        if (!is_object($pageArguments) || !method_exists($pageArguments, 'getPageType')) {
-            return true;
-        }
-
-        $pageType = $pageArguments->getPageType();
-        if ($pageType === null) {
-            return true;
-        }
-
-        $pageType = (string) $pageType;
-
-        return $pageType === '' || $pageType === '0';
-    }
-
-    /**
      * Detect Hotwired Turbo frame / Mai Turbo context requests.
      *
      * These arrive without a query string when the signed context is sent
@@ -187,47 +176,24 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Resolve the absolute cache file path for the given page/language
-     * combination, falling back to the legacy URL-based path when page
-     * routing information is not available.
-     *
-     * Primary:  {baseDir}/{pageUid}_{languageUid}/index.html
-     * Fallback: {baseDir}/{scheme}_{host}_{port}/{url-path}/index.html
-     *
-     * Returns null when neither path can be resolved or when the resolved
-     * path escapes the cache base directory (path-traversal guard).
+     * Absolute path of {baseDir}/{pageUid}_{languageUid}/index.html, or null when
+     * it cannot be resolved inside the cache base directory.
      */
-    private function resolveCacheFilePath(int $pageUid, int $languageUid, string $requestUri): ?string
+    private function resolveCacheFilePath(int $pageUid, int $languageUid): ?string
     {
-        $baseDir = $this->cacheDirectory->getAbsoluteBaseDirectory();
-
-        // Primary: page-ID-based cache key (aligned with early-hints manifest)
-        if ($pageUid > 0) {
-            try {
-                $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid);
-                $filePath = rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
-                if (str_starts_with($filePath, $baseDir)) {
-                    return $filePath;
-                }
-            } catch (\InvalidArgumentException) {
-                // Fall through to URL-based fallback.
-            }
+        if ($pageUid <= 0) {
+            return null;
         }
 
-        // Fallback: legacy URL-based cache key
-        if ($this->cacheDirectory->isValidUri($requestUri)) {
-            try {
-                $pageDir = $this->cacheDirectory->getPageDirectory($requestUri);
-                $filePath = rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
-                if (str_starts_with($filePath, $baseDir)) {
-                    return $filePath;
-                }
-            } catch (\InvalidArgumentException) {
-                // Path resolution failed.
-            }
+        try {
+            $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid);
+        } catch (\InvalidArgumentException) {
+            return null;
         }
 
-        return null;
+        $filePath = rtrim($pageDir, '/') . '/' . StaticHtmlWriterService::INDEX_FILENAME;
+
+        return str_starts_with($filePath, $this->cacheDirectory->getAbsoluteBaseDirectory()) ? $filePath : null;
     }
 
     /**

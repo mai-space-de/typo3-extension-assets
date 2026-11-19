@@ -10,12 +10,15 @@ use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\EventListener\StaticHtmlWriterListener;
 use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
+use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriInterface;
+use TYPO3\CMS\Core\Cache\CacheDataCollector;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Cache\CacheTag;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
@@ -198,23 +201,61 @@ final class StaticHtmlWriterListenerTest extends TestCase
         $listener($this->makeEvent('<html></html>', 42, 0));
     }
 
-    public function testInvokeSkipsWhenEarlyHintsManifestMissing(): void
+    public function testInvokeWritesPagesWithoutEarlyHintsManifest(): void
     {
+        // A page without critical assets has no manifest but is still cacheable.
         $this->aboveFoldFrontend
             ->method('get')
             ->with('buckets_42')
             ->willReturn(['mobile', 'tablet', 'desktop']);
 
-        $this->earlyHintFrontend
-            ->method('get')
-            ->with('earlyhints_42_0')
-            ->willReturn(false);
+        $writer = $this->createMock(StaticHtmlWriterService::class);
+        $writer->expects(self::once())->method('writeByPageId')->willReturn(true);
+
+        $this->makeListener($writer)($this->makeEvent('<html></html>', 42, 0));
+    }
+
+    public function testInvokeSkipsUrlsWithRouteArguments(): void
+    {
+        $this->stubReadyPageWithManifest(42, 0);
 
         $writer = $this->createMock(StaticHtmlWriterService::class);
         $writer->expects(self::never())->method('writeByPageId');
 
-        $listener = $this->makeListener($writer);
-        $listener($this->makeEvent('<html></html>', 42, 0));
+        $this->makeListener($writer)(
+            $this->makeEvent('<html>article</html>', 42, 0, routeArguments: ['tx_news_pi1' => ['news' => 7]]),
+        );
+    }
+
+    public function testWrittenFileIsRegisteredWithPageCacheTagsAndLifetime(): void
+    {
+        $this->stubReadyPageWithManifest(42, 0);
+
+        $writer = $this->createMock(StaticHtmlWriterService::class);
+        $writer->method('writeByPageId')->willReturn(true);
+
+        $index = $this->createMock(StaticFileIndex::class);
+        $index->expects(self::once())->method('register')->with(42, 0, ['pageId_42', 'tx_news_pid_5'], 3600);
+
+        $collector = new CacheDataCollector();
+        $collector->addCacheTags(new CacheTag('pageId_42'), new CacheTag('tx_news_pid_5', 3600));
+
+        $this->makeListener($writer, index: $index)(
+            $this->makeEvent('<html>ready</html>', 42, 0, cacheCollector: $collector),
+        );
+    }
+
+    public function testFailedWriteIsNotRegistered(): void
+    {
+        $this->stubReadyPageWithManifest(42, 0);
+
+        $writer = $this->createMock(StaticHtmlWriterService::class);
+        $writer->method('writeByPageId')->willReturn(false);
+
+        $index = $this->createMock(StaticFileIndex::class);
+        $index->expects(self::never())->method('register');
+
+        $this->makeListener($writer, index: $index)($this->makeEvent('<html>ready</html>', 42, 0));
     }
 
     public function testInvokeUsesLanguageUidFromRequest(): void
@@ -277,7 +318,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
             ]);
     }
 
-    private function makeListener(StaticHtmlWriterService $writer, bool $shareable = true): StaticHtmlWriterListener
+    private function makeListener(StaticHtmlWriterService $writer, bool $shareable = true, ?StaticFileIndex $index = null): StaticHtmlWriterListener
     {
         $guard = $this->createMock(StaticCacheRequestGuard::class);
         $guard->method('isShareable')->willReturn($shareable);
@@ -286,8 +327,8 @@ final class StaticHtmlWriterListenerTest extends TestCase
             $this->extensionConfiguration,
             $writer,
             $this->readinessService,
-            $this->earlyHintCacheService,
             $guard,
+            $index ?? $this->createMock(StaticFileIndex::class),
         );
     }
 
@@ -296,9 +337,11 @@ final class StaticHtmlWriterListenerTest extends TestCase
         int $pageUid,
         int $languageUid,
         string $pageType = '0',
+        array $routeArguments = [],
+        ?CacheDataCollector $cacheCollector = null,
     ): AfterCacheableContentIsGeneratedEvent {
         return new AfterCacheableContentIsGeneratedEvent(
-            $this->createRequest($pageUid, $languageUid, pageType: $pageType),
+            $this->createRequest($pageUid, $languageUid, pageType: $pageType, routeArguments: $routeArguments, cacheCollector: $cacheCollector),
             $content,
             'cache-id',
             true,
@@ -314,12 +357,20 @@ final class StaticHtmlWriterListenerTest extends TestCase
         string $method = 'GET',
         string $uri = 'https://example.com/page',
         string $pageType = '0',
+        array $routeArguments = [],
+        ?CacheDataCollector $cacheCollector = null,
     ): ServerRequestInterface {
-        $routing = new readonly class ($pageUid, $pageType) {
+        $routing = new readonly class ($pageUid, $pageType, $routeArguments) {
             public function __construct(
                 private int $pageId,
                 private string $pageType,
+                private array $routeArguments,
             ) {}
+
+            public function getRouteArguments(): array
+            {
+                return $this->routeArguments;
+            }
 
             public function getPageId(): int
             {
@@ -354,6 +405,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
             ->willReturnCallback(fn(string $name) => match ($name) {
                 'routing' => $routing,
                 'language' => $language,
+                'frontend.cache.collector' => $cacheCollector,
                 default => null,
             });
 

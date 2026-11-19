@@ -55,7 +55,7 @@ final class AboveFoldObserverScriptBuilderTest extends TestCase
     {
         $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
-        new \ReflectionProperty(ExtensionConfiguration::class, 'enableMinification')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'enableMinification'))
             ->setValue($config, $enableMinification);
 
         return $config;

@@ -120,6 +120,16 @@ final class EarlyHintsMiddlewareTest extends TestCase
         (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
     }
 
+    public function testProcessNeverLoadsCacheForUrlsWithRouteArguments(): void
+    {
+        // The manifest of /news/article-a must not be sent for /news/article-b.
+        $this->cacheFrontend->expects(self::never())->method('get');
+
+        $request = $this->makeGetRequest(pageArguments: $this->makePageArguments(7, ['tx_news_pi1' => ['news' => 3]]), language: null);
+
+        (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
+    }
+
     // -------------------------------------------------------------------------
     // Cache lookup with correct key (page + language UIDs)
     // -------------------------------------------------------------------------
@@ -292,10 +302,11 @@ final class EarlyHintsMiddlewareTest extends TestCase
         return $request;
     }
 
-    private function makePageArguments(int $pageId): PageArguments
+    private function makePageArguments(int $pageId, array $routeArguments = []): PageArguments
     {
         $pageArguments = $this->createMock(PageArguments::class);
         $pageArguments->method('getPageId')->willReturn($pageId);
+        $pageArguments->method('getRouteArguments')->willReturn($routeArguments);
         return $pageArguments;
     }
 

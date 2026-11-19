@@ -7,6 +7,7 @@ use TYPO3\CMS\Core\Cache\Backend\Typo3DatabaseBackend;
 use TYPO3\CMS\Core\Cache\Backend\FileBackend;
 use TYPO3\CMS\Core\Cache\Backend\TransientMemoryBackend;
 use Maispace\MaiAssets\Hook\ContentElementSaveHook;
+use Maispace\MaiAssets\Hook\StaticFileCacheFlushHook;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use Maispace\MaiAssets\Configuration\AssetPlaceholderProcessor;
 
@@ -38,9 +39,21 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets
     'groups'   => ['pages'],
 ];
 
+// Validity index of the static HTML cache: shares tags and lifetime with the page cache
+// and belongs to the "pages" group, so every page cache invalidation also invalidates it.
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['mai_assets_static_index'] ??= [
+    'frontend' => VariableFrontend::class,
+    'backend'  => Typo3DatabaseBackend::class,
+    'groups'   => ['pages'],
+];
+
 // Register DataHandler hook
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
     = ContentElementSaveHook::class;
+
+// Remove static HTML files as soon as DataHandler clears the page cache (record changes, clear cache menu)
+$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['clearCachePostProc'][]
+    = StaticFileCacheFlushHook::class . '->clearCachePostProc';
 
 // Include TypoScript static files (legacy registration, ext_tables.php handles static template)
 ExtensionManagementUtility::addTypoScriptConstants(

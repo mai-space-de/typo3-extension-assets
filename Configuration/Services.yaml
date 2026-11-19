@@ -83,6 +83,12 @@ services:
               event: TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent
               after: 'mai-assets/html-minification'
 
+    Maispace\MaiAssets\EventListener\StaticFileCacheFlushListener:
+        tags:
+            - name: event.listener
+              identifier: 'mai-assets/static-file-cache-flush'
+              event: TYPO3\CMS\Core\Cache\Event\CacheFlushEvent
+
     Maispace\MaiAssets\EventListener\CriticalCacheInvalidationListener:
         tags:
             - name: event.listener

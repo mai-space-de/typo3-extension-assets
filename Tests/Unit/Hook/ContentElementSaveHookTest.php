@@ -7,6 +7,7 @@ namespace Maispace\MaiAssets\Tests\Unit\Hook;
 use PHPUnit\Framework\MockObject\MockObject;
 use Maispace\MaiAssets\Cache\InvalidationService;
 use Maispace\MaiAssets\Hook\ContentElementSaveHook;
+use Maispace\MaiAssets\Service\ContentPageResolver;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementPageRefresher;
 use Maispace\MaiAssets\ImageMeasurement\ImageMeasurementRepository;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +26,18 @@ final class ContentElementSaveHookTest extends TestCase
 
     private function createHook(): ContentElementSaveHook
     {
-        return new ContentElementSaveHook($this->invalidationService);
+        return new ContentElementSaveHook($this->invalidationService, $this->pageResolver());
+    }
+
+    /**
+     * Content elements 42 and 123 live on page 7.
+     */
+    private function pageResolver(): ContentPageResolver
+    {
+        $resolver = $this->createMock(ContentPageResolver::class);
+        $resolver->method('pageOf')->willReturnCallback(static fn(int $uid): int => in_array($uid, [42, 123], true) ? 7 : 0);
+
+        return $resolver;
     }
 
     public function testIgnoresNonTtContentTable(): void
@@ -49,7 +61,7 @@ final class ContentElementSaveHookTest extends TestCase
         $this->invalidationService
             ->expects(self::once())
             ->method('invalidateAfterContentSave')
-            ->with(42, ['pid', 'colPos', 'sorting']);
+            ->with(1, ['pid', 'colPos', 'sorting']);
 
         $dataHandler = $this->createMock(DataHandler::class);
         $dataHandler->substNEWwithIDs = ['NEW123' => 42];
@@ -68,7 +80,7 @@ final class ContentElementSaveHookTest extends TestCase
         $this->invalidationService
             ->expects(self::once())
             ->method('invalidateAfterContentSave')
-            ->with(42, ['header', 'bodytext']);
+            ->with(7, ['header', 'bodytext']);
 
         $dataHandler = $this->createMock(DataHandler::class);
         $this->createHook()->processDatamap_afterDatabaseOperations(
@@ -120,7 +132,7 @@ final class ContentElementSaveHookTest extends TestCase
         $this->invalidationService
             ->expects(self::once())
             ->method('invalidateAfterContentSave')
-            ->with(123, ['header']);
+            ->with(7, ['header']);
 
         $dataHandler = $this->createMock(DataHandler::class);
         $this->createHook()->processDatamap_afterDatabaseOperations(
@@ -140,7 +152,7 @@ final class ContentElementSaveHookTest extends TestCase
         $pageRefresher->method('pagesOfElement')->with(42)->willReturn([1, 8]);
         $pageRefresher->expects(self::once())->method('refresh')->with([1, 8]);
 
-        (new ContentElementSaveHook($this->invalidationService, $repository, $pageRefresher))
+        (new ContentElementSaveHook($this->invalidationService, $this->pageResolver(), $repository, $pageRefresher))
             ->processDatamap_afterDatabaseOperations('update', 'tt_content', 42, ['imageorient' => 25], $this->createMock(DataHandler::class));
     }
 
@@ -152,7 +164,22 @@ final class ContentElementSaveHookTest extends TestCase
         $pageRefresher->method('pagesOfElement')->willReturn([1, 8]);
         $pageRefresher->expects(self::never())->method('refresh');
 
-        (new ContentElementSaveHook($this->invalidationService, $repository, $pageRefresher))
+        (new ContentElementSaveHook($this->invalidationService, $this->pageResolver(), $repository, $pageRefresher))
             ->processDatamap_afterDatabaseOperations('update', 'tt_content', 42, ['imageorient' => 25], $this->createMock(DataHandler::class));
+    }
+
+    public function testInvalidatesThePageOfTheElementNotTheElementUid(): void
+    {
+        // Regression: the content uid (42) used to be passed as page uid.
+        $this->invalidationService->expects(self::once())->method('invalidateAfterContentSave')->with(7, ['header']);
+
+        $this->createHook()->processDatamap_afterDatabaseOperations('update', 'tt_content', 42, ['header' => 'x'], $this->createMock(DataHandler::class));
+    }
+
+    public function testSkipsInvalidationWhenThePageCannotBeResolved(): void
+    {
+        $this->invalidationService->expects(self::never())->method('invalidateAfterContentSave');
+
+        $this->createHook()->processDatamap_afterDatabaseOperations('update', 'tt_content', 99, ['header' => 'x'], $this->createMock(DataHandler::class));
     }
 }

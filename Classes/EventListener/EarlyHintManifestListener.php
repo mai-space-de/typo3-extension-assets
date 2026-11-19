@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\EventListener;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\EarlyHints\EarlyHintCandidateCollector;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
@@ -34,7 +35,9 @@ final readonly class EarlyHintManifestListener
         $pageArguments = $request->getAttribute('routing');
         $language = $request->getAttribute('language');
 
-        if ($pageArguments === null) {
+        // The manifest is keyed by page and language: URLs with route arguments
+        // (news detail) or a typeNum would leak their hints to the plain page.
+        if (!StaticCacheRequestGuard::isPlainPageDocument($pageArguments)) {
             return;
         }
 

@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Maispace\MaiAssets\EventListener;
 
 use Maispace\MaiAssets\Configuration\ExtensionConfiguration;
-use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\Service\PageOptimizationReadinessService;
 use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
+use Maispace\MaiAssets\StaticFileCache\StaticFileIndex;
 use Maispace\MaiAssets\StaticFileCache\StaticHtmlWriterService;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
 
@@ -21,11 +22,14 @@ use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
  * - TYPO3 marks the response as non-cacheable (INT / no_cache);
  * - the request is not a parameter-free GET;
  * - the request is not shareable (logged-in user, preview, host differing from the site base);
- * - the page type is not the default HTML document (sitemap and other typeNums share the page id);
+ * - the request is not the plain page document: a typeNum (sitemap) or route
+ *   arguments (e.g. news detail URLs) share the page id with it;
  * - the generated body is not an HTML document;
  * - the page is not optimisation-ready (missing viewport bucket data);
- * - no early-hints manifest exists for the page/language combination;
  * - the HTML contains INT_SCRIPT markers (handled by StaticHtmlWriterService).
+ *
+ * Every written file is registered in the {@see StaticFileIndex} with the tags
+ * and lifetime of the page cache entry, so it is invalidated together with it.
  */
 #[AsEventListener(
     identifier: 'mai-assets/static-html-writer',
@@ -37,48 +41,32 @@ final readonly class StaticHtmlWriterListener
         private ExtensionConfiguration $extensionConfiguration,
         private StaticHtmlWriterService $staticHtmlWriterService,
         private PageOptimizationReadinessService $readinessService,
-        private EarlyHintCacheService $earlyHintCacheService,
         private StaticCacheRequestGuard $requestGuard,
+        private StaticFileIndex $staticFileIndex,
     ) {}
 
     public function __invoke(AfterCacheableContentIsGeneratedEvent $event): void
     {
-        if (!$this->extensionConfiguration->isEnableStaticFileCache()) {
-            return;
-        }
-
-        if (!$event->isCachingEnabled()) {
+        if (!$this->extensionConfiguration->isEnableStaticFileCache() || !$event->isCachingEnabled()) {
             return;
         }
 
         $request = $event->getRequest();
-
-        if ($request->getMethod() !== 'GET') {
+        if ($request->getMethod() !== 'GET' || !$this->requestGuard->isShareable($request)) {
             return;
         }
 
-        if (!$this->requestGuard->isShareable($request)) {
-            return;
-        }
-
-        $requestUri = (string) $request->getUri();
-        if ($this->hasQueryString($requestUri)) {
+        if ($this->hasQueryString((string) $request->getUri())) {
             return;
         }
 
         $pageArguments = $request->getAttribute('routing');
-        if ($pageArguments === null) {
+        if (!StaticCacheRequestGuard::isPlainPageDocument($pageArguments)) {
             return;
         }
 
         $pageUid = (int) $pageArguments->getPageId();
         if ($pageUid <= 0) {
-            return;
-        }
-
-        // Sitemap and other typeNums resolve to the same page id. Their body
-        // must not replace the cached HTML document for that page.
-        if (!$this->isDefaultPageType($pageArguments)) {
             return;
         }
 
@@ -94,40 +82,46 @@ final readonly class StaticHtmlWriterListener
         $language = $request->getAttribute('language');
         $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
-        if ($this->earlyHintCacheService->load($pageUid, $languageUid) === []) {
+        if (!$this->staticHtmlWriterService->writeByPageId($content, $pageUid, $languageUid)) {
             return;
         }
 
-        $this->staticHtmlWriterService->writeByPageId(
-            $content,
-            $pageUid,
-            $languageUid,
-        );
+        [$tags, $lifetime] = $this->resolvePageCacheMetadata($request);
+        $this->staticFileIndex->register($pageUid, $languageUid, $tags, $lifetime);
     }
 
     /**
-     * The static file cache stores one HTML document per page and language.
-     * Only the default page type (0) is that document.
+     * Tags and lifetime of the page cache entry that is being written.
+     *
+     * @return array{0: list<string>, 1: int}
      */
-    private function isDefaultPageType(object $pageArguments): bool
+    private function resolvePageCacheMetadata(ServerRequestInterface $request): array
     {
-        if (!method_exists($pageArguments, 'getPageType')) {
-            return true;
+        $collector = $request->getAttribute('frontend.cache.collector');
+        if (is_object($collector) && method_exists($collector, 'getCacheTags')) {
+            $tags = [];
+            foreach ($collector->getCacheTags() as $tag) {
+                $name = is_object($tag) && property_exists($tag, 'name') ? $tag->name : $tag;
+                if (is_string($name)) {
+                    $tags[] = $name;
+                }
+            }
+            $lifetime = method_exists($collector, 'resolveLifetime') ? (int) $collector->resolveLifetime() : 0;
+
+            return [$tags, $lifetime];
         }
 
-        $pageType = $pageArguments->getPageType();
-        if ($pageType === null) {
-            return true;
+        // TYPO3 12: the frontend controller still holds tags and timeout.
+        $frontend = $GLOBALS['TSFE'] ?? null;
+        if (is_object($frontend) && method_exists($frontend, 'getPageCacheTags')) {
+            $lifetime = method_exists($frontend, 'get_cache_timeout') ? (int) $frontend->get_cache_timeout() : 0;
+
+            return [array_values(array_filter((array) $frontend->getPageCacheTags(), is_string(...))), $lifetime];
         }
 
-        $pageType = (string) $pageType;
-
-        return $pageType === '' || $pageType === '0';
+        return [[], 0];
     }
 
-    /**
-     * Return true when the URI carries a non-empty query string.
-     */
     private function hasQueryString(string $uri): bool
     {
         $parts = parse_url($uri);

@@ -6,18 +6,24 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
 
 ## Kritisch – falsche oder veraltete Inhalte für Besucher
 
-- [ ] **K1 Save-Hook übergibt Content-UID als Page-UID**
+- [x] **K1 Save-Hook übergibt Content-UID als Page-UID**
   `Classes/Hook/ContentElementSaveHook.php` ruft
   `invalidateAfterContentSave($uid, …)` mit der tt_content-UID auf. Geleert
   werden Cache, statische Datei und Above-fold-Daten der Seite mit
   ID = Content-UID; die bearbeitete Seite bleibt veraltet.
-- [ ] **K2 Statischer Cache wird bei redaktionellen Änderungen nicht geleert**
+  → Erledigt: `ContentPageResolver` ermittelt die Seite des Elements.
+- [x] **K2 Statischer Cache wird bei redaktionellen Änderungen nicht geleert**
   Außer K1 gibt es keinen Weg, der statische Dateien entfernt: Seiteneigenschaften
   (Titel/Menüs), Löschen/Verschieben/Kopieren/Ausblenden (cmdmap), Datensätze
   anderer Tabellen, „Frontend-Caches leeren“ und `starttime`/`endtime`.
-- [ ] **K3 Route-Enhancer-URLs teilen sich eine statische Datei**
+  → Erledigt: `StaticFileIndex` (Cache `mai_assets_static_index`, Gruppe `pages`, gleiche
+  Tags und Lebensdauer wie der Page-Cache). Ohne gültigen Eintrag wird die Datei nicht
+  ausgeliefert und gelöscht. Zusätzlich `clearCachePostProc`-Hook und `CacheFlushEvent`-Listener.
+- [x] **K3 Route-Enhancer-URLs teilen sich eine statische Datei**
   Schlüssel ist nur `{pageUid}_{languageUid}`. `/news/artikel-a` wird für alle
   Artikel ausgeliefert. Gleiches Problem beim Early-Hint-Manifest.
+  → Erledigt: `StaticCacheRequestGuard::isPlainPageDocument()` (typeNum + Route-Argumente)
+  in Writer, Serve-Middleware, Early-Hint-Manifest und -Middleware.
 - [ ] **K4 SCSS-Partials werden bei aktiver Minifizierung nicht übernommen**
   Der Minifier-Cache hängt am Hash der Root-`.scss`-Datei statt am Inhalt
   (`AbstractAssetProcessor`, `CompiledAssetPublisher`).
@@ -49,8 +55,8 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
 - [ ] **M13 Relative `url()` brechen** (ohne SCSS/Minify keine Umschreibung beim
   Inline-Einfügen; `?v=`/`#hash` werden nicht aufgelöst)
 - [ ] **M14 `BeforeAssetInjectionEvent` läuft beim kritischen CSS doppelt**
-- [ ] **M15 Statische Antworten ohne `Vary: Accept-Encoding`**
-- [ ] **M16 Seiten ohne Early-Hint-Manifest werden nie statisch gecacht**
+- [x] **M15 Statische Antworten ohne `Vary: Accept-Encoding`**
+- [x] **M16 Seiten ohne Early-Hint-Manifest werden nie statisch gecacht**
 - [ ] **M17 Inline-Skripte (Above-fold, Image-Measure) ohne CSP-Nonce**
 - [ ] **M18 `str_ireplace('</body>'|'</head>')` ersetzt alle Vorkommen**
 - [ ] **M19 Sprite-Einfügung per `preg_replace`** (`$1`/`\1` im SVG werden als
@@ -68,3 +74,9 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
   ungenutzte TypoScript-Settings)
 - [ ] **N26 Viewport-Grenzen im JS fest eingetragen** (ignoriert `viewportBuckets`)
 - [ ] **N27 `typo3temp/assets/mai_assets/compiled/` wird nie aufgeräumt**
+
+## Nebenbefunde beim Abarbeiten
+
+- [x] `Tests/Unit/ViewHelpers/Asset/CssViewHelperTest.php` hatte ein doppeltes `use`
+  (Fatal Error, die Testsuite brach dort ab).
+- [ ] `GeneralUtility::resolveBackPath()` in `StaticFileCacheDirectory` ist ab TYPO3 v15 entfernt.

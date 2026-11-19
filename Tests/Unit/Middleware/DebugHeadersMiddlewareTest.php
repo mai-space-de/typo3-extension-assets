@@ -48,9 +48,9 @@ final class DebugHeadersMiddlewareTest extends TestCase
     {
         $config = (new \ReflectionClass(ExtensionConfiguration::class))
             ->newInstanceWithoutConstructor();
-        new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'debugHeaders'))
             ->setValue($config, $debugHeaders);
-        new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets')
+        (new \ReflectionProperty(ExtensionConfiguration::class, 'viewportBuckets'))
             ->setValue($config, [
                 'mobile' => 768,
                 'tablet' => 1024,
