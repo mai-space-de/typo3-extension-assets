@@ -15,6 +15,7 @@ use Maispace\MaiAssets\Service\SriHashService;
 use Maispace\MaiAssets\Traits\FileResolutionTrait;
 use Maispace\MaiAssets\Utility\AttributeUtility;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Page\AssetCollector;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -69,7 +70,8 @@ class JsViewHelper extends AbstractViewHelper
             ? (bool) $this->arguments['minify']
             : $this->extensionConfiguration->isEnableMinification();
 
-        $routing = $GLOBALS['TYPO3_REQUEST']?->getAttribute('routing');
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        $routing = $request instanceof ServerRequestInterface ? $request->getAttribute('routing') : null;
         $pageUid = is_object($routing) && method_exists($routing, 'getPageId')
             ? (int) $routing->getPageId()
             : 0;
@@ -109,8 +111,9 @@ class JsViewHelper extends AbstractViewHelper
 
         // For TYPO3 14+, convert relative paths to absolute URLs to avoid SystemResourceFactory resolution issues
         $typo3Version = new Typo3Version();
-        if ($typo3Version->getMajorVersion() >= 14 && !str_starts_with($publicPath, 'http')) {
-            $siteUrl = (string) $GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams')->getSiteUrl();
+        $normalizedParams = $request instanceof ServerRequestInterface ? $request->getAttribute('normalizedParams') : null;
+        if ($typo3Version->getMajorVersion() >= 14 && !str_starts_with($publicPath, 'http') && is_object($normalizedParams)) {
+            $siteUrl = (string) $normalizedParams->getSiteUrl();
             $publicPath = rtrim($siteUrl, '/') . '/' . ltrim($publicPath, '/');
         }
 
@@ -130,13 +133,15 @@ class JsViewHelper extends AbstractViewHelper
         } else {
             if ($async) {
                 $tagAttributes['async'] = 'async';
-            } elseif ($defer && !$isCritical) {
+            } elseif ($defer) {
                 $tagAttributes['defer'] = 'defer';
             }
             if ($type !== '') {
                 $tagAttributes['type'] = $type;
             }
         }
+        // Critical scripts load early (fetchpriority, preload hint) but stay deferred:
+        // dropping defer made them parser- and render-blocking.
         if ($isCritical) {
             $tagAttributes['fetchpriority'] = 'high';
         }
@@ -197,7 +202,7 @@ class JsViewHelper extends AbstractViewHelper
         } else {
             if ($async) {
                 $tagAttributes['async'] = 'async';
-            } elseif ($defer && !$isCritical) {
+            } elseif ($defer) {
                 $tagAttributes['defer'] = 'defer';
             }
             if ($type !== '') {

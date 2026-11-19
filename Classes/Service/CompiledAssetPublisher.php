@@ -70,6 +70,22 @@ final readonly class CompiledAssetPublisher
      * Compiled CSS is stored in typo3temp/, which breaks relative paths like ../Fonts/.
      * This method rewrites them to absolute web paths so fonts/images still load.
      */
+    /**
+     * Stylesheet content ready to be inlined into the HTML document: compiled and
+     * minified like {@see publishStylesheet()}, with relative url() references made
+     * absolute (they would otherwise resolve against the page URL).
+     */
+    public function getInlineStylesheet(string $absoluteSourcePath, ?bool $minify = null): string
+    {
+        $published = $this->publishStylesheet($absoluteSourcePath, $minify);
+        $content = (string) file_get_contents($published);
+
+        // Compiled files are rewritten already; a passed-through source file is not.
+        return $published === $absoluteSourcePath
+            ? $this->rewriteRelativeUrls($content, $absoluteSourcePath)
+            : $content;
+    }
+
     private function rewriteRelativeUrls(string $css, string $sourcePath): string
     {
         $sourceDir = dirname($sourcePath);
@@ -77,11 +93,17 @@ final readonly class CompiledAssetPublisher
         $result = preg_replace_callback(
             '/url\(\s*[\'"]?([^\'"\)]+)[\'"]?\s*\)/i',
             function ($matches) use ($sourceDir) {
-                $url = $matches[1];
+                $url = trim($matches[1]);
 
-                if (preg_match('/^(https?:|data:|\/)/', $url)) {
+                if ($url === '' || preg_match('/^(https?:|data:|\/|#)/i', $url)) {
                     return $matches[0];
                 }
+
+                // Cache busters and fragments (font.woff2?v=2, font.svg#iefix) are kept but
+                // must not take part in the file lookup.
+                $suffixPosition = strcspn($url, '?#');
+                $suffix = substr($url, $suffixPosition);
+                $url = substr($url, 0, $suffixPosition);
 
                 // Build absolute path without resolving symlinks
                 $absolutePath = $sourceDir . '/' . $url;
@@ -103,7 +125,7 @@ final readonly class CompiledAssetPublisher
                 }
 
                 $webPath = $this->getPublicWebPath($absolutePath);
-                return 'url("' . $webPath . '")';
+                return 'url("' . $webPath . $suffix . '")';
             },
             $css,
         );
@@ -153,8 +175,10 @@ final readonly class CompiledAssetPublisher
             ? $this->scssDependencyHasher->hash($sourcePath)
             : (string) hash_file('sha256', $sourcePath);
 
+        // The source path is part of the key: identical content in different directories
+        // gets different url() rewrites.
         $hash = md5(
-            $sourceFingerprint
+            $sourcePath . ':' . $sourceFingerprint
             . ':scss=' . ($compileScss ? '1' : '0')
             . ':min=' . ($minify ? '1' : '0'),
         );

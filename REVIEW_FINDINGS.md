@@ -24,9 +24,10 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
   Artikel ausgeliefert. Gleiches Problem beim Early-Hint-Manifest.
   → Erledigt: `StaticCacheRequestGuard::isPlainPageDocument()` (typeNum + Route-Argumente)
   in Writer, Serve-Middleware, Early-Hint-Manifest und -Middleware.
-- [ ] **K4 SCSS-Partials werden bei aktiver Minifizierung nicht übernommen**
+- [x] **K4 SCSS-Partials werden bei aktiver Minifizierung nicht übernommen**
   Der Minifier-Cache hängt am Hash der Root-`.scss`-Datei statt am Inhalt
   (`AbstractAssetProcessor`, `CompiledAssetPublisher`).
+  → Erledigt: Cache-Schlüssel enthält den Inhalt; Publisher-Schlüssel zusätzlich den Quellpfad.
 
 ## Hoch
 
@@ -36,25 +37,28 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
 - [ ] **H6 Above-fold-Daten flattern**
   Jeder Report ersetzt die UID-Liste eines Buckets; unterschiedliche Viewport-Höhen
   im selben Bucket leeren Page-Cache und statische Datei bei jedem Wechsel.
-- [ ] **H7 Font-Preload zeigt auf den Dateisystempfad**
+- [x] **H7 Font-Preload zeigt auf den Dateisystempfad**
   `FontPreloadCollector` schreibt den absoluten Serverpfad in `href`.
-- [ ] **H8 Multi-Site: Discovery nutzt die erste Site statt der aktuellen**
+- [x] **H8 Multi-Site: Discovery nutzt die erste Site statt der aktuellen**
   `ExtensionConfigurationDiscovery::getCurrentSiteIdentifier()`.
 - [ ] **H9 Warmup-Task überspringt jeden zweiten Block**
   `StaticFileCacheWarmupTask`: Offset wandert über eine schrumpfende Ergebnismenge.
 - [ ] **H10 Bild-Preloads ohne `imagesrcset` laden doppelt**
   `ResponsiveImageViewHelper` preloadet überall die Desktop-AVIF,
   `PictureSourceRenderer` die erste (Mobile-)Variante.
-- [ ] **H11 „Kritisches“ JS verliert `defer`**
+- [x] **H11 „Kritisches“ JS verliert `defer`**
   `JsViewHelper` macht bei vorhandenen Observer-Daten alle `critical="auto"`-Skripte
   blockierend.
+  → Erledigt: `defer` bleibt, kritisch bedeutet nur noch `fetchpriority="high"` + Preload.
 
 ## Mittel
 
-- [ ] **M12 Kritisches CSS wird inline eingefügt und zusätzlich vorgeladen**
-- [ ] **M13 Relative `url()` brechen** (ohne SCSS/Minify keine Umschreibung beim
+- [x] **M12 Kritisches CSS wird inline eingefügt und zusätzlich vorgeladen**
+- [x] **M13 Relative `url()` brechen** (ohne SCSS/Minify keine Umschreibung beim
   Inline-Einfügen; `?v=`/`#hash` werden nicht aufgelöst)
-- [ ] **M14 `BeforeAssetInjectionEvent` läuft beim kritischen CSS doppelt**
+- [x] **M14 `BeforeAssetInjectionEvent` läuft beim kritischen CSS doppelt**
+  → Erledigt: Das Event feuert nur noch im injizierenden ViewHelper (Inline-CSS, minifiziertes JS),
+  nicht mehr im Processor. Extern eingebundenes CSS durchläuft es nicht mehr.
 - [x] **M15 Statische Antworten ohne `Vary: Accept-Encoding`**
 - [x] **M16 Seiten ohne Early-Hint-Manifest werden nie statisch gecacht**
 - [ ] **M17 Inline-Skripte (Above-fold, Image-Measure) ohne CSP-Nonce**
@@ -67,7 +71,7 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
 ## Niedrig
 
 - [ ] **N22 Video-Facade: doppeltes `class`-Attribut**
-- [ ] **N23 `CssViewHelper` ohne Null-Prüfung auf `$GLOBALS['TYPO3_REQUEST']`**
+- [x] **N23 `CssViewHelper` ohne Null-Prüfung auf `$GLOBALS['TYPO3_REQUEST']`**
 - [ ] **N24 103 Early Hints** – `header(..., 103)` sendet unter PHP-FPM kein echtes 103
   (nur prüfen/dokumentieren)
 - [ ] **N25 Tote Einstellungen** (`observerRootMargin`, `processingCacheLifetime`,

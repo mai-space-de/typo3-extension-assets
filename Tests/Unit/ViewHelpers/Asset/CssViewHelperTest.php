@@ -158,8 +158,30 @@ final class CssViewHelperTest extends TestCase
         self::assertStringContainsString(self::CSS_CONTENT, $result);
         self::assertStringContainsString('</style>', $result);
 
-        // early hint should have been registered
-        self::assertCount(1, $this->earlyHintCollector->getAll());
+        // Inlined CSS must not be preloaded as well (it would be downloaded for nothing).
+        self::assertCount(0, $this->earlyHintCollector->getAll());
+    }
+
+    public function testInlinedCssGetsAbsoluteUrlReferences(): void
+    {
+        mkdir($this->publicDir . '/img', 0777, true);
+        file_put_contents($this->publicDir . '/img/bg.png', 'png');
+        file_put_contents($this->tempCssFile, '.a{background:url(img/bg.png?v=2)}.b{background:url(#mask)}');
+
+        $result = $this->render(['critical' => 'true']);
+
+        // Resolved from the CSS file location; PathUtility adds the site path prefix ("/") only outside CLI.
+        self::assertMatchesRegularExpression('#url\("/?img/bg\.png\?v=2"\)#', $result);
+        self::assertStringContainsString('url(#mask)', $result);
+    }
+
+    public function testRendersWithoutGlobalRequest(): void
+    {
+        unset($GLOBALS['TYPO3_REQUEST']);
+
+        $result = $this->render(['critical' => 'true']);
+
+        self::assertStringContainsString('<style>', $result);
     }
 
     public function testCriticalTrueIncludesNonceAttributeWhenProvided(): void
