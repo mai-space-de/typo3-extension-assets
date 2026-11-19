@@ -22,14 +22,16 @@ use TYPO3\CMS\Frontend\Event\AfterCacheableContentIsGeneratedEvent;
  * - TYPO3 marks the response as non-cacheable (INT / no_cache);
  * - the request is not a parameter-free GET;
  * - the request is not shareable (logged-in user, preview, host differing from the site base);
- * - the request is not the plain page document: a typeNum (sitemap) or route
- *   arguments (e.g. news detail URLs) share the page id with it;
- * - the generated body is not an HTML document;
+ * - the generated body is not an HTML document (e.g. an XML sitemap typeNum);
  * - the page is not optimisation-ready (missing viewport bucket data);
  * - the HTML contains INT_SCRIPT markers (handled by StaticHtmlWriterService).
  *
+ * URLs of the same page with route arguments (news detail pages) or a typeNum are
+ * stored as separate variants (see StaticCacheRequestGuard::variantOf()).
+ *
  * Every written file is registered in the {@see StaticFileIndex} with the tags
- * and lifetime of the page cache entry, so it is invalidated together with it.
+ * and lifetime of the page cache entry, so it is invalidated together with it
+ * (a news record's own cache tags included).
  */
 #[AsEventListener(
     identifier: 'mai-assets/static-html-writer',
@@ -60,8 +62,11 @@ final readonly class StaticHtmlWriterListener
             return;
         }
 
+        // Each URL of a page (plain page, news detail via route arguments, typeNum) is a
+        // document of its own: page, language and variant key the file.
         $pageArguments = $request->getAttribute('routing');
-        if (!StaticCacheRequestGuard::isPlainPageDocument($pageArguments)) {
+        $variant = StaticCacheRequestGuard::variantOf($pageArguments);
+        if ($variant === null) {
             return;
         }
 
@@ -82,12 +87,12 @@ final readonly class StaticHtmlWriterListener
         $language = $request->getAttribute('language');
         $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
-        if (!$this->staticHtmlWriterService->writeByPageId($content, $pageUid, $languageUid)) {
+        if (!$this->staticHtmlWriterService->writeByPageId($content, $pageUid, $languageUid, $variant)) {
             return;
         }
 
         [$tags, $lifetime] = $this->resolvePageCacheMetadata($request);
-        $this->staticFileIndex->register($pageUid, $languageUid, $tags, $lifetime);
+        $this->staticFileIndex->register($pageUid, $languageUid, $tags, $lifetime, $variant);
     }
 
     /**

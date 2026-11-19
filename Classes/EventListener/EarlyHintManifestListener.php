@@ -35,15 +35,15 @@ final readonly class EarlyHintManifestListener
         $pageArguments = $request->getAttribute('routing');
         $language = $request->getAttribute('language');
 
-        // The manifest is keyed by page and language: URLs with route arguments
-        // (news detail) or a typeNum would leak their hints to the plain page.
-        if (!StaticCacheRequestGuard::isPlainPageDocument($pageArguments)) {
+        // Keyed by page, language and URL variant: a news detail page gets its own hints.
+        $variant = StaticCacheRequestGuard::variantOf($pageArguments);
+        if ($variant === null) {
             return;
         }
 
         $pageUid = (int) $pageArguments->getPageId();
         $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
-        $this->cacheService->store($pageUid, $languageUid, $this->collector);
+        $this->cacheService->store($pageUid, $languageUid, $this->collector, $variant);
     }
 }

@@ -28,14 +28,15 @@ final readonly class EarlyHintsMiddleware implements MiddlewareInterface
         // Skip Early Hints entirely in Development: Apache mod_proxy_fcgi auto-promotes
         // Link: headers to HTTP 103 responses before mod_headers can suppress them,
         // causing downstream proxies (e.g. Traefik) to fail with 500.
-        if (StaticCacheRequestGuard::isPlainPageDocument($pageArguments)
+        $variant = StaticCacheRequestGuard::variantOf($pageArguments);
+        if ($variant !== null
             && $this->isCacheableGetRequest($request)
             && !Environment::getContext()->isDevelopment()
         ) {
             $pageUid = (int) $pageArguments->getPageId();
             $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
-            $candidates = $this->earlyHintCacheService->load($pageUid, $languageUid);
+            $candidates = $this->earlyHintCacheService->load($pageUid, $languageUid, $variant);
 
             // A real HTTP 103 needs SAPI support (headers_send(), e.g. FrankenPHP). Under
             // PHP-FPM header('Link: …', false, 103) sent no informational response; it only

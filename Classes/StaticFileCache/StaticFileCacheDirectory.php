@@ -166,18 +166,24 @@ class StaticFileCacheDirectory
      * getPageDirectory() — it derives the path from the numeric page and
      * language identifiers rather than from the request URI.
      *
-     * Path scheme: {base}/{pageUid}_{languageUid}/
+     * Path scheme: {base}/{pageUid}_{languageUid}/ for the plain page document and
+     * {base}/{pageUid}_{languageUid}/v/{variant}/ for URL variants of the page
+     * (route arguments, e.g. news detail pages). Removing the page directory
+     * therefore removes all of its variants.
      *
      * This scheme mirrors the early-hints manifest cache key
-     * (earlyhints_{pageUid}_{languageUid}) so both caches are naturally
-     * aligned per page+language combination.
+     * (earlyhints_{pageUid}_{languageUid}[_{variant}]).
      *
      * The directory is not created; call ensureDirectoryExists() when needed.
      *
-     * @throws \InvalidArgumentException When $pageUid <= 0 or $languageUid < 0.
+     * @param string $variant '' or a key from StaticCacheRequestGuard::variantOf()
+     * @throws \InvalidArgumentException When $pageUid <= 0, $languageUid < 0 or the variant is malformed.
      */
-    public function getPageDirectoryById(int $pageUid, int $languageUid): string
+    public function getPageDirectoryById(int $pageUid, int $languageUid, string $variant = ''): string
     {
+        if ($variant !== '' && preg_match(StaticCacheRequestGuard::VARIANT_PATTERN, $variant) !== 1) {
+            throw new \InvalidArgumentException('Malformed cache variant "' . $variant . '".', 1763800001);
+        }
         if ($pageUid <= 0) {
             throw new \InvalidArgumentException(
                 'Page UID must be positive, got ' . $pageUid . '.',
@@ -192,7 +198,8 @@ class StaticFileCacheDirectory
         }
 
         $baseDir = $this->getAbsoluteBaseDirectory();
-        $relative = $this->buildRelativePagePathById($pageUid, $languageUid);
+        $relative = $this->buildRelativePagePathById($pageUid, $languageUid)
+            . ($variant !== '' ? 'v/' . $variant . '/' : '');
         $resultPath = self::normalizeDirectory($baseDir . $relative);
 
         // Security guard: the resolved path must stay within the cache base directory.

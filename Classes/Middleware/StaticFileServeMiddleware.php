@@ -98,11 +98,11 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
                 return $handler->handle($request);
             }
 
-            // One cache file per page id and language. Sitemaps (typeNum) and URLs with
-            // route arguments (e.g. news detail pages) share the page id and must render
-            // dynamically instead of replaying that file.
+            // One cache file per page, language and URL variant: /news/article-a and
+            // /news/article-b share the page id but have different route arguments.
             $pageArgs = $request->getAttribute('routing');
-            if (!StaticCacheRequestGuard::isPlainPageDocument($pageArgs)) {
+            $variant = StaticCacheRequestGuard::variantOf($pageArgs);
+            if ($variant === null) {
                 return $handler->handle($request);
             }
 
@@ -110,7 +110,7 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
             $pageUid = (int) $pageArgs->getPageId();
             $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
 
-            $filePath = $this->resolveCacheFilePath($pageUid, $languageUid);
+            $filePath = $this->resolveCacheFilePath($pageUid, $languageUid, $variant);
 
             if ($filePath === null || !is_file($filePath) || !is_readable($filePath)) {
                 return $handler->handle($request);
@@ -118,8 +118,8 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
 
             // The file is only valid as long as the page cache entry it was rendered from:
             // any page cache flush or the end of its lifetime removes the index entry.
-            if (!$this->staticFileIndex->isValid($pageUid, $languageUid)) {
-                $this->staticFileRemovalService->purgeForLanguage($pageUid, $languageUid);
+            if (!$this->staticFileIndex->isValid($pageUid, $languageUid, $variant)) {
+                $this->staticFileRemovalService->purgeVariant($pageUid, $languageUid, $variant);
 
                 return $handler->handle($request);
             }
@@ -135,7 +135,7 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
             // --- Hybrid delivery: add preload Link headers from early hints manifest ---
             // The EarlyHintsMiddleware already sent these as HTTP 103; we repeat them on the
             // 200 response as a fallback for clients / proxies that do not support 103.
-            $this->addEarlyHintLinkHeaders($request, $headers);
+            $this->addEarlyHintLinkHeaders($pageUid, $languageUid, $variant, $headers);
 
             $filePath = $this->resolveContentEncoding($filePath, $request, $headers);
 
@@ -179,14 +179,14 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
      * Absolute path of {baseDir}/{pageUid}_{languageUid}/index.html, or null when
      * it cannot be resolved inside the cache base directory.
      */
-    private function resolveCacheFilePath(int $pageUid, int $languageUid): ?string
+    private function resolveCacheFilePath(int $pageUid, int $languageUid, string $variant): ?string
     {
         if ($pageUid <= 0) {
             return null;
         }
 
         try {
-            $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid);
+            $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid, $variant);
         } catch (\InvalidArgumentException) {
             return null;
         }
@@ -220,19 +220,12 @@ final readonly class StaticFileServeMiddleware implements MiddlewareInterface
      * @param array<string, string> $headers  Reference to the response headers array.
      */
     private function addEarlyHintLinkHeaders(
-        ServerRequestInterface $request,
+        int $pageUid,
+        int $languageUid,
+        string $variant,
         array &$headers,
     ): void {
-        $pageArguments = $request->getAttribute('routing');
-        if ($pageArguments === null) {
-            return;
-        }
-
-        $language = $request->getAttribute('language');
-        $pageUid = (int) $pageArguments->getPageId();
-        $languageUid = $language !== null ? (int) $language->getLanguageId() : 0;
-
-        $candidates = $this->earlyHintCacheService->load($pageUid, $languageUid);
+        $candidates = $this->earlyHintCacheService->load($pageUid, $languageUid, $variant);
         if ($candidates === []) {
             return;
         }

@@ -6,6 +6,7 @@ namespace Maispace\MaiAssets\Tests\Unit\Middleware;
 
 use Maispace\MaiAssets\EarlyHints\EarlyHintCacheService;
 use Maispace\MaiAssets\Middleware\EarlyHintsMiddleware;
+use Maispace\MaiAssets\StaticFileCache\StaticCacheRequestGuard;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -120,12 +121,15 @@ final class EarlyHintsMiddlewareTest extends TestCase
         (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
     }
 
-    public function testProcessNeverLoadsCacheForUrlsWithRouteArguments(): void
+    public function testProcessLoadsTheManifestOfTheUrlVariant(): void
     {
-        // The manifest of /news/article-a must not be sent for /news/article-b.
-        $this->cacheFrontend->expects(self::never())->method('get');
+        // /news/article-b has its own manifest instead of the one of the plain page.
+        $pageArguments = $this->makePageArguments(7, ['tx_news_pi1' => ['news' => 3]]);
+        $this->cacheFrontend->expects(self::once())->method('get')
+            ->with('earlyhints_7_0_' . StaticCacheRequestGuard::variantOf($pageArguments))
+            ->willReturn(false);
 
-        $request = $this->makeGetRequest(pageArguments: $this->makePageArguments(7, ['tx_news_pi1' => ['news' => 3]]), language: null);
+        $request = $this->makeGetRequest(pageArguments: $pageArguments, language: null);
 
         (new EarlyHintsMiddleware($this->cacheService))->process($request, $this->handler);
     }

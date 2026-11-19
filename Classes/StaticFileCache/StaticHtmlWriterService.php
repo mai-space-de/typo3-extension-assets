@@ -123,7 +123,7 @@ class StaticHtmlWriterService
      * Returns true when the file was successfully written, false when any
      * guard condition prevented it or the write itself failed.
      */
-    public function writeByPageId(string $html, int $pageUid, int $languageUid): bool
+    public function writeByPageId(string $html, int $pageUid, int $languageUid, string $variant = ''): bool
     {
         if ($html === '' || !self::isCacheableHtmlDocument($html)) {
             return false;
@@ -141,7 +141,7 @@ class StaticHtmlWriterService
             return false;
         }
 
-        $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid);
+        $pageDir = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid, $variant);
         $this->cacheDirectory->ensureDirectoryExists($pageDir);
 
         $filePath = rtrim($pageDir, '/') . '/' . self::INDEX_FILENAME;

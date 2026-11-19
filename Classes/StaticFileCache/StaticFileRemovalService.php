@@ -95,6 +95,38 @@ class StaticFileRemovalService implements LoggerAwareInterface
     }
 
     /**
+     * Removes one document of a page: the plain page (variant '') keeps the
+     * directories of its URL variants, a variant only removes its own directory.
+     */
+    public function purgeVariant(int $pageUid, int $languageUid, string $variant): void
+    {
+        try {
+            $directory = $this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid, $variant);
+            if ($variant !== '') {
+                if (is_dir($directory)) {
+                    GeneralUtility::rmdir($directory, true);
+                }
+
+                return;
+            }
+            foreach (['', '.gz', '.br'] as $suffix) {
+                $file = $directory . StaticHtmlWriterService::INDEX_FILENAME . $suffix;
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->logger?->warning(sprintf(
+                'Could not remove static cache variant "%s" of page %d, language %d: %s',
+                $variant,
+                $pageUid,
+                $languageUid,
+                $e->getMessage(),
+            ));
+        }
+    }
+
+    /**
      * Removes every page directory ({pageUid}_{languageUid}) of the static cache.
      * Other files in the base directory (e.g. a .htaccess) are kept.
      *

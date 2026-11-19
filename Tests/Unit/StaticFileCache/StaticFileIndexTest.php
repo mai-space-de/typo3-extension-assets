@@ -58,9 +58,24 @@ final class StaticFileIndexTest extends TestCase
         $this->subject->register(13, 0, ['other'], 3600);
 
         self::assertEqualsCanonicalizing(
-            [['page' => 12, 'language' => 0], ['page' => 12, 'language' => 1]],
+            [['page' => 12, 'language' => 0, 'variant' => ''], ['page' => 12, 'language' => 1, 'variant' => '']],
             $this->subject->findByTags(['tx_news_pid_5', 'unknown']),
         );
+    }
+
+    public function testVariantsOfAPageAreIndependent(): void
+    {
+        $articleA = str_repeat('a', 20);
+        $articleB = str_repeat('b', 20);
+        $this->subject->register(12, 0, ['tx_news_uid_7'], 3600, $articleA);
+        $this->subject->register(12, 0, ['tx_news_uid_8'], 3600, $articleB);
+
+        // Editing news 7 invalidates only its detail page.
+        $this->cache->flushByTag('tx_news_uid_7');
+
+        self::assertFalse($this->subject->isValid(12, 0, $articleA));
+        self::assertTrue($this->subject->isValid(12, 0, $articleB));
+        self::assertSame([['page' => 12, 'language' => 0, 'variant' => $articleB]], $this->subject->findByTags(['tx_news_uid_8']));
     }
 
     public function testUnknownLifetimesFallBackToTheDefault(): void
@@ -73,7 +88,9 @@ final class StaticFileIndexTest extends TestCase
 
     public function testIdentifierRoundTrip(): void
     {
-        self::assertSame(['page' => 7, 'language' => 2], StaticFileIndex::parseIdentifier(StaticFileIndex::identifier(7, 2)));
+        self::assertSame(['page' => 7, 'language' => 2, 'variant' => ''], StaticFileIndex::parseIdentifier(StaticFileIndex::identifier(7, 2)));
+        $variant = str_repeat('ab', 10);
+        self::assertSame(['page' => 7, 'language' => 2, 'variant' => $variant], StaticFileIndex::parseIdentifier(StaticFileIndex::identifier(7, 2, $variant)));
         self::assertNull(StaticFileIndex::parseIdentifier('static_x_1'));
     }
 }

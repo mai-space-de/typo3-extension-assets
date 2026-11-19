@@ -34,7 +34,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
     private ResponseInterface&MockObject $fallbackResponse;
     private FrontendInterface&MockObject $cacheFrontend;
     private EarlyHintCacheService $earlyHintCacheService;
-    /** @var list<array{0: int, 1: int}> */
+    /** @var list<array{0: int, 1: int, 2: string}> */
     private array $purged = [];
 
     protected function setUp(): void
@@ -312,15 +312,34 @@ final class StaticFileServeMiddlewareTest extends TestCase
         self::assertSame($this->fallbackResponse, $result);
     }
 
-    public function testFallsThroughForUrlsWithRouteArguments(): void
+    public function testNewsDetailPagesAreServedFromTheirOwnVariant(): void
     {
-        // /news/article-b resolves to the same page as the cached /news/article-a.
-        $this->writeStaticFileById(1, 0, '<html><body>Article A</body></html>');
+        // /news/article-a and /news/article-b share page 1 but are separate documents.
+        $articleA = ['tx_news_pi1' => ['action' => 'detail', 'news' => 7]];
+        $articleB = ['tx_news_pi1' => ['action' => 'detail', 'news' => 8]];
+        $this->writeStaticFileById(1, 0, '<html><body>List</body></html>');
+        $this->writeStaticFileById(1, 0, '<html><body>Article A</body></html>', $this->variant($articleA));
+        $this->writeStaticFileById(1, 0, '<html><body>Article B</body></html>', $this->variant($articleB));
+
+        $middleware = $this->makeMiddleware();
+        $serve = fn(array $routeArguments): string => (string) $middleware->process(
+            $this->makeGetRequest('https://example.com/news/x', pageArguments: $this->makePageArguments(1, routeArguments: $routeArguments)),
+            $this->handler,
+        )->getBody();
+
+        self::assertSame('<html><body>Article A</body></html>', $serve($articleA));
+        self::assertSame('<html><body>Article B</body></html>', $serve($articleB));
+        self::assertSame('<html><body>List</body></html>', $serve([]));
+    }
+
+    public function testUncachedVariantFallsThroughInsteadOfServingThePage(): void
+    {
+        $this->writeStaticFileById(1, 0, '<html><body>List</body></html>');
         $this->handler->expects(self::once())->method('handle')->willReturn($this->fallbackResponse);
 
         $request = $this->makeGetRequest(
-            'https://example.com/news/article-b',
-            pageArguments: $this->makePageArguments(1, routeArguments: ['tx_news_pi1' => ['news' => 7]]),
+            'https://example.com/news/article-c',
+            pageArguments: $this->makePageArguments(1, routeArguments: ['tx_news_pi1' => ['news' => 9]]),
         );
 
         self::assertSame($this->fallbackResponse, $this->makeMiddleware()->process($request, $this->handler));
@@ -338,7 +357,7 @@ final class StaticFileServeMiddlewareTest extends TestCase
         );
 
         self::assertSame($this->fallbackResponse, $result);
-        self::assertSame([[1, 0]], $this->purged);
+        self::assertSame([[1, 0, '']], $this->purged);
     }
 
     public function testServedFileVariesOnAcceptEncoding(): void
@@ -567,8 +586,8 @@ final class StaticFileServeMiddlewareTest extends TestCase
         $index = $this->createMock(StaticFileIndex::class);
         $index->method('isValid')->willReturn($indexValid);
         $removal = $this->createMock(StaticFileRemovalService::class);
-        $removal->method('purgeForLanguage')->willReturnCallback(function (int $pageUid, int $languageUid): void {
-            $this->purged[] = [$pageUid, $languageUid];
+        $removal->method('purgeVariant')->willReturnCallback(function (int $pageUid, int $languageUid, string $variant): void {
+            $this->purged[] = [$pageUid, $languageUid, $variant];
         });
 
         return new StaticFileServeMiddleware(
@@ -604,9 +623,9 @@ final class StaticFileServeMiddlewareTest extends TestCase
     /**
      * Write a static file keyed by page UID and language UID.
      */
-    private function writeStaticFileById(int $pageUid, int $languageUid, string $content): void
+    private function writeStaticFileById(int $pageUid, int $languageUid, string $content, string $variant = ''): void
     {
-        $filePath = $this->filePathById($pageUid, $languageUid);
+        $filePath = rtrim($this->cacheDirectory->getPageDirectoryById($pageUid, $languageUid, $variant), '/') . '/index.html';
         $dir = \dirname($filePath);
         if (!is_dir($dir)) {
             mkdir($dir, 0777, true);
@@ -676,6 +695,11 @@ final class StaticFileServeMiddlewareTest extends TestCase
         );
 
         return $request;
+    }
+
+    private function variant(array $routeArguments): string
+    {
+        return (string) StaticCacheRequestGuard::variantOf($this->makePageArguments(1, routeArguments: $routeArguments));
     }
 
     private function makePageArguments(int $pageId, ?string $pageType = null, array $routeArguments = []): PageArguments

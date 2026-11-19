@@ -167,13 +167,15 @@ final class StaticHtmlWriterListenerTest extends TestCase
         $listener($event);
     }
 
-    public function testInvokeSkipsNonDefaultPageType(): void
+    public function testHtmlTypeNumIsWrittenAsVariantOfThePage(): void
     {
-        $writer = $this->createMock(StaticHtmlWriterService::class);
-        $writer->expects(self::never())->method('writeByPageId');
+        $this->stubReadyPageWithManifest(42, 0);
+        $variant = StaticCacheRequestGuard::variantOf($this->routing(42, '98'));
 
-        $listener = $this->makeListener($writer);
-        $listener($this->makeEvent('<html></html>', 42, 0, pageType: '1533906435'));
+        $writer = $this->createMock(StaticHtmlWriterService::class);
+        $writer->expects(self::once())->method('writeByPageId')->with('<html>print</html>', 42, 0, $variant)->willReturn(true);
+
+        $this->makeListener($writer)($this->makeEvent('<html>print</html>', 42, 0, pageType: '98'));
     }
 
     public function testInvokeSkipsNonHtmlDocument(): void
@@ -215,16 +217,33 @@ final class StaticHtmlWriterListenerTest extends TestCase
         $this->makeListener($writer)($this->makeEvent('<html></html>', 42, 0));
     }
 
-    public function testInvokeSkipsUrlsWithRouteArguments(): void
+    public function testNewsDetailPagesAreCachedAsSeparateVariants(): void
     {
         $this->stubReadyPageWithManifest(42, 0);
+        $articleA = ['tx_news_pi1' => ['action' => 'detail', 'news' => 7]];
+        $articleB = ['tx_news_pi1' => ['action' => 'detail', 'news' => 8]];
+        $variantA = StaticCacheRequestGuard::variantOf($this->routing(42, '0', $articleA));
+        $variantB = StaticCacheRequestGuard::variantOf($this->routing(42, '0', $articleB));
+        self::assertNotSame($variantA, $variantB);
 
+        $written = [];
         $writer = $this->createMock(StaticHtmlWriterService::class);
-        $writer->expects(self::never())->method('writeByPageId');
+        $writer->method('writeByPageId')->willReturnCallback(
+            static function (string $html, int $page, int $language, string $variant) use (&$written): bool {
+                $written[$variant] = $html;
 
-        $this->makeListener($writer)(
-            $this->makeEvent('<html>article</html>', 42, 0, routeArguments: ['tx_news_pi1' => ['news' => 7]]),
+                return true;
+            },
         );
+        $index = $this->createMock(StaticFileIndex::class);
+        $index->expects(self::exactly(2))->method('register')
+            ->with(42, 0, self::anything(), self::anything(), self::logicalOr($variantA, $variantB));
+
+        $listener = $this->makeListener($writer, index: $index);
+        $listener($this->makeEvent('<html>A</html>', 42, 0, routeArguments: $articleA));
+        $listener($this->makeEvent('<html>B</html>', 42, 0, routeArguments: $articleB));
+
+        self::assertSame([$variantA => '<html>A</html>', $variantB => '<html>B</html>'], $written);
     }
 
     public function testWrittenFileIsRegisteredWithPageCacheTagsAndLifetime(): void
@@ -235,7 +254,7 @@ final class StaticHtmlWriterListenerTest extends TestCase
         $writer->method('writeByPageId')->willReturn(true);
 
         $index = $this->createMock(StaticFileIndex::class);
-        $index->expects(self::once())->method('register')->with(42, 0, ['pageId_42', 'tx_news_pid_5'], 3600);
+        $index->expects(self::once())->method('register')->with(42, 0, ['pageId_42', 'tx_news_pid_5'], 3600, '');
 
         $collector = new CacheDataCollector();
         $collector->addCacheTags(new CacheTag('pageId_42'), new CacheTag('tx_news_pid_5', 3600));
@@ -360,7 +379,25 @@ final class StaticHtmlWriterListenerTest extends TestCase
         array $routeArguments = [],
         ?CacheDataCollector $cacheCollector = null,
     ): ServerRequestInterface {
-        $routing = new readonly class ($pageUid, $pageType, $routeArguments) {
+        $routing = $this->routing($pageUid, $pageType, $routeArguments);
+
+        $language = new readonly class ($languageUid) {
+            public function __construct(
+                private int $languageId,
+            ) {}
+
+            public function getLanguageId(): int
+            {
+                return $this->languageId;
+            }
+        };
+
+        return $this->requestFor($method, $uri, $routing, $language, $cacheCollector);
+    }
+
+    private function routing(int $pageUid, string $pageType = '0', array $routeArguments = []): object
+    {
+        return new readonly class ($pageUid, $pageType, $routeArguments) {
             public function __construct(
                 private int $pageId,
                 private string $pageType,
@@ -382,18 +419,10 @@ final class StaticHtmlWriterListenerTest extends TestCase
                 return $this->pageType;
             }
         };
+    }
 
-        $language = new readonly class ($languageUid) {
-            public function __construct(
-                private int $languageId,
-            ) {}
-
-            public function getLanguageId(): int
-            {
-                return $this->languageId;
-            }
-        };
-
+    private function requestFor(string $method, string $uri, object $routing, object $language, ?CacheDataCollector $cacheCollector): ServerRequestInterface
+    {
         $uriObject = $this->createMock(UriInterface::class);
         $uriObject->method('__toString')->willReturn($uri);
 

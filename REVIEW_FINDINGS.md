@@ -23,8 +23,12 @@ TypoScript-Konfiguration und der Middleware-Reihenfolge. Status: `[ ]` offen,
 - [x] **K3 Route-Enhancer-URLs teilen sich eine statische Datei**
   Schlüssel ist nur `{pageUid}_{languageUid}`. `/news/artikel-a` wird für alle
   Artikel ausgeliefert. Gleiches Problem beim Early-Hint-Manifest.
-  → Erledigt: `StaticCacheRequestGuard::isPlainPageDocument()` (typeNum + Route-Argumente)
-  in Writer, Serve-Middleware, Early-Hint-Manifest und -Middleware.
+  → Erledigt (überarbeitet): Jede URL-Variante einer Seite ist ein eigenes Dokument.
+  `StaticCacheRequestGuard::variantOf()` bildet aus typeNum und Route-Argumenten einen
+  Schlüssel; Datei (`{page}_{lang}/v/{variant}/index.html`), Index-Eintrag und
+  Early-Hint-Manifest (`earlyhints_{page}_{lang}_{variant}`) hängen daran. News-Detailseiten
+  werden damit gecacht wie jede andere Seite; ihre eigenen Cache-Tags (z. B. `tx_news_uid_7`)
+  invalidieren nur ihre Variante. (Die erste Lösung schloss solche URLs aus.)
 - [x] **K4 SCSS-Partials werden bei aktiver Minifizierung nicht übernommen**
   Der Minifier-Cache hängt am Hash der Root-`.scss`-Datei statt am Inhalt
   (`AbstractAssetProcessor`, `CompiledAssetPublisher`).

@@ -41,7 +41,7 @@ class StaticFileIndex
      * @param int $lifetime seconds; unknown values (0 or less, above {@see self::MAX_LIFETIME})
      *                      fall back to {@see self::DEFAULT_LIFETIME}
      */
-    public function register(int $pageUid, int $languageUid, array $tags, int $lifetime): void
+    public function register(int $pageUid, int $languageUid, array $tags, int $lifetime, string $variant = ''): void
     {
         $tags[] = 'pageId_' . $pageUid;
         $tags = array_values(array_unique(array_filter(
@@ -50,28 +50,28 @@ class StaticFileIndex
         )));
 
         $this->cache()->set(
-            self::identifier($pageUid, $languageUid),
-            ['page' => $pageUid, 'language' => $languageUid],
+            self::identifier($pageUid, $languageUid, $variant),
+            ['page' => $pageUid, 'language' => $languageUid, 'variant' => $variant],
             $tags,
             $lifetime > 0 && $lifetime <= self::MAX_LIFETIME ? $lifetime : self::DEFAULT_LIFETIME,
         );
     }
 
-    public function isValid(int $pageUid, int $languageUid): bool
+    public function isValid(int $pageUid, int $languageUid, string $variant = ''): bool
     {
-        return $this->cache()->has(self::identifier($pageUid, $languageUid));
+        return $this->cache()->has(self::identifier($pageUid, $languageUid, $variant));
     }
 
-    public function remove(int $pageUid, int $languageUid): void
+    public function remove(int $pageUid, int $languageUid, string $variant = ''): void
     {
-        $this->cache()->remove(self::identifier($pageUid, $languageUid));
+        $this->cache()->remove(self::identifier($pageUid, $languageUid, $variant));
     }
 
     /**
      * Static files rendered from page cache entries carrying one of the tags.
      *
      * @param list<string> $tags
-     * @return list<array{page: int, language: int}>
+     * @return list<array{page: int, language: int, variant: string}>
      */
     public function findByTags(array $tags): array
     {
@@ -88,7 +88,7 @@ class StaticFileIndex
             foreach ($backend->findIdentifiersByTag($tag) as $identifier) {
                 $entry = self::parseIdentifier((string) $identifier);
                 if ($entry !== null) {
-                    $found[$entry['page'] . '_' . $entry['language']] = $entry;
+                    $found[$identifier] = $entry;
                 }
             }
         }
@@ -96,21 +96,21 @@ class StaticFileIndex
         return array_values($found);
     }
 
-    public static function identifier(int $pageUid, int $languageUid): string
+    public static function identifier(int $pageUid, int $languageUid, string $variant = ''): string
     {
-        return 'static_' . $pageUid . '_' . $languageUid;
+        return 'static_' . $pageUid . '_' . $languageUid . ($variant !== '' ? '_' . $variant : '');
     }
 
     /**
-     * @return array{page: int, language: int}|null
+     * @return array{page: int, language: int, variant: string}|null
      */
     public static function parseIdentifier(string $identifier): ?array
     {
-        if (preg_match('/^static_(\d+)_(\d+)$/', $identifier, $matches) !== 1) {
+        if (preg_match('/^static_(\d+)_(\d+)(?:_([a-f0-9]{20}))?$/', $identifier, $matches) !== 1) {
             return null;
         }
 
-        return ['page' => (int) $matches[1], 'language' => (int) $matches[2]];
+        return ['page' => (int) $matches[1], 'language' => (int) $matches[2], 'variant' => $matches[3] ?? ''];
     }
 
     private function cache(): FrontendInterface
